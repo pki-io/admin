@@ -1,8 +1,10 @@
 package main
 
-import "flag"
-import "fmt"
-
+import (
+    "fmt"
+    // http://docopt.org/
+    "github.com/docopt/docopt-go"
+)
 func main() {
 
 }
