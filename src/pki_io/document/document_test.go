@@ -7,11 +7,7 @@ import (
 func TestDocumentEmpty(t *testing.T) {
     doc := Document{}
     if err := doc.Load(`{}`); err != nil {
-      t.Errorf("Failed to load document: %s", err)
-    }
-
-    if err := doc.Validate(); err == nil {
-      t.Errorf("Should not be able to validate empty document")
+      t.Errorf("Failed to load empty document: %s", err)
     }
 }
 
@@ -42,17 +38,44 @@ func TestDocumentValid(t *testing.T) {
     }
 }
 
-func TestDocumentInValidVersion(t *testing.T) {
+func TestDocumentInvalidVersion(t *testing.T) {
     doc := Document{}
     if err := doc.Load(`{"version":"a string","type":"test","options":"test","body":"test"}`); err == nil {
-      t.Errorf("Should not be able to validate invalid version")
-    } else if err.Error() != "json: cannot unmarshal string into Go value of type int" {
-      t.Errorf("Unexpected error loading invalid document", err)
+      t.Errorf("Should not be able to load invalid version")
+    } else if err_string := err.Error(); err_string != "json: cannot unmarshal string into Go value of type int" {
+      t.Errorf("Unexpected error loading invalid document", err_string)
     }
+}
 
+func TestDocumentInvalidType(t *testing.T) {
+    doc := Document{}
+    if err := doc.Load(`{"version":1,"type":1,"options":"test","body":"test"}`); err == nil {
+      t.Errorf("Should not be able to load invalid type")
+    } else if err_string := err.Error(); err_string != "json: cannot unmarshal number into Go value of type string" {
+      t.Errorf("Unexpected error loading invalid document", err_string)
+    }
+}
+
+func TestDocumentInvalidOptions(t *testing.T) {
+    doc := Document{}
+    if err := doc.Load(`{"version":1,"type":"test","options":1,"body":"test"}`); err != nil {
+      t.Errorf("Should be able to load invalid options: %s", err)
+    }
     if err := doc.Validate(); err == nil {
-      t.Errorf("Should not be able to validate invalid version")
-    } else if err.Error() != "Version not set" {
-      t.Errorf("Unexpected error validating document", err)
+      t.Errorf("Should not be able to validate invalid options")
+    } else if err_string := err.Error(); err_string != "Invalid type for Options: float64" {
+      t.Errorf("Unexpected error validating options: %s", err_string)
+    }
+}
+
+func TestDocumentInvalidBody(t *testing.T) {
+    doc := Document{}
+    if err := doc.Load(`{"version":1,"type":"test","options":"","body":1}`); err != nil {
+      t.Errorf("Should be able to load invalid body: %s", err)
+    }
+    if err := doc.Validate(); err == nil {
+      t.Errorf("Should not be able to validate invalid body")
+    } else if err_string := err.Error(); err_string != "Invalid type for Body: float64" {
+      t.Errorf("Unexpected error validating body: %s", err_string)
     }
 }

@@ -5,7 +5,7 @@ import (
     "io"
     "strings"
     "fmt"
-    "errors"
+    //"errors"
 )
 
 type Document struct {
@@ -26,16 +26,12 @@ func (doc *Document) Load(data string) (err error) {
 }
 
 func (doc *Document) Validate() (err error) {
-    if doc.Version == 0 {
-        return errors.New("Version not set")
-    }
-
     switch v := doc.Options.(type) {
         case string:
         case []interface{}:
         case map[string]interface{}:
         default:
-          return fmt.Errorf("Invalid type for Options: %s", v)
+          return fmt.Errorf("Invalid type for Options: %T", v)
     }
 
     switch v := doc.Body.(type) {
@@ -43,7 +39,7 @@ func (doc *Document) Validate() (err error) {
         case []interface{}:
         case map[string]interface{}:
         default:
-          return fmt.Errorf("Invalid type for Body: %s", v)
+          return fmt.Errorf("Invalid type for Body: %T", v)
     }
     return
 }
