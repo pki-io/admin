@@ -43,3 +43,22 @@ func (doc *Document) Validate() (err error) {
     }
     return
 }
+
+type CADocument struct {
+    Document // Anonymous field Document
+}
+
+func (doc *CADocument) Validate() (err error) {
+    switch v:= doc.Options.(type) {
+        case map[string]interface{}:
+        default:
+          return fmt.Errorf("Invalid type for CADocument Options: %T", v)
+    }
+
+    switch v:= doc.Body.(type) {
+        case map[string]interface{}:
+        default:
+          return fmt.Errorf("Invalid type for CADocument Body: %T", v)
+    }
+    return
+}
