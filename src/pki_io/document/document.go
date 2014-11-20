@@ -1,64 +1,114 @@
 package document
 
 import (
-    "encoding/json"
-    "io"
-    "strings"
     "fmt"
-    //"errors"
+    "encoding/json"
 )
+type Documenter interface {
+    Version()
+    Type()
+    Options()
+    Body()
+}
 
-type Document struct {
+type document struct {
     Version int
     Type string
     Options interface{}
     Body interface{}
 }
 
-func (doc *Document) Load(data string) (err error) {
-    dec := json.NewDecoder(strings.NewReader(data))
-    if err := dec.Decode(doc); err == io.EOF {
-        return nil
-    } else if err != nil {
-        return err
-    }
-    return err
+type Document struct {
+    document
 }
 
-func (doc *Document) Validate() (err error) {
-    switch v := doc.Options.(type) {
-        case string:
-        case []interface{}:
-        case map[string]interface{}:
-        default:
-          return fmt.Errorf("Invalid type for Options: %T", v)
+func New(json_data string) (*Document, error) {
+    d := document{}
+    if err := json.Unmarshal([]byte(json_data), &d); err != nil {
+        return nil, err
     }
+    //doc := Document{d}
+    return &Document{d}, nil
+}
 
-    switch v := doc.Body.(type) {
-        case string:
-        case []interface{}:
-        case map[string]interface{}:
-        default:
-          return fmt.Errorf("Invalid type for Body: %T", v)
-    }
-    return
+func (doc *Document) Version() int {
+    return doc.document.Version
+}
+
+func (doc *Document) Type() string {
+    return doc.document.Type
+}
+
+func (doc *Document) Options() interface{} {
+    return doc.document.Options
+}
+
+func (doc *Document) Body() interface{} {
+    return doc.document.Body
 }
 
 type CADocument struct {
-    Document // Anonymous field Document
+    document
 }
 
-func (doc *CADocument) Validate() (err error) {
-    switch v:= doc.Options.(type) {
-        case map[string]interface{}:
+func NewCA(data interface{}) (*CADocument, error) {
+    d := document{}
+
+    var json_data []byte
+    switch t := data.(type) {
+        case []byte:
+            json_data = data.([]byte)
+        case string:
+            json_data = []byte(data.(string))
+        case nil:
+            json_data = []byte(`{"version":1,"type":"ca-document","options":{"source":"","signature-mode":""},"body":{}}`)
         default:
-          return fmt.Errorf("Invalid type for CADocument Options: %T", v)
+            return nil, fmt.Errorf("Invalid input type: %T", t)
     }
 
-    switch v:= doc.Body.(type) {
-        case map[string]interface{}:
-        default:
-          return fmt.Errorf("Invalid type for CADocument Body: %T", v)
+    if err := json.Unmarshal(json_data, &d); err != nil {
+        return nil, err
     }
-    return
+
+    if t := d.Type; t != "ca-document" {
+      return nil, fmt.Errorf("Invalid type for CADocument: %s", t)
+    }
+
+    switch t := d.Options.(type) {
+      case map[string]interface{}:
+      default:
+      return nil, fmt.Errorf("Invalid options type. Must be a hash: %T", t)
+    }
+
+    if _, ok := d.Options.(map[string]interface{})["source"]; ! ok {
+      return nil, fmt.Errorf("Options source missing")
+    }
+
+    if _, ok := d.Options.(map[string]interface{})["signature-mode"]; ! ok {
+      return nil, fmt.Errorf("Options signature-mode missing")
+    }
+
+    switch t := d.Body.(type) {
+      case map[string]interface{}:
+      default:
+      return nil, fmt.Errorf("Invalid body type. Must be a hash: %T", t)
+    }
+
+    return &CADocument{d}, nil
+}
+
+func (doc *CADocument) Version() int {
+    return doc.document.Version
+}
+
+func (doc *CADocument) Type() string {
+    return doc.document.Type
+}
+
+func (doc *CADocument) Options() map[string]interface{} {
+    return doc.document.Options.(map[string]interface{})
+}
+
+func (doc *CADocument) Body() map[string]interface{} {
+    return doc.document.Body.(map[string]interface{})
 }
