@@ -61,10 +61,9 @@ func runCommand(cmd string, args []string) (err error) {
 		return runClient(argv)
 	case "api":
 		return runAPI(argv)
-	case "help":
-		os.Exit(1)
 	}
-	return fmt.Errorf("%s is not a pki.io command. See 'pki.io help'", cmd)
+	// TODO: re-examine the above
+	return fmt.Errorf("%s is not a pki.io command. See 'pki.io --help'", cmd)
 }
 
 // I understand this monolithic piece of code needs proper breaking up
