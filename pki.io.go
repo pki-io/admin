@@ -12,13 +12,25 @@ func main() {
 Usage:
     pki.io [--version] <command> [<args>...]
 Options:
-    -h --help  Show this screen
-    -v --version  Show version
+	-h --help  Show this screen
+	--version  Show version
 	Example commands:
-	foo
-	bar
+	pki.io admin init ENTITY
+	pki.io admin revoke ID
+	pki.io entity new NAME --offline --parent
+	pki.io entity remove ID
+	pki.io ca new NAME --tags --parent
+	pki.io ca remove ID
+	pki.io ca rotate ID
+	pki.io ca freeze ID
+	pki.io ca revoke ID
+	pki.io client new IP --tags
+	pki.io client remove ID
+	pki.io client rotate ID
+	pki.io client freeze ID
+	pki.io client revoke ID
+	pki.io client revoke ID
 	`
-
 	arguments, _ := docopt.Parse(usage, nil, true, "pki.io", false)
 	fmt.Println(arguments)
 
