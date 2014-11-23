@@ -14,7 +14,10 @@ Usage:
 Options:
     -h --help  Show this screen
     -v --version  Show version
-    `
+	Example commands:
+	foo
+	bar
+	`
 
 	arguments, _ := docopt.Parse(usage, nil, true, "pki.io", false)
 	fmt.Println(arguments)
@@ -36,9 +39,49 @@ func runCommand(cmd string, args []string) (err error) {
 	argv = append(argv, args...)
 	fmt.Println(cmd)
 	switch cmd {
-	case "admin", "entity", "ca", "client", "api", "help":
-		return fmt.Errorf("Not Implemented yet")
+	case "admin":
+		return runAdmin(argv)
+	case "entity":
+		return runEntity(argv)
+	case "ca":
+		return runCA(argv)
+	case "client":
+		return runClient(argv)
+	case "api":
+		return runAPI(argv)
+	case "help":
+		os.Exit(1)
 	}
 	return fmt.Errorf("%s is not a pki.io command. See 'pki.io help'", cmd)
-	return
+}
+
+// I understand this monolithic piece of code needs proper breaking up
+// but I plan to refactor later ...
+func notImpl() (err error) {
+	return fmt.Errorf("Not Implemented ...yet")
+}
+
+// admin related commands
+func runAdmin(argv []string) (err error) {
+	return notImpl()
+}
+
+// entity related commands
+func runEntity(argv []string) (err error) {
+	return notImpl()
+}
+
+// CA related commands
+func runCA(argv []string) (err error) {
+	return notImpl()
+}
+
+// client related commands
+func runClient(argv []string) (err error) {
+	return notImpl()
+}
+
+// API related commands
+func runAPI(argv []string) (err error) {
+	return notImpl()
 }
