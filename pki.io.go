@@ -91,8 +91,3 @@ func runCA(argv []string) (err error) {
 func runClient(argv []string) (err error) {
 	return notImpl()
 }
-
-// API related commands
-func runAPI(argv []string) (err error) {
-	return notImpl()
-}
