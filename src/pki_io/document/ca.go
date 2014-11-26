@@ -111,10 +111,18 @@ func NewCA(jsonData interface{}) (*CADocument, error) {
     data := new(CADocumentData)
     doc.schema = CASchema
     doc.default_value = CADefault
-    if data, err := doc.parseJson(jsonData, data); err != nil {
+    if data, err := doc.fromJson(jsonData, data); err != nil {
         return nil, err
     } else {
         doc.Data = *data.(*CADocumentData)
         return doc, nil
+    }
+}
+
+func (doc *CADocument) Json() (string, error) {
+    if jsonString, err := doc.toJson(doc.Data); err != nil {
+        return "", err
+    } else {
+        return jsonString, nil
     }
 }
