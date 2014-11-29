@@ -1,5 +1,0 @@
-package document
-
-import (
-    "testing"
-)
