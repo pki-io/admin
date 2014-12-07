@@ -7,10 +7,20 @@ import (
     "pki.io/entity"
     "pki.io/crypto"
     "pki.io/document"
+    "pki.io/config"
     "encoding/hex"
+    "path/filepath"
 )
 
 func runInit(argv map[string]interface{}) (err error) {
+    /**************************************************************************************************
+    * Load the config file
+    **************************************************************************************************/
+
+    globalConf := config.Global(".pki.io.conf")
+    if err := globalConf.Load(); err != nil {
+        panic("Could not load config file")
+    }
 
     /**************************************************************************************************
     * Initialise the environment
@@ -30,6 +40,11 @@ func runInit(argv map[string]interface{}) (err error) {
     }
     fsAPI, _ := fs.NewAPI(org.Data.Body.Name, currentDir)
 
+    // Save the config file
+    globalConf.AddOrg(org.Data.Body.Name, fsAPI.Path)
+    if err := globalConf.Save(); err != nil {
+        panic(fmt.Sprintf("Could not save config file: %s", err.Error()))
+    }
 
     /**************************************************************************************************
     * Create the admin
@@ -58,6 +73,18 @@ func runInit(argv map[string]interface{}) (err error) {
 
     if err := fsAPI.StorePrivate("admin", adminJson); err != nil {
         panic(fmt.Sprintf("Could not save admin data: %s", err.Error()))
+    }
+
+    // Save the org config
+    orgFile := filepath.Join(fsAPI.Path, "org.conf")
+    orgConfig := config.Org(orgFile)
+    if err := orgConfig.Load(); err != nil {
+        panic(fmt.Sprintf("Could not load org config: %s", err.Error()))
+    }
+    orgConfig.Data.OrgId = org.Data.Body.Id
+    orgConfig.Data.AdminId = admin.Data.Body.Id
+    if err := orgConfig.Save(); err != nil {
+        panic(fmt.Sprintf("Could not save org config: %s", err.Error()))
     }
 
     /**************************************************************************************************

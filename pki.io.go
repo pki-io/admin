@@ -11,6 +11,7 @@ func main() {
 	usage := `pki.io
 Usage:
   pki.io init --org=<org> --admin=<admin>
+  pki.io org show
   pki.io --version
 
 Options:
@@ -41,6 +42,8 @@ Options:
 
         if arguments["init"].(bool) {
             runInit(arguments)
+        } else if arguments["org"].(bool) {
+            runOrg(arguments)
         }
 	//fmt.Println("command arguments:")
 	//cmd := arguments["<command>"].(string)
