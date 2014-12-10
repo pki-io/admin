@@ -6,7 +6,6 @@ import (
     "pki.io/fs"
     "pki.io/entity"
     "pki.io/crypto"
-    "pki.io/document"
     "pki.io/config"
     "encoding/hex"
     "path/filepath"
@@ -66,7 +65,7 @@ func runInit(argv map[string]interface{}) (err error) {
     fsAPI.Id = admin.Data.Body.Id
 
     fmt.Println("Saving admin")
-    adminJson, err := admin.Dump()
+    adminJson := admin.Dump()
     if err != nil {
         panic(fmt.Sprintf("Could not dump admin: %s", err.Error()))
     }
@@ -98,70 +97,28 @@ func runInit(argv map[string]interface{}) (err error) {
     }
 
     // Public keys
-
     fmt.Println("Creating public copy of org to save locally")
     publicOrg, err := org.Public()
     if err != nil {
       panic(fmt.Sprintf("Could get public org: %s", err.Error()))
     }
-    publicOrgJson, err := publicOrg.Dump()
+    publicOrgContainer, err := admin.SignString(publicOrg.Dump())
     if err != nil {
-      panic(fmt.Sprintf("Could dump public org to json: %s", err.Error()))
-    }
-
-    fmt.Println("Creating public org container document")
-    publicOrgContainer, err := document.NewContainer(nil)
-    if err != nil {
-        panic(fmt.Sprintf("Could not create container: %s", err.Error()))
-    }
-    publicOrgContainer.Data.Options.Source = publicOrg.Data.Body.Id
-    publicOrgContainer.Data.Body = publicOrgJson
-
-    fmt.Println("Signing public org container as admin")
-    if err := admin.Sign(publicOrgContainer); err != nil  {
-      panic(fmt.Sprintf("Could not sign container: %s", err.Error()))
-    }
-
-    fmt.Println("Dumping public org container")
-    publicOrgContainerJson, err := publicOrgContainer.Dump()
-    if err != nil {
-        panic(fmt.Sprintf("Could not dump public org container json: %s", err.Error()))
+        panic(fmt.Sprintf("Could not sign public org: %s", err.Error()))
     }
 
     fmt.Println("Saving org data")
-    if err := fsAPI.StorePublic("org", publicOrgContainerJson); err != nil {
+    if err := fsAPI.StorePublic("org", publicOrgContainer.Dump()); err != nil {
         panic(fmt.Sprintf("Could not save file: %s", err.Error()))
     }
 
     // Private keys
-    privateOrgJson, err := org.Dump()
+    container, err := admin.EncryptThenSignString(org.Dump(), nil)
     if err != nil {
-      panic(fmt.Sprintf("Could dump org to json: %s", err.Error()))
+      panic(fmt.Sprintf("Could encrypt org: %s", err.Error()))
     }
 
-    fmt.Println("Creating private org container document")
-    privateOrgContainer, err := document.NewContainer(nil)
-    if err != nil {
-        panic(fmt.Sprintf("Could not create container: %s", err.Error()))
-    }
-    privateOrgContainer.Data.Options.Source = admin.Data.Body.Id
-
-    adminKeys := make(map[string]string)
-    adminKeys[admin.Data.Body.Id] = admin.Data.Body.PublicEncryptionKey
-    if err := privateOrgContainer.Encrypt(privateOrgJson, adminKeys); err != nil {
-        panic(fmt.Sprintf("Could not encrypt container: %s", err.Error()))
-
-    }
-    if err := admin.Sign(privateOrgContainer); err != nil {
-        panic(fmt.Sprintf("Could not sign container: %s", err.Error()))
-    }
-
-    containerJson, err := privateOrgContainer.Dump()
-    if err != nil {
-      panic(fmt.Sprintf("Could dump private org container to json: %s", err.Error()))
-    }
-
-    if err := fsAPI.StorePrivate("org", containerJson); err != nil {
+    if err := fsAPI.StorePrivate("org", container.Dump()); err != nil {
       panic(fmt.Sprintf("Could not store container to json: %s", err.Error()))
     }
     return nil
