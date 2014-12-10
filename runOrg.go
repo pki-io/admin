@@ -2,6 +2,7 @@ package main
 
 import (
     "fmt"
+    "os"
     "pki.io/config"
     "pki.io/fs"
     "pki.io/entity"
@@ -16,19 +17,20 @@ import (
 )*/
 
 func orgShow(argv map[string]interface{}) (err error) {
-    globalConf := config.Global(".pki.io.conf")
-    globalConf.Load()
 
-    if len(globalConf.Data.Org) == 0 {
-        return fmt.Errorf("No orgs defined")
+    currentDir, err := os.Getwd()
+    if err != nil {
+        panic(fmt.Sprintf("Could not get current directory: %s", err.Error()))
     }
-    // Do default search here and probably move to help function
-    orgConfigFile := filepath.Join(globalConf.Data.Org[0].Path, "org.conf")
-    orgConf := config.Org(orgConfigFile)
-    orgConf.Load()
 
-    fsAPI, _ := fs.NewAPI("", globalConf.Data.Org[0].Path)
-    fsAPI.Id = orgConf.Data.AdminId
+    configFile := filepath.Join(currentDir, "pki.io.conf")
+    conf := config.New(configFile)
+    if err := conf.Load(); err != nil {
+        panic(fmt.Sprintf("Could not load config file %s: %s", configFile, err.Error()))
+    }
+
+    fsAPI, _ := fs.NewAPI(currentDir, "") // we're in the name'd path
+    fsAPI.Id = conf.Data.AdminId
 
     adminJson, err := fsAPI.LoadPrivate("admin")
     if err != nil {
