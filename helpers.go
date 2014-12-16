@@ -35,7 +35,7 @@ func LoadAPI(conf *config.Config) *fs.FsAPI {
 }
 
 func LoadAdmin(fsAPI *fs.FsAPI) *entity.Entity {
-	adminJson, err := fsAPI.LoadPrivate("admin")
+	adminJson, err := fsAPI.ReadLocal("admin")
 	if err != nil {
 		panic(fmt.Sprintf("Could not load admin data: %s", err.Error()))
 	}
