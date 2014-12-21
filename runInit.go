@@ -1,19 +1,22 @@
 package main
 
 import (
-	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
 	"pki.io/config"
-	"pki.io/crypto"
 	"pki.io/entity"
 	"pki.io/fs"
 )
 
 func runInit(argv map[string]interface{}) (err error) {
-	orgName := argv["--org"].(string)
-	adminName := argv["--admin"].(string)
+	var adminName string
+	orgName := argv["<org>"].(string)
+	if argv["--admin"] == nil {
+		adminName = "admin"
+	} else {
+		adminName = argv["--admin"].(string)
+	}
 
 	/**************************************************************************************************
 	 * Initialise the file system
@@ -41,7 +44,7 @@ func runInit(argv map[string]interface{}) (err error) {
 	}
 
 	// Need an ID (perhaps it should be the API via a register call?)
-	org.Data.Body.Id = hex.EncodeToString(crypto.RandomBytes(16))
+	org.Data.Body.Id = NewID()
 	org.Data.Body.Name = orgName
 
 	fmt.Println("Generating Org keys")
@@ -68,7 +71,7 @@ func runInit(argv map[string]interface{}) (err error) {
 	}
 
 	// Need an ID (perhaps it should be the API via a register call?)
-	admin.Data.Body.Id = hex.EncodeToString(crypto.RandomBytes(16))
+	admin.Data.Body.Id = NewID()
 	admin.Data.Body.Name = adminName
 
 	// Generate admin keys
@@ -88,8 +91,8 @@ func runInit(argv map[string]interface{}) (err error) {
 	configFile := filepath.Join(fsAPI.Path, "pki.io.conf")
 	conf := config.New(configFile)
 
-	conf.Data.OrgId = org.Data.Body.Id
-	conf.Data.AdminId = admin.Data.Body.Id
+	conf.AddOrg(org.Data.Body.Name, org.Data.Body.Id)
+	conf.AddAdmin(admin.Data.Body.Name, admin.Data.Body.Id)
 
 	if err := conf.Create(); err != nil {
 		panic(fmt.Sprintf("Could not create org config: %s", err.Error()))
@@ -100,12 +103,7 @@ func runInit(argv map[string]interface{}) (err error) {
 	 **************************************************************************************************/
 
 	fmt.Println("Saving admin")
-	adminJson := admin.Dump()
-	if err != nil {
-		panic(fmt.Sprintf("Could not dump admin: %s", err.Error()))
-	}
-
-	if err := fsAPI.WriteLocal("admin", adminJson); err != nil {
+	if err := fsAPI.WriteLocal("admin", admin.Dump()); err != nil {
 		panic(fmt.Sprintf("Could not save admin data: %s", err.Error()))
 	}
 

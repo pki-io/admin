@@ -10,19 +10,19 @@ import (
 func main() {
 	usage := `pki.io
 Usage:
-  pki.io init --org=<org> --admin=<admin>
+  pki.io init <org> [--admin=<admin>]
   pki.io org show
-  pki.io ca new <name> [--parent=<id>]
+  pki.io ca new <name> [--parent=<id>] [--tags=<tags>]
   pki.io ca sign <ca> <csr>
   pki.io csr new <name>
+  pki.io node new <name> [--tags=<tags>]
   pki.io cert show <name>
   pki.io --version
 
 Options:
   -h --help      Show this screen
   --version      Show version
-  --org=<name>   Organisation name
-  --admin=<name> Administrator name
+  --admin=<name> Administrator name. Defaults to admin.
   --parent=<id>  Parent CA ID
 `
 	/*
@@ -55,6 +55,8 @@ Options:
 		runCSR(arguments)
 	} else if arguments["cert"].(bool) {
 		runCert(arguments)
+	} else if arguments["node"].(bool) {
+		runNode(arguments)
 	}
 	//fmt.Println("command arguments:")
 	//cmd := arguments["<command>"].(string)

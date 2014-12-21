@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/mitchellh/packer/common/uuid"
 	"os"
 	"path/filepath"
 	"pki.io/config"
@@ -9,6 +10,10 @@ import (
 	"pki.io/entity"
 	"pki.io/fs"
 )
+
+func NewID() string {
+	return uuid.TimeOrderedUUID()
+}
 
 func CurrentDir() string {
 	currentDir, err := os.Getwd()
@@ -30,7 +35,7 @@ func LoadConfig() *config.Config {
 
 func LoadAPI(conf *config.Config) *fs.FsAPI {
 	fsAPI, _ := fs.NewAPI(CurrentDir(), "") // we're in the name'd path
-	fsAPI.Id = conf.Data.AdminId
+	fsAPI.Id = conf.Data.Admins[0].Id       // need to override if required
 	return fsAPI
 }
 
