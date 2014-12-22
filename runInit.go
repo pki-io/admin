@@ -7,6 +7,7 @@ import (
 	"pki.io/config"
 	"pki.io/entity"
 	"pki.io/fs"
+	"pki.io/tags"
 )
 
 func runInit(argv map[string]interface{}) (err error) {
@@ -57,7 +58,14 @@ func runInit(argv map[string]interface{}) (err error) {
 	fmt.Println("Creating public copy of org to save locally")
 	publicOrg, err := org.Public()
 	if err != nil {
-		panic(fmt.Sprintf("Could get public org: %s", err.Error()))
+		panic(fmt.Sprintf("Could not get public org: %s", err.Error()))
+	}
+
+	// Tags
+	fmt.Println("Creating tags")
+	tags, err := tags.New(nil)
+	if err != nil {
+		panic(fmt.Sprintf("Could not create tags: %s", err.Error()))
 	}
 
 	/**************************************************************************************************
@@ -131,6 +139,10 @@ func runInit(argv map[string]interface{}) (err error) {
 	if err := fsAPI.StorePrivate("org", container.Dump()); err != nil {
 		panic(fmt.Sprintf("Could not store container to json: %s", err.Error()))
 	}
+
+	// Tags
+	SaveTags(fsAPI, org, tags)
+
 	return nil
 
 }

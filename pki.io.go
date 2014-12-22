@@ -17,6 +17,7 @@ Usage:
   pki.io csr new <name>
   pki.io node new <name> [--tags=<tags>]
   pki.io cert show <name>
+  pki.io tags show
   pki.io --version
 
 Options:
@@ -24,6 +25,7 @@ Options:
   --version      Show version
   --admin=<name> Administrator name. Defaults to admin.
   --parent=<id>  Parent CA ID
+  --tags=<tags>  Comma separated list of tags
 `
 	/*
 		Example commands:
@@ -57,6 +59,8 @@ Options:
 		runCert(arguments)
 	} else if arguments["node"].(bool) {
 		runNode(arguments)
+	} else if arguments["tags"].(bool) {
+		runTags(arguments)
 	}
 	//fmt.Println("command arguments:")
 	//cmd := arguments["<command>"].(string)

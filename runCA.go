@@ -9,6 +9,7 @@ import (
 
 func caNew(argv map[string]interface{}) (err error) {
 	name := argv["<name>"].(string)
+	inTags := argv["--tags"].(string)
 
 	conf := LoadConfig()
 	fsAPI := LoadAPI(conf)
@@ -28,6 +29,11 @@ func caNew(argv map[string]interface{}) (err error) {
 	if err := fsAPI.SendPrivate(org.Data.Body.Id, ca.Data.Body.Name, caContainer.Dump()); err != nil {
 		panic(fmt.Sprintf("Could not save CA: %s", err.Error()))
 	}
+
+	tags := LoadTags(fsAPI, org)
+	tags.AddCA(ca.Data.Body.Id, ParseTags(inTags))
+	SaveTags(fsAPI, org, tags)
+
 	return nil
 }
 

@@ -9,6 +9,8 @@ import (
 	"pki.io/document"
 	"pki.io/entity"
 	"pki.io/fs"
+	"pki.io/tags"
+	"strings"
 )
 
 func NewID() string {
@@ -96,4 +98,50 @@ func LoadOrgPublic(fsAPI *fs.FsAPI, admin *entity.Entity) *entity.Entity {
 		panic(fmt.Sprintf("Could not create org entity: %s", err.Error()))
 	}
 	return org
+}
+
+func ParseTags(tagString string) []string {
+	tags := strings.Split(tagString, ",")
+	for i, e := range tags {
+		tags[i] = strings.TrimSpace(strings.ToLower(e))
+	}
+	return tags
+}
+
+func LoadTags(fsAPI *fs.FsAPI, org *entity.Entity) *tags.Tags {
+	tagsJson, err := fsAPI.LoadPrivate("tags")
+	if err != nil {
+		panic(fmt.Sprintf("Could not load tags data: %s", err.Error()))
+
+	}
+	tagsContainer, err := document.NewContainer(tagsJson)
+	if err != nil {
+		panic(fmt.Sprintf("Could not load tags container: %s", err.Error()))
+	}
+
+	if err := org.Verify(tagsContainer); err != nil {
+		panic(fmt.Sprintf("Could not verify tags: %s", err.Error()))
+	}
+
+	decryptedTagsJson, err := org.Decrypt(tagsContainer)
+	if err != nil {
+		panic(fmt.Sprintf("Could not decrypt container: %s", err.Error()))
+	}
+
+	tags, err := tags.New(decryptedTagsJson)
+	if err != nil {
+		panic(fmt.Sprintf("Could not create tags: %s", err.Error()))
+	}
+	return tags
+}
+
+func SaveTags(fsAPI *fs.FsAPI, org *entity.Entity, tags *tags.Tags) {
+	encryptedTagsContainer, err := org.EncryptThenSignString(tags.Dump(), nil)
+	if err != nil {
+		panic(fmt.Sprintf("Could not encrypt and sign tags: %s", err.Error()))
+	}
+	if err := fsAPI.StorePrivate("tags", encryptedTagsContainer.Dump()); err != nil {
+		panic(fmt.Sprintf("Could not save encrypted: %s", err.Error()))
+
+	}
 }

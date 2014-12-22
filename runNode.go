@@ -48,6 +48,7 @@ func nodeGenerateCSRs(fsAPI *fs.FsAPI, node, org *entity.Entity) error {
 
 func nodeNew(argv map[string]interface{}) (err error) {
 	name := argv["<name>"].(string)
+	inTags := argv["--tags"].(string)
 
 	conf := LoadConfig()
 	fsAPI := LoadAPI(conf)
@@ -90,6 +91,11 @@ func nodeNew(argv map[string]interface{}) (err error) {
 
 	// create crs
 	nodeGenerateCSRs(fsAPI, node, org)
+
+	// Admin stuff (should be moved/separated)
+	tags := LoadTags(fsAPI, org)
+	tags.AddEntity(node.Data.Body.Id, ParseTags(inTags))
+	SaveTags(fsAPI, org, tags)
 
 	return nil
 }
