@@ -7,6 +7,8 @@ import (
 	"pki.io/x509"
 )
 
+const MinCSRs = 5
+
 func nodeNewCSR(fsAPI *fs.FsAPI, node, org *entity.Entity) {
 	fmt.Println("Creating new CSR")
 	csr, err := x509.NewCSR(nil)
@@ -42,7 +44,10 @@ func nodeNewCSR(fsAPI *fs.FsAPI, node, org *entity.Entity) {
 	}
 }
 func nodeGenerateCSRs(fsAPI *fs.FsAPI, node, org *entity.Entity) error {
-	nodeNewCSR(fsAPI, node, org)
+	// TODO - Get count of existing CSRs and create the difference
+	for i := 0; i < MinCSRs; i++ {
+		nodeNewCSR(fsAPI, node, org)
+	}
 	return nil
 }
 
@@ -90,12 +95,14 @@ func nodeNew(argv map[string]interface{}) (err error) {
 	}
 
 	// create crs
+	fmt.Println("Creating CSRs")
 	nodeGenerateCSRs(fsAPI, node, org)
 
 	// Admin stuff (should be moved/separated)
-	tags := LoadTags(fsAPI, org)
-	tags.AddEntity(node.Data.Body.Id, ParseTags(inTags))
-	SaveTags(fsAPI, org, tags)
+	fmt.Println("Updating index")
+	indx := LoadIndex(fsAPI, org)
+	indx.AddEntityTags(node.Data.Body.Id, ParseTags(inTags))
+	SaveIndex(fsAPI, org, indx)
 
 	return nil
 }

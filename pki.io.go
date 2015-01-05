@@ -12,12 +12,11 @@ func main() {
 Usage:
   pki.io init <org> [--admin=<admin>]
   pki.io org show
-  pki.io ca new <name> [--parent=<id>] [--tags=<tags>]
+  pki.io ca new <name> --tags=<tags> [--parent=<id>] 
   pki.io ca sign <ca> <csr>
   pki.io csr new <name>
-  pki.io node new <name> [--tags=<tags>]
+  pki.io node new <name> --tags=<tags>
   pki.io cert show <name>
-  pki.io tags show
   pki.io --version
 
 Options:
@@ -59,8 +58,6 @@ Options:
 		runCert(arguments)
 	} else if arguments["node"].(bool) {
 		runNode(arguments)
-	} else if arguments["tags"].(bool) {
-		runTags(arguments)
 	}
 	//fmt.Println("command arguments:")
 	//cmd := arguments["<command>"].(string)

@@ -9,7 +9,7 @@ import (
 	"pki.io/document"
 	"pki.io/entity"
 	"pki.io/fs"
-	"pki.io/tags"
+	"pki.io/index"
 	"strings"
 )
 
@@ -108,39 +108,39 @@ func ParseTags(tagString string) []string {
 	return tags
 }
 
-func LoadTags(fsAPI *fs.FsAPI, org *entity.Entity) *tags.Tags {
-	tagsJson, err := fsAPI.LoadPrivate("tags")
+func LoadIndex(fsAPI *fs.FsAPI, org *entity.Entity) *index.Index {
+	indexJson, err := fsAPI.GetPrivate(org.Data.Body.Id, "index")
 	if err != nil {
-		panic(fmt.Sprintf("Could not load tags data: %s", err.Error()))
+		panic(fmt.Sprintf("Could not load index data: %s", err.Error()))
 
 	}
-	tagsContainer, err := document.NewContainer(tagsJson)
+	indexContainer, err := document.NewContainer(indexJson)
 	if err != nil {
-		panic(fmt.Sprintf("Could not load tags container: %s", err.Error()))
+		panic(fmt.Sprintf("Could not load index container: %s", err.Error()))
 	}
 
-	if err := org.Verify(tagsContainer); err != nil {
-		panic(fmt.Sprintf("Could not verify tags: %s", err.Error()))
+	if err := org.Verify(indexContainer); err != nil {
+		panic(fmt.Sprintf("Could not verify index: %s", err.Error()))
 	}
 
-	decryptedTagsJson, err := org.Decrypt(tagsContainer)
+	decryptedIndexJson, err := org.Decrypt(indexContainer)
 	if err != nil {
 		panic(fmt.Sprintf("Could not decrypt container: %s", err.Error()))
 	}
 
-	tags, err := tags.New(decryptedTagsJson)
+	indx, err := index.New(decryptedIndexJson)
 	if err != nil {
-		panic(fmt.Sprintf("Could not create tags: %s", err.Error()))
+		panic(fmt.Sprintf("Could not create indx: %s", err.Error()))
 	}
-	return tags
+	return indx
 }
 
-func SaveTags(fsAPI *fs.FsAPI, org *entity.Entity, tags *tags.Tags) {
-	encryptedTagsContainer, err := org.EncryptThenSignString(tags.Dump(), nil)
+func SaveIndex(fsAPI *fs.FsAPI, org *entity.Entity, indx *index.Index) {
+	encryptedIndexContainer, err := org.EncryptThenSignString(indx.Dump(), nil)
 	if err != nil {
-		panic(fmt.Sprintf("Could not encrypt and sign tags: %s", err.Error()))
+		panic(fmt.Sprintf("Could not encrypt and sign index: %s", err.Error()))
 	}
-	if err := fsAPI.StorePrivate("tags", encryptedTagsContainer.Dump()); err != nil {
+	if err := fsAPI.SendPrivate(org.Data.Body.Id, "index", encryptedIndexContainer.Dump()); err != nil {
 		panic(fmt.Sprintf("Could not save encrypted: %s", err.Error()))
 
 	}

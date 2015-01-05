@@ -30,9 +30,10 @@ func caNew(argv map[string]interface{}) (err error) {
 		panic(fmt.Sprintf("Could not save CA: %s", err.Error()))
 	}
 
-	tags := LoadTags(fsAPI, org)
-	tags.AddCA(ca.Data.Body.Id, ParseTags(inTags))
-	SaveTags(fsAPI, org, tags)
+	fmt.Println("Updating index")
+	indx := LoadIndex(fsAPI, org)
+	indx.AddCATags(ca.Data.Body.Id, ParseTags(inTags))
+	SaveIndex(fsAPI, org, indx)
 
 	return nil
 }
