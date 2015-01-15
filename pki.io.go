@@ -11,12 +11,14 @@ func main() {
 	usage := `pki.io
 Usage:
   pki.io init <org> [--admin=<admin>]
-  pki.io org show
   pki.io ca new <name> --tags=<tags> [--parent=<id>] 
   pki.io ca sign <ca> <csr>
   pki.io csr new <name>
-  pki.io node new <name> --tags=<tags>
+  pki.io node new <name> --pairing-id=<id> --pairing-key=<key>
   pki.io cert show <name>
+  pki.io org show
+  pki.io org register-nodes
+  pki.io pairing-key new --tags=<tags>
   pki.io --version
 
 Options:
@@ -25,6 +27,7 @@ Options:
   --admin=<name> Administrator name. Defaults to admin.
   --parent=<id>  Parent CA ID
   --tags=<tags>  Comma separated list of tags
+  --pairing-key=<key> Pairing key
 `
 	/*
 		Example commands:
@@ -58,6 +61,8 @@ Options:
 		runCert(arguments)
 	} else if arguments["node"].(bool) {
 		runNode(arguments)
+	} else if arguments["pairing-key"].(bool) {
+		runPairingKey(arguments)
 	}
 	//fmt.Println("command arguments:")
 	//cmd := arguments["<command>"].(string)
