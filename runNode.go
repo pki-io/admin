@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"pki.io/entity"
-	"pki.io/fs"
-	"pki.io/x509"
+	"github.com/pki-io/pki.io/entity"
+	"github.com/pki-io/pki.io/fs"
+	"github.com/pki-io/pki.io/x509"
 )
 
 const MinCSRs = 5

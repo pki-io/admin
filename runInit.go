@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"pki.io/config"
-	"pki.io/entity"
-	"pki.io/fs"
-	"pki.io/index"
+	"github.com/pki-io/pki.io/config"
+	"github.com/pki-io/pki.io/entity"
+	"github.com/pki-io/pki.io/fs"
+	"github.com/pki-io/pki.io/index"
 )
 
 func runInit(argv map[string]interface{}) (err error) {

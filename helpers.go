@@ -5,11 +5,11 @@ import (
 	"github.com/mitchellh/packer/common/uuid"
 	"os"
 	"path/filepath"
-	"pki.io/config"
-	"pki.io/document"
-	"pki.io/entity"
-	"pki.io/fs"
-	"pki.io/index"
+	"github.com/pki-io/pki.io/config"
+	"github.com/pki-io/pki.io/document"
+	"github.com/pki-io/pki.io/entity"
+	"github.com/pki-io/pki.io/fs"
+	"github.com/pki-io/pki.io/index"
 	"strings"
 )
 
