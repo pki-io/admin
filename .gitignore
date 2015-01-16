@@ -1,2 +1,5 @@
 *.swp
 *.swo
+_vendor
+.vendor
+pki.io

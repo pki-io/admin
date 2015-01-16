@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"pki.io/x509"
+	"github.com/pki-io/pki.io/x509"
 )
 
 func csrNew(argv map[string]interface{}) (err error) {
