@@ -1,0 +1,7 @@
+gom "github.com/docopt/docopt-go"
+gom "github.com/pki-io/pki.io/config"
+gom "github.com/pki-io/pki.io/fs"
+gom "github.com/pki-io/pki.io/index"
+
+
+
