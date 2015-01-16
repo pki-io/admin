@@ -2,10 +2,3 @@ language: go
 go:
 - 1.4
 - 1.3
-
-before_script:
-    -go get github.com/docopt/docopt-go
-    -go get github.com/mitchellh/packer/common/uuid
-    -go get github.com/pki-io/pki.io/config
-    -go get github.com/xeipuuv/gojsonschema
-    -go get golang.org/x/crypto/pbkdf2
