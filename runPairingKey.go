@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
-	"pki.io/crypto"
+	"github.com/pki-io/pki.io/crypto"
 )
 
 func pairingKeyNew(argv map[string]interface{}) (err error) {
