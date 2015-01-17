@@ -26,7 +26,7 @@ func caNew(argv map[string]interface{}) (err error) {
 	if err != nil {
 		panic(fmt.Sprintf("Could not encrypt CA: %s", err.Error()))
 	}
-	if err := fsAPI.SendPrivate(org.Data.Body.Id, ca.Data.Body.Name, caContainer.Dump()); err != nil {
+	if err := fsAPI.SendPrivate(org.Data.Body.Id, ca.Data.Body.Id, caContainer.Dump()); err != nil {
 		panic(fmt.Sprintf("Could not save CA: %s", err.Error()))
 	}
 
