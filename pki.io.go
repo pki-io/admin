@@ -15,6 +15,7 @@ Usage:
   pki.io ca sign <ca> <csr>
   pki.io csr new <name>
   pki.io node new <name> --pairing-id=<id> --pairing-key=<key>
+  pki.io node install-certs --name=<name>
   pki.io cert show <name>
   pki.io org show
   pki.io org register-nodes
@@ -28,6 +29,7 @@ Options:
   --parent=<id>  Parent CA ID
   --tags=<tags>  Comma separated list of tags
   --pairing-key=<key> Pairing key
+  --name=<name> Node name
 `
 	/*
 		Example commands:

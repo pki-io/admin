@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"pki.io/entity"
 	"pki.io/fs"
+	n "pki.io/node"
 	"pki.io/x509"
 )
 
@@ -58,8 +59,8 @@ func nodeGenerateCSRs(fsAPI *fs.FsAPI, node, org *entity.Entity) error {
 
 func nodeNew(argv map[string]interface{}) (err error) {
 	name := argv["<name>"].(string)
-	//pairingId := argv["--pairing-id"].(string)
-	//pairingKey := argv["--pairing-key"].(string)
+	pairingId := argv["--pairing-id"].(string)
+	pairingKey := argv["--pairing-key"].(string)
 	//inTags := argv["--tags"].(string)
 
 	conf := LoadConfig()
@@ -91,13 +92,16 @@ func nodeNew(argv map[string]interface{}) (err error) {
 	}
 
 	fmt.Println("Creating public registration document")
-	publicNode, err := node.Public()
+	reg, err := n.NewRegistration(node)
 	if err != nil {
-		panic(fmt.Sprintf("Could get public node: %s", err.Error()))
+		panic(fmt.Sprintf("Couldn't create registration: %s", err.Error()))
+	}
+	if err := reg.Authenticate(pairingId, pairingKey); err != nil {
+		panic(fmt.Sprintf("Couldn't authenticate registration: %s", err.Error()))
 	}
 
 	fmt.Println("Pushing public document to org")
-	if err := fsAPI.PushIncoming(org.Data.Body.Id, "registation", publicNode.Dump()); err != nil {
+	if err := fsAPI.PushIncoming(org.Data.Body.Id, "registration", reg.Dump()); err != nil {
 		panic(fmt.Sprintf("Could not push document to org: %s", err.Error()))
 	}
 	fmt.Println("Saving node")
@@ -112,10 +116,27 @@ func nodeNew(argv map[string]interface{}) (err error) {
 	return nil
 }
 
+func nodeInstallCerts(argv map[string]interface{}) (err error) {
+	/*name := argv["--name"].(string)
+
+	conf := LoadConfig()
+	fsAPI := LoadAPI(conf)
+	admin := LoadAdmin(fsAPI)
+	org := LoadOrgPublic(fsAPI, admin)*/
+
+	// Read node file from name
+	// For each income cert
+	// verify container
+	// write cert to private store
+	return nil
+}
+
 // Node related commands
 func runNode(argv map[string]interface{}) (err error) {
 	if argv["new"].(bool) {
 		nodeNew(argv)
+	} else if argv["install-certs"].(bool) {
+		nodeInstallCerts(argv)
 	}
 	return nil
 }
