@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/pki-io/pki.io/entity"
 	"github.com/pki-io/pki.io/fs"
-	"github.com/pki-io/pki.io/node"
+	n "github.com/pki-io/pki.io/node"
 	"github.com/pki-io/pki.io/x509"
 )
 

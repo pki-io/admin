@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"pki.io/document"
-	"pki.io/node"
-	"pki.io/x509"
+	"github.com/pki-io/pki.io/document"
+	"github.com/pki-io/pki.io/node"
+	"github.com/pki-io/pki.io/x509"
 )
 
 func orgShow(argv map[string]interface{}) (err error) {
