@@ -1,4 +1,4 @@
-get-deps:
+get_deps:
 	go get github.com/docopt/docopt-go
 	go get github.com/mitchellh/packer/common/uuid
 	go get github.com/pki-io/pki.io/config
@@ -16,5 +16,5 @@ test:
 clean:
 	rm pki.io
 
-all: get-deps test build install
-default: get-deps test build
+all: get_deps test build install
+default: get_deps test build
