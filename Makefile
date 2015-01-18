@@ -1,5 +1,3 @@
-# OSX makefile
-default: get-deps test build
 get-deps:
 	go get github.com/docopt/docopt-go
 	go get github.com/mitchellh/packer/common/uuid
@@ -20,3 +18,4 @@ clean:
 	rm pki.io
 
 all: get-deps test build install
+default: get-deps test build
