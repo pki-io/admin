@@ -2,6 +2,7 @@ before_install:
     - git clone https://github.com/sstephenson/bats.git
     - cd bats
     - sudo ./install.sh /usr/local
+    - cd ..
 install: make get_deps
 language: go
 go:
