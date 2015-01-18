@@ -1,11 +1,8 @@
-# OSX makefile
-default: get-deps test build
-get-deps:
+get_deps:
 	go get github.com/docopt/docopt-go
 	go get github.com/mitchellh/packer/common/uuid
 	go get github.com/pki-io/pki.io/config
 	go get github.com/xeipuuv/gojsonschema
-	go get golang.org/x/crypto/pbkdf2
 	go get golang.org/x/crypto/pbkdf2
 
 build:
@@ -19,4 +16,5 @@ test:
 clean:
 	rm pki.io
 
-all: get-deps test build install
+all: get_deps test build install
+default: get_deps test build
