@@ -1,6 +1,7 @@
 before_install:
-    - sudo apt-get update -qq
-    - sudo apt-get install -y bats
+    -git clone https://github.com/sstephenson/bats.git
+    -cd bats
+    -sudo ./install.sh /usr/local
 install: make get-deps
 language: go
 go:
