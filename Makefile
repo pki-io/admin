@@ -1,10 +1,3 @@
-get_deps:
-	go get github.com/docopt/docopt-go
-	go get github.com/mitchellh/packer/common/uuid
-	go get github.com/pki-io/pki.io/config
-	go get github.com/xeipuuv/gojsonschema
-	go get golang.org/x/crypto/pbkdf2
-
 build:
 	go build pki.io.go helpers.go runAPI.go runCA.go  runCert.go  runEntity.go  runOrg.go runAdmin.go runCSR.go runClient.go  runInit.go runNode.go runPairingKey.go
 
@@ -16,5 +9,5 @@ test:
 clean:
 	rm pki.io
 
-all: get_deps test build install
-default: get_deps test build
+all: test build install
+default: test build
