@@ -3,7 +3,11 @@ go:
   - 1.4
   - 1.3
 before_install:
-  - go get github.com/mattn/gom
+    - git clone https://github.com/sstephenson/bats.git
+    - cd bats
+    - sudo ./install.sh /usr/local
+    - cd ..
+    - go get github.com/mattn/gom
 script:
   - $HOME/gopath/bin/gom install
   - $HOME/gopath/bin/gom test
