@@ -9,4 +9,4 @@ clean:
 	gom exec rm pki.io
 
 all: test build install
-default: test build
+default: build test
