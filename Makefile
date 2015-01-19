@@ -4,8 +4,7 @@ build:
 install:
 	install -m 0755 pki.io /usr/local/bin
 test:
-	#export GOPATH=$(pwd)/../../
-	bats bats
+	gom exec bats bats_tests
 clean:
 	rm pki.io
 
