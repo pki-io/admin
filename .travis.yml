@@ -4,8 +4,9 @@ before_install:
     - sudo ./install.sh /usr/local
     - cd ..
     - go get github.com/mattn/gom
-    - $HOME/gopath/bin/gom install
-    - $HOME/gopath/bin/gom test
+script:
+    - $HOME/gopath/bin/gom install -x
+    - $HOME/gopath/bin/gom test -x
 install: make all
 language: go
 go:
