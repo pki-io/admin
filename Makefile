@@ -4,7 +4,7 @@ build:
 install:
 	gom exec install -m 0755 pki.io /usr/local/bin
 test:
-	gom exec bats bats
+	gom exec bats bats_tests
 clean:
 	gom exec rm pki.io
 
