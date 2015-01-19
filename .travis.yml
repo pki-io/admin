@@ -11,3 +11,4 @@ before_install:
 script:
   - $HOME/gopath/bin/gom install
   - $HOME/gopath/bin/gom test
+  - make
