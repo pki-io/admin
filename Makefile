@@ -4,9 +4,9 @@ build:
 install:
 	install -m 0755 pki.io /usr/local/bin
 test:
-	bats bats_tests
+	gom exec bats bats_tests
 clean:
 	rm pki.io
 
 all: test build install
-default: build test
+default: test build
