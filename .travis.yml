@@ -4,7 +4,6 @@ before_install:
     - sudo ./install.sh /usr/local
     - cd ..
     - go get github.com/mattn/gom
-script:
     - $HOME/gopath/bin/gom install
     - $HOME/gopath/bin/gom test
 install: make all
