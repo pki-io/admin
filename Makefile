@@ -1,3 +1,5 @@
+default: build test
+
 build:
 	gom build pki.io.go helpers.go runAPI.go runCA.go  runCert.go  runEntity.go  runOrg.go runAdmin.go runCSR.go runClient.go  runInit.go runNode.go runPairingKey.go
 
@@ -8,5 +10,4 @@ test:
 clean:
 	rm pki.io
 
-all: test build install
-default: test build
+all: build test install
