@@ -16,6 +16,7 @@ Usage:
   pki.io csr new <name>
   pki.io node new <name> --pairing-id=<id> --pairing-key=<key>
   pki.io node process-certs --name=<name>
+  pki.io node show --name=<name> --cert=<cert>
   pki.io cert show <name>
   pki.io org show
   pki.io org register-nodes
@@ -30,6 +31,7 @@ Options:
   --tags=<tags>  Comma separated list of tags
   --pairing-key=<key> Pairing key
   --name=<name> Node name
+  --cert=<cert> Certificate ID
 `
 	/*
 		Example commands:
