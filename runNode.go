@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/pki-io/pki.io/document"
 	"github.com/pki-io/pki.io/entity"
 	"github.com/pki-io/pki.io/fs"
 	n "github.com/pki-io/pki.io/node"
@@ -116,18 +117,97 @@ func nodeNew(argv map[string]interface{}) (err error) {
 	return nil
 }
 
-func nodeInstallCerts(argv map[string]interface{}) (err error) {
-	/*name := argv["--name"].(string)
+func nodeProcessCerts(argv map[string]interface{}) (err error) {
+	name := argv["--name"].(string)
 
 	conf := LoadConfig()
 	fsAPI := LoadAPI(conf)
 	admin := LoadAdmin(fsAPI)
-	org := LoadOrgPublic(fsAPI, admin)*/
+	org := LoadOrgPublic(fsAPI, admin)
 
-	// Read node file from name
+	// Need to rename the privte key files a bit. Then look them up via the config. Would do a search until
+	// name is matchedc
+	//nodeId := conf.Data.Nodes[0].Id // Shouldn't hardcode, assuming one node for now
+
+	nodeJson, err := fsAPI.ReadLocal(name)
+	if err != nil {
+		panic(fmt.Sprintf("Could not read node file: %s", err.Error()))
+	}
+
+	node, err := n.New(nodeJson)
+	if err != nil {
+		panic(fmt.Sprintf("Could not load node json: %s", err.Error()))
+	}
+
 	// For each income cert
-	// verify container
-	// write cert to private store
+	fsAPI.Id = node.Data.Body.Id
+
+	for {
+		size, err := fsAPI.IncomingSize("certs")
+		if err != nil {
+			panic(fmt.Sprintf("Can't get queue size: %s", err.Error()))
+		}
+
+		fmt.Printf("Found %d certs to process\n", size)
+		if size > 0 {
+			certContainerJson, err := fsAPI.PopIncoming("certs")
+			if err != nil {
+				panic(fmt.Sprintf("Can't pop cert: %s", err.Error()))
+			}
+
+			certContainer, err := document.NewContainer(certContainerJson)
+			if err != nil {
+				panic(fmt.Sprintf("Can't create cert container: %s", err.Error()))
+			}
+			if err := org.Verify(certContainer); err != nil {
+				panic(fmt.Sprintf("Cert didn't verify: %s", err.Error()))
+			}
+
+			cert, err := x509.NewCertificate(certContainer.Data.Body)
+			if err != nil {
+				panic(fmt.Sprintf("Can't load certificate: %s", err.Error()))
+			}
+
+			// Read local CSR to get private key
+			csrContainerJson, err := fsAPI.GetPrivate(fsAPI.Id, cert.Data.Body.Id)
+			if err != nil {
+				panic(fmt.Sprintf("Couldn't load csr file: %s", err.Error()))
+			}
+
+			csrContainer, err := document.NewContainer(csrContainerJson)
+			if err != nil {
+				panic(fmt.Sprintf("Couldn't load CSR container: %s", err.Error()))
+			}
+
+			csrJson, err := node.VerifyThenDecrypt(csrContainer)
+			if err != nil {
+				panic(fmt.Sprintf("Couldn't verify and decrypt container: %s", err.Error()))
+			}
+
+			csr, err := x509.NewCSR(csrJson)
+			if err != nil {
+				panic(fmt.Sprintf("Couldn't load csr: %s", err.Error()))
+			}
+
+			// Set the private key from the csr
+			cert.Data.Body.PrivateKey = csr.Data.Body.PrivateKey
+
+			// Reuse container
+			updatedCertContainer, err := node.EncryptThenSignString(cert.Dump(), nil)
+			if err != nil {
+				panic(fmt.Sprintf("Could not encrypt then sign cert: %s", err.Error()))
+			}
+
+			if err := fsAPI.SendPrivate(node.Data.Body.Id, cert.Data.Body.Id, updatedCertContainer.Dump()); err != nil {
+				panic(fmt.Sprintf("Could save cert: %s", err.Error()))
+			}
+
+		} else {
+			break
+		}
+	}
+	fmt.Println("Creating CSRs")
+	nodeGenerateCSRs(fsAPI, node, org)
 	return nil
 }
 
@@ -135,8 +215,8 @@ func nodeInstallCerts(argv map[string]interface{}) (err error) {
 func runNode(argv map[string]interface{}) (err error) {
 	if argv["new"].(bool) {
 		nodeNew(argv)
-	} else if argv["install-certs"].(bool) {
-		nodeInstallCerts(argv)
+	} else if argv["process-certs"].(bool) {
+		nodeProcessCerts(argv)
 	}
 	return nil
 }
