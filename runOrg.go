@@ -84,10 +84,27 @@ func orgRegisterNodes(argv map[string]interface{}) (err error) {
 				fsAPI.PushIncoming(fsAPI.Id, "registration", regJson)
 				panic(fmt.Sprintf("Couldn't create node from registration: %s", err.Error()))
 			}
+			//node.Data.Body.Tags = pairingKey.Tags
 			indx.AddEntityTags(node.Data.Body.Id, pairingKey.Tags)
 			// Create node container
 			// Sign node container
 			// Push signed container to node's incoming queue
+
+			nodeContainer, err := document.NewContainer(nil)
+			if err != nil {
+				fsAPI.PushIncoming(fsAPI.Id, "registration", regJson)
+				panic(fmt.Sprintf("Couldn't create node container: %s", err.Error()))
+			}
+
+			nodeContainer.Data.Body = node.Dump()
+			if err := org.Sign(nodeContainer); err != nil {
+				fsAPI.PushIncoming(fsAPI.Id, "registration", regJson)
+				panic(fmt.Sprintf("Couldn't sign node container: %s", err.Error()))
+
+			}
+			/*if err := fsAPI.PushIncoming(node.Data.Body.Id, "registration"); err != nil {
+				panic(fmt.Sprintf("Couldn't push node: %s", err.Error()))
+			}*/
 
 			// For each tag, look for CAs
 			for _, tag := range pairingKey.Tags {
@@ -166,7 +183,7 @@ func orgRegisterNodes(argv map[string]interface{}) (err error) {
 func runOrg(argv map[string]interface{}) (err error) {
 	if argv["show"].(bool) {
 		orgShow(argv)
-	} else if argv["register-nodes"].(bool) {
+	} else if argv["run"].(bool) {
 		orgRegisterNodes(argv)
 	}
 	return nil
