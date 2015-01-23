@@ -15,11 +15,11 @@ Usage:
   pki.io ca sign <ca> <csr>
   pki.io csr new <name>
   pki.io node new <name> --pairing-id=<id> --pairing-key=<key>
-  pki.io node process-certs --name=<name>
+  pki.io node run --name=<name>
   pki.io node show --name=<name> --cert=<cert>
   pki.io cert show <name>
   pki.io org show
-  pki.io org register-nodes
+  pki.io org run
   pki.io pairing-key new --tags=<tags>
   pki.io --version
 

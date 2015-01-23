@@ -117,6 +117,70 @@ func nodeNew(argv map[string]interface{}) (err error) {
 	return nil
 }
 
+func nodeProcessRegistrations(argv map[string]interface{}) (err error) {
+	name := argv["--name"].(string)
+
+	conf := LoadConfig()
+	fsAPI := LoadAPI(conf)
+	admin := LoadAdmin(fsAPI)
+	org := LoadOrgPublic(fsAPI, admin)
+
+	// Need to rename the privte key files a bit. Then look them up via the config. Would do a search until
+	// name is matchedc
+	//nodeId := conf.Data.Nodes[0].Id // Shouldn't hardcode, assuming one node for now
+
+	nodeJson, err := fsAPI.ReadLocal(name)
+	if err != nil {
+		panic(fmt.Sprintf("Could not read node file: %s", err.Error()))
+	}
+
+	node, err := n.New(nodeJson)
+	if err != nil {
+		panic(fmt.Sprintf("Could not load node json: %s", err.Error()))
+	}
+
+	fsAPI.Id = node.Data.Body.Id
+
+	for {
+		size, err := fsAPI.IncomingSize("registrations")
+		if err != nil {
+			panic(fmt.Sprintf("Can't get queue size: %s", err.Error()))
+		}
+
+		fmt.Printf("Found %d registrations to process\n", size)
+		if size > 0 {
+			nodeContainerJson, err := fsAPI.PopIncoming("registrations")
+			if err != nil {
+				panic(fmt.Sprintf("Can't pop registrations: %s", err.Error()))
+			}
+
+			nodeContainer, err := document.NewContainer(nodeContainerJson)
+			if err != nil {
+				panic(fmt.Sprintf("Can't create node container: %s", err.Error()))
+			}
+
+			if err := org.Verify(nodeContainer); err != nil {
+				panic(fmt.Sprintf("Can't verify node registration: %s", err.Error()))
+			}
+
+			nodeReg, err := n.New(nodeContainer.Data.Body)
+			if err != nil {
+				panic(fmt.Sprintf("Can't node registration: %s", err.Error()))
+			}
+			fmt.Println(nodeReg)
+
+			/*node.Data.Body.Tags = nodeReg.Data.Body.Tags
+
+			fmt.Println("Saving node")
+			if err := fsAPI.WriteLocal(node.Data.Body.Name, node.Dump()); err != nil {
+				panic(fmt.Sprintf("Could not save node: %s", err.Error()))
+			}*/
+		}
+	}
+
+	return nil
+}
+
 func nodeProcessCerts(argv map[string]interface{}) (err error) {
 	name := argv["--name"].(string)
 
@@ -266,7 +330,7 @@ func nodeShow(argv map[string]interface{}) (err error) {
 func runNode(argv map[string]interface{}) (err error) {
 	if argv["new"].(bool) {
 		nodeNew(argv)
-	} else if argv["process-certs"].(bool) {
+	} else if argv["run"].(bool) {
 		nodeProcessCerts(argv)
 	} else if argv["show"].(bool) {
 		nodeShow(argv)
