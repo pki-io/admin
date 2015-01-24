@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/docopt/docopt-go"
 	"github.com/pki-io/pki.io/document"
 	"github.com/pki-io/pki.io/x509"
 	"time"
@@ -107,7 +108,18 @@ func caSign(argv map[string]interface{}) (err error) {
 }
 
 // CA related commands
-func runCA(argv map[string]interface{}) (err error) {
+func runCA(args []string) (err error) {
+	usage := `
+Usage:
+    pki.io ca [--help]
+    pki.io ca new <name> --tags=<tags>
+
+Options:
+    --tags=<tags>   List of comma-separated tags
+`
+
+	argv, _ := docopt.Parse(usage, args, true, "", false)
+
 	if argv["new"].(bool) {
 		caNew(argv)
 	} else if argv["sign"].(bool) {

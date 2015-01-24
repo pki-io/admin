@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/docopt/docopt-go"
 	"github.com/pki-io/pki.io/document"
 	"github.com/pki-io/pki.io/node"
 	"github.com/pki-io/pki.io/x509"
@@ -180,7 +181,16 @@ func orgRegisterNodes(argv map[string]interface{}) (err error) {
 	return nil
 }
 
-func runOrg(argv map[string]interface{}) (err error) {
+func runOrg(args []string) (err error) {
+	usage := `
+Usage:
+    pki.io org [--help]
+    pki.io org run
+    pki.io org show
+`
+
+	argv, _ := docopt.Parse(usage, args, true, "", false)
+
 	if argv["show"].(bool) {
 		orgShow(argv)
 	} else if argv["run"].(bool) {

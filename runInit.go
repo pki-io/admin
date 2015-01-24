@@ -2,15 +2,25 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
+	"github.com/docopt/docopt-go"
 	"github.com/pki-io/pki.io/config"
 	"github.com/pki-io/pki.io/entity"
 	"github.com/pki-io/pki.io/fs"
 	"github.com/pki-io/pki.io/index"
+	"os"
+	"path/filepath"
 )
 
-func runInit(argv map[string]interface{}) (err error) {
+func runInit(args []string) (err error) {
+
+	usage := `Usage: pki.io init <org> [--admin=<admin>]
+
+Options
+    --admin   Admin name. Defaults to 'admin'
+`
+
+	argv, _ := docopt.Parse(usage, args, true, "", false)
+
 	var adminName string
 	orgName := argv["<org>"].(string)
 	if argv["--admin"] == nil {

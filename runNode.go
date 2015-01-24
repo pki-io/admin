@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/docopt/docopt-go"
 	"github.com/pki-io/pki.io/document"
 	"github.com/pki-io/pki.io/entity"
 	"github.com/pki-io/pki.io/fs"
@@ -327,7 +328,24 @@ func nodeShow(argv map[string]interface{}) (err error) {
 }
 
 // Node related commands
-func runNode(argv map[string]interface{}) (err error) {
+func runNode(args []string) (err error) {
+
+	usage := `
+Usage:
+    pki.io node [--help]
+    pki.io node new <name> --pairing-id=<id> --pairing-key=<key>
+    pki.io node run
+    pki.io node show --name=<name> --cert=<id>
+
+Options:
+    --pairing-id=<id>   Pairing ID
+    --pairing-key=<key> Pairing Key
+    --name=<name>       Node name
+    --cert=<cert>       Certificate ID
+`
+
+	argv, _ := docopt.Parse(usage, args, true, "", false)
+
 	if argv["new"].(bool) {
 		nodeNew(argv)
 	} else if argv["run"].(bool) {

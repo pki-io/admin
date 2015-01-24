@@ -2,85 +2,75 @@ package main
 
 import (
 	"fmt"
-	//"os"
-	// http://docopt.org/
 	"github.com/docopt/docopt-go"
+	"os"
 )
 
 func main() {
-	usage := `pki.io
+	usage := `
+Open source and scalable X.509 certificate management
+
 Usage:
-  pki.io init <org> [--admin=<admin>]
-  pki.io ca new <name> --tags=<tags> [--parent=<id>] 
-  pki.io ca sign <ca> <csr>
-  pki.io csr new <name>
-  pki.io node new <name> --pairing-id=<id> --pairing-key=<key>
-  pki.io node run --name=<name>
-  pki.io node show --name=<name> --cert=<cert>
-  pki.io cert show <name>
-  pki.io org show
-  pki.io org run
-  pki.io pairing-key new --tags=<tags>
-  pki.io --version
+    pki.io [--version] [--help] <command> [<args>...]
 
 Options:
-  -h --help      Show this screen
-  --version      Show version
-  --admin=<name> Administrator name. Defaults to admin.
-  --parent=<id>  Parent CA ID
-  --tags=<tags>  Comma separated list of tags
-  --pairing-key=<key> Pairing key
-  --name=<name> Node name
-  --cert=<cert> Certificate ID
-`
-	/*
-		Example commands:
-		pki.io admin init ENTITY
-		pki.io admin revoke ID
-		pki.io entity new NAME --offline --parent
-		pki.io entity remove ID
-		pki.io ca new NAME --tags --parent
-		pki.io ca remove ID
-		pki.io ca rotate ID
-		pki.io ca freeze ID
-		pki.io ca revoke ID
-		pki.io client new IP --tags
-		pki.io client remove ID
-		pki.io client rotate ID
-		pki.io client freeze ID
-		pki.io client revoke ID
-		pki.io client revoke ID*/
-	arguments, _ := docopt.Parse(usage, nil, true, "pki.io", false)
-	fmt.Println(arguments)
+    -h, --help
+    -v, --version
 
-	if arguments["init"].(bool) {
-		runInit(arguments)
-	} else if arguments["org"].(bool) {
-		runOrg(arguments)
-	} else if arguments["ca"].(bool) {
-		runCA(arguments)
-	} else if arguments["csr"].(bool) {
-		runCSR(arguments)
-	} else if arguments["cert"].(bool) {
-		runCert(arguments)
-	} else if arguments["node"].(bool) {
-		runNode(arguments)
-	} else if arguments["pairing-key"].(bool) {
-		runPairingKey(arguments)
+Commands:
+    init          Initialise an organisation
+    ca            Manage X.509 Certificate Authorities
+    node          Manage node entities
+    org           Do operations on behalf of the org
+    pairing-key   Manage pairing keys
+
+See 'pki.io help <command>' for more information on a specific command.
+`
+
+	arguments, _ := docopt.Parse(usage, nil, true, "pki.io release 1", true)
+
+	cmd := arguments["<command>"].(string)
+	cmdArgs := arguments["<args>"].([]string)
+
+	if "help" == cmd {
+		if len(cmdArgs) > 0 {
+			cmd = cmdArgs[0]
+			cmdArgs = append(cmdArgs, "--help")
+		} else {
+			fmt.Println(usage)
+			os.Exit(0)
+		}
 	}
-	//fmt.Println("command arguments:")
-	//cmd := arguments["<command>"].(string)
-	//cmdArgs := arguments["<args>"].([]string)
-	//fmt.Println(cmdArgs)
-	//err := runCommand(cmd, cmdArgs)
-	//if err != nil {
-	//	fmt.Println(err)
-	//	os.Exit(1)
-	//}
+	fmt.Printf("Command: %s\n", cmd)
+	fmt.Printf("Command args: %s\n", cmdArgs)
+
+	err := runCommand(cmd, cmdArgs)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }
 
-// I understand this monolithic piece of code needs proper breaking up
-// but I plan to refactor later ...
+func runCommand(cmd string, args []string) error {
+	argv := make([]string, 1)
+	argv[0] = cmd
+	argv = append(argv, args...)
+	switch cmd {
+	case "init":
+		return runInit(argv)
+	case "ca":
+		return runCA(argv)
+	case "node":
+		return runNode(argv)
+	case "pairing-key":
+		return runPairingKey(argv)
+	case "org":
+		return runOrg(argv)
+	}
+
+	return fmt.Errorf("%s is not a pki.io command. See 'pki.io help'", cmd)
+}
+
 func notImpl() (err error) {
 	return fmt.Errorf("Not Implemented ...yet")
 }
