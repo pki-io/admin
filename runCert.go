@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/pki-io/pki.io/document"
 	"github.com/pki-io/pki.io/x509"
 )
@@ -16,26 +15,26 @@ func certShow(argv map[string]interface{}) (err error) {
 
 	certJson, err := fsAPI.LoadPrivate(name)
 	if err != nil {
-		panic(fmt.Sprintf("Could not load cert json: %s", err.Error()))
+		panic(logger.Errorf("Could not load cert json: %s", err))
 	}
 
 	certContainer, err := document.NewContainer(certJson)
 	if err != nil {
-		panic(fmt.Sprintf("Could not create cert container: %s", err.Error()))
+		panic(logger.Errorf("Could not create cert container: %s", err))
 	}
 
 	if err := org.Verify(certContainer); err != nil {
-		panic(fmt.Sprintf("Could not verify container: %s", err.Error()))
+		panic(logger.Errorf("Could not verify container: %s", err))
 	}
 
 	cert, err := x509.NewCertificate(certContainer.Data.Body)
 	if err != nil {
-		panic(fmt.Sprintf("Could not create cert: %s", err.Error()))
+		panic(logger.Errorf("Could not create cert: %s", err))
 	}
 
-	fmt.Printf("Name: %s\n", cert.Data.Body.Name)
-	fmt.Printf("Id: %s\n", cert.Data.Body.Id)
-	fmt.Printf("Certificate:\n%s\n", cert.Data.Body.Certificate)
+	logger.Infof("Name: %s\n", cert.Data.Body.Name)
+	logger.Infof("Id: %s\n", cert.Data.Body.Id)
+	logger.Infof("Certificate:\n%s\n", cert.Data.Body.Certificate)
 
 	return nil
 }

@@ -1,21 +1,30 @@
 package main
 
 import (
+	"errors"
 	"fmt"
-	"github.com/docopt/docopt-go"
+	"github.com/cihub/seelog"
+	docopt "github.com/docopt/docopt-go"
 	"os"
 )
+
+var logger seelog.LoggerInterface
+
+func init() {
+	logger = seelog.Disabled
+}
 
 func main() {
 	usage := `
 Open source and scalable X.509 certificate management
 
 Usage:
-    pki.io [--version] [--help] <command> [<args>...]
+    pki.io [--version] [--help] [--logging=<logging>] <command> [<args>...]
 
 Options:
     -h, --help
     -v, --version
+    --logging=<logging> Logging configuration. Logging is disabled by default.
 
 Commands:
     init          Initialise an organisation
@@ -29,6 +38,9 @@ See 'pki.io help <command>' for more information on a specific command.
 
 	arguments, _ := docopt.Parse(usage, nil, true, "pki.io release 1", true)
 
+	initLogging(arguments)
+	defer logger.Close()
+
 	cmd := arguments["<command>"].(string)
 	cmdArgs := arguments["<args>"].([]string)
 
@@ -41,8 +53,8 @@ See 'pki.io help <command>' for more information on a specific command.
 			os.Exit(0)
 		}
 	}
-	fmt.Printf("Command: %s\n", cmd)
-	fmt.Printf("Command args: %s\n", cmdArgs)
+	logger.Infof("Command: %s\n", cmd)
+	logger.Infof("Command args: %s\n", cmdArgs)
 
 	err := runCommand(cmd, cmdArgs)
 	if err != nil {
@@ -68,9 +80,20 @@ func runCommand(cmd string, args []string) error {
 		return runOrg(argv)
 	}
 
-	return fmt.Errorf("%s is not a pki.io command. See 'pki.io help'", cmd)
+	return logger.Errorf("%s is not a pki.io command. See 'pki.io help'", cmd)
+}
+
+// Initialize logging from command arguments.
+func initLogging(args map[string]interface{}) {
+	if loggingConfig, ok := args["--logging"].(string); ok {
+		var err error
+		logger, err = seelog.LoggerFromConfigAsFile(loggingConfig)
+		if err != nil {
+			panic(fmt.Sprintf("Failed to initialize logging: %s", err))
+		}
+	}
 }
 
 func notImpl() (err error) {
-	return fmt.Errorf("Not Implemented ...yet")
+	return errors.New("Not Implemented ...yet")
 }
