@@ -24,10 +24,10 @@ func caNew(argv map[string]interface{}) (err error) {
 	fmt.Println("Saving CA")
 	caContainer, err := org.EncryptThenSignString(ca.Dump(), nil)
 	if err != nil {
-		panic(fmt.Sprintf("Could not encrypt CA: %s", err.Error()))
+		panic(fmt.Sprintf("Could not encrypt CA: %s", err))
 	}
 	if err := fsAPI.SendPrivate(org.Data.Body.Id, ca.Data.Body.Id, caContainer.Dump()); err != nil {
-		panic(fmt.Sprintf("Could not save CA: %s", err.Error()))
+		panic(fmt.Sprintf("Could not save CA: %s", err))
 	}
 
 	fmt.Println("Updating index")
@@ -50,58 +50,58 @@ func caSign(argv map[string]interface{}) (err error) {
 	fmt.Println("Getting CA")
 	caJson, err := fsAPI.GetPrivate(org.Data.Body.Id, caName)
 	if err != nil {
-		panic(fmt.Sprintf("Could not get encrypted CA: %s", err.Error()))
+		panic(fmt.Sprintf("Could not get encrypted CA: %s", err))
 	}
 
 	caContainer, err := document.NewContainer(caJson)
 	if err != nil {
-		panic(fmt.Sprintf("Could not create CA container: %s", err.Error()))
+		panic(fmt.Sprintf("Could not create CA container: %s", err))
 	}
 
 	if err := org.Verify(caContainer); err != nil {
-		panic(fmt.Sprintf("Could not verify CA: %s", err.Error()))
+		panic(fmt.Sprintf("Could not verify CA: %s", err))
 	}
 
 	decryptedCAJson, err := org.Decrypt(caContainer)
 	if err != nil {
-		panic(fmt.Sprintf("Could not decrypt CA: %s", err.Error()))
+		panic(fmt.Sprintf("Could not decrypt CA: %s", err))
 	}
 
 	ca, err := x509.NewCA(decryptedCAJson)
 	if err != nil {
-		panic(fmt.Sprintf("Could not create CA from JSON: %s", err.Error()))
+		panic(fmt.Sprintf("Could not create CA from JSON: %s", err))
 	}
 
 	fmt.Println("Getting CSR")
 	csrJson, err := fsAPI.GetPublic(org.Data.Body.Id, csrName)
 	if err != nil {
-		panic(fmt.Sprintf("Could not get CSR: %s", err.Error()))
+		panic(fmt.Sprintf("Could not get CSR: %s", err))
 	}
 
 	csrContainer, err := document.NewContainer(csrJson)
 	if err := org.Verify(csrContainer); err != nil {
-		panic(fmt.Sprintf("Could not verify CSR: %s", err.Error()))
+		panic(fmt.Sprintf("Could not verify CSR: %s", err))
 	}
 
 	csr, err := x509.NewCSR(csrContainer.Data.Body)
 	if err != nil {
-		panic(fmt.Sprintf("Could not create CSR from JSON: %s", err.Error()))
+		panic(fmt.Sprintf("Could not create CSR from JSON: %s", err))
 	}
 
 	fmt.Println("Signing CSR")
 	cert, err := ca.Sign(csr)
 	if err != nil {
-		panic(fmt.Sprintf("Could not sign CSR: %s", err.Error()))
+		panic(fmt.Sprintf("Could not sign CSR: %s", err))
 	}
 
 	certContainer, err := org.SignString(cert.Dump())
 	if err != nil {
-		panic(fmt.Sprintf("Could not sign cert: %s", err.Error()))
+		panic(fmt.Sprintf("Could not sign cert: %s", err))
 	}
 
 	fmt.Println("Saving certificate")
 	if err := fsAPI.SendPrivate(admin.Data.Body.Id, "cert_"+csr.Data.Body.Name, certContainer.Dump()); err != nil {
-		panic(fmt.Sprintf("Could not save cert: %s", err.Error()))
+		panic(fmt.Sprintf("Could not save cert: %s", err))
 	}
 	return nil
 }

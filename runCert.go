@@ -16,21 +16,21 @@ func certShow(argv map[string]interface{}) (err error) {
 
 	certJson, err := fsAPI.LoadPrivate(name)
 	if err != nil {
-		panic(fmt.Sprintf("Could not load cert json: %s", err.Error()))
+		panic(fmt.Sprintf("Could not load cert json: %s", err))
 	}
 
 	certContainer, err := document.NewContainer(certJson)
 	if err != nil {
-		panic(fmt.Sprintf("Could not create cert container: %s", err.Error()))
+		panic(fmt.Sprintf("Could not create cert container: %s", err))
 	}
 
 	if err := org.Verify(certContainer); err != nil {
-		panic(fmt.Sprintf("Could not verify container: %s", err.Error()))
+		panic(fmt.Sprintf("Could not verify container: %s", err))
 	}
 
 	cert, err := x509.NewCertificate(certContainer.Data.Body)
 	if err != nil {
-		panic(fmt.Sprintf("Could not create cert: %s", err.Error()))
+		panic(fmt.Sprintf("Could not create cert: %s", err))
 	}
 
 	fmt.Printf("Name: %s\n", cert.Data.Body.Name)

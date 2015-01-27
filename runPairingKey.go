@@ -18,7 +18,7 @@ func pairingKeyNew(argv map[string]interface{}) (err error) {
 	id := NewID()
 	random, err := crypto.RandomBytes(16)
 	if err != nil {
-		panic(fmt.Sprintf("Couldn't get random bytes: %s", err.Error()))
+		panic(fmt.Sprintf("Couldn't get random bytes: %s", err))
 	}
 	key := hex.EncodeToString(random)
 	tags := ParseTags(inTags)

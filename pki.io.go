@@ -2,9 +2,8 @@ package main
 
 import (
 	"fmt"
-	//"os"
-	// http://docopt.org/
-	"github.com/docopt/docopt-go"
+	"errors"
+	docopt "github.com/docopt/docopt-go"
 )
 
 func main() {
@@ -68,19 +67,10 @@ Options:
 	} else if arguments["pairing-key"].(bool) {
 		runPairingKey(arguments)
 	}
-	//fmt.Println("command arguments:")
-	//cmd := arguments["<command>"].(string)
-	//cmdArgs := arguments["<args>"].([]string)
-	//fmt.Println(cmdArgs)
-	//err := runCommand(cmd, cmdArgs)
-	//if err != nil {
-	//	fmt.Println(err)
-	//	os.Exit(1)
-	//}
 }
 
 // I understand this monolithic piece of code needs proper breaking up
 // but I plan to refactor later ...
 func notImpl() (err error) {
-	return fmt.Errorf("Not Implemented ...yet")
+	return errors.New("Not Implemented ...yet")
 }

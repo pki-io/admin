@@ -25,13 +25,13 @@ func runInit(argv map[string]interface{}) (err error) {
 
 	currentDir, err := os.Getwd()
 	if err != nil {
-		panic(fmt.Sprintf("Could not get current directory: %s", err.Error()))
+		panic(fmt.Sprintf("Could not get current directory: %s", err))
 	}
 
 	// This will create the directory for us $(cwd)/NAME
 	fsAPI, err := fs.NewAPI(currentDir, orgName)
 	if err != nil {
-		panic(fmt.Sprintf("Could not initialise the filesystem API: %S", err.Error()))
+		panic(fmt.Sprintf("Could not initialise the filesystem API: %s", err))
 	}
 
 	/**************************************************************************************************
@@ -41,7 +41,7 @@ func runInit(argv map[string]interface{}) (err error) {
 	fmt.Println("Creating Org entity")
 	org, err := entity.New(nil)
 	if err != nil {
-		panic(fmt.Sprintf("Could not create org entity: %s", err.Error()))
+		panic(fmt.Sprintf("Could not create org entity: %s", err))
 	}
 
 	// Need an ID (perhaps it should be the API via a register call?)
@@ -51,21 +51,21 @@ func runInit(argv map[string]interface{}) (err error) {
 	fmt.Println("Generating Org keys")
 	err = org.GenerateKeys()
 	if err != nil {
-		panic(fmt.Sprintf("Could not generate org keys: %s", err.Error()))
+		panic(fmt.Sprintf("Could not generate org keys: %s", err))
 	}
 
 	// Public view of the Org
 	fmt.Println("Creating public copy of org to save locally")
 	publicOrg, err := org.Public()
 	if err != nil {
-		panic(fmt.Sprintf("Could not get public org: %s", err.Error()))
+		panic(fmt.Sprintf("Could not get public org: %s", err))
 	}
 
 	// Index
 	fmt.Println("Creating org index")
 	index, err := index.New(nil)
 	if err != nil {
-		panic(fmt.Sprintf("Could not create index: %s", err.Error()))
+		panic(fmt.Sprintf("Could not create index: %s", err))
 	}
 
 	/**************************************************************************************************
@@ -75,7 +75,7 @@ func runInit(argv map[string]interface{}) (err error) {
 	fmt.Println("Creating Admin entity")
 	admin, err := entity.New(nil)
 	if err != nil {
-		panic(fmt.Sprintf("Could not create admin entity: %s", err.Error()))
+		panic(fmt.Sprintf("Could not create admin entity: %s", err))
 	}
 
 	// Need an ID (perhaps it should be the API via a register call?)
@@ -85,7 +85,7 @@ func runInit(argv map[string]interface{}) (err error) {
 	// Generate admin keys
 	err = admin.GenerateKeys()
 	if err != nil {
-		panic(fmt.Sprintf("Could not generate admin keys: %s", err.Error()))
+		panic(fmt.Sprintf("Could not generate admin keys: %s", err))
 	}
 
 	// API is for our admin user (should be a login call?)
@@ -103,7 +103,7 @@ func runInit(argv map[string]interface{}) (err error) {
 	conf.AddAdmin(admin.Data.Body.Name, admin.Data.Body.Id)
 
 	if err := conf.Create(); err != nil {
-		panic(fmt.Sprintf("Could not create org config: %s", err.Error()))
+		panic(fmt.Sprintf("Could not create org config: %s", err))
 	}
 
 	/**************************************************************************************************
@@ -112,7 +112,7 @@ func runInit(argv map[string]interface{}) (err error) {
 
 	fmt.Println("Saving admin")
 	if err := fsAPI.WriteLocal("admin", admin.Dump()); err != nil {
-		panic(fmt.Sprintf("Could not save admin data: %s", err.Error()))
+		panic(fmt.Sprintf("Could not save admin data: %s", err))
 	}
 
 	/**************************************************************************************************
@@ -122,22 +122,22 @@ func runInit(argv map[string]interface{}) (err error) {
 	// Public keys
 	publicOrgContainer, err := admin.SignString(publicOrg.Dump())
 	if err != nil {
-		panic(fmt.Sprintf("Could not sign public org: %s", err.Error()))
+		panic(fmt.Sprintf("Could not sign public org: %s", err))
 	}
 
 	fmt.Println("Saving org data")
 	if err := fsAPI.StorePublic("org", publicOrgContainer.Dump()); err != nil {
-		panic(fmt.Sprintf("Could not save file: %s", err.Error()))
+		panic(fmt.Sprintf("Could not save file: %s", err))
 	}
 
 	// Private keys
 	container, err := admin.EncryptThenSignString(org.Dump(), nil)
 	if err != nil {
-		panic(fmt.Sprintf("Could encrypt org: %s", err.Error()))
+		panic(fmt.Sprintf("Could encrypt org: %s", err))
 	}
 
 	if err := fsAPI.StorePrivate("org", container.Dump()); err != nil {
-		panic(fmt.Sprintf("Could not store container to json: %s", err.Error()))
+		panic(fmt.Sprintf("Could not store container to json: %s", err))
 	}
 
 	// Index
