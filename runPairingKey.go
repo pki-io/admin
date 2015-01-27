@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/hex"
-	"fmt"
 	"github.com/pki-io/pki.io/crypto"
 )
 
@@ -18,15 +17,15 @@ func pairingKeyNew(argv map[string]interface{}) (err error) {
 	id := NewID()
 	random, err := crypto.RandomBytes(16)
 	if err != nil {
-		panic(fmt.Sprintf("Couldn't get random bytes: %s", err))
+		panic(logger.Errorf("Couldn't get random bytes: %s", err))
 	}
 	key := hex.EncodeToString(random)
 	tags := ParseTags(inTags)
 	index.AddPairingKey(id, key, tags)
 
 	SaveIndex(fsAPI, org, index)
-	fmt.Printf("Pairing ID: %s\n", id)
-	fmt.Printf("Pairing key: %s\n", key)
+	logger.Infof("Pairing ID: %s\n", id)
+	logger.Infof("Pairing key: %s\n", key)
 	return nil
 }
 

@@ -12,7 +12,7 @@ import (
 const MinCSRs = 5
 
 func nodeNewCSR(fsAPI *fs.FsAPI, node, org *entity.Entity) {
-	fmt.Println("Creating new CSR")
+	logger.Info("Creating new CSR")
 	csr, err := x509.NewCSR(nil)
 	if err != nil {
 		panic(fmt.Sprintf("Could not generate CSR: %s", err))
@@ -22,34 +22,34 @@ func nodeNewCSR(fsAPI *fs.FsAPI, node, org *entity.Entity) {
 	csr.Data.Body.Name = node.Data.Body.Name
 	csr.Generate()
 
-	fmt.Println("Saving local CSR")
+	logger.Info("Saving local CSR")
 	csrContainer, err := node.EncryptThenSignString(csr.Dump(), nil)
 	if err != nil {
-		panic(fmt.Sprintf("Could not encrypt CSR: %s", err))
+		panic(logger.Errorf("Could not encrypt CSR: %s", err))
 	}
 	if err := fsAPI.SendPrivate(node.Data.Body.Id, csr.Data.Body.Id, csrContainer.Dump()); err != nil {
-		panic(fmt.Sprintf("Could not save CSR: %s", err))
+		panic(logger.Errorf("Could not save CSR: %s", err))
 	}
 
-	fmt.Println("Pushing public CSR")
+	logger.Info("Pushing public CSR")
 	csrPublic, err := csr.Public()
 	if err != nil {
-		panic(fmt.Sprintf("Could not get public CSR: %s", err))
+		panic(logger.Errorf("Could not get public CSR: %s", err))
 	}
 
 	csrPublicContainer, err := node.SignString(csrPublic.Dump())
 	if err != nil {
-		panic(fmt.Sprintf("Could not sign public CSR: %s", err))
+		panic(logger.Errorf("Could not sign public CSR: %s", err))
 	}
 
 	if err := fsAPI.PushOutgoing("csrs", csrPublicContainer.Dump()); err != nil {
-		panic(fmt.Sprintf("Could not send public CSR: %s", err))
+		panic(logger.Errorf("Could not send public CSR: %s", err))
 	}
 }
 func nodeGenerateCSRs(fsAPI *fs.FsAPI, node, org *entity.Entity) error {
 	numCSRs, err := fsAPI.OutgoingSize(fsAPI.Id, "csrs")
 	if err != nil {
-		panic(fmt.Sprintf("Could not get csr queue size: %s", err))
+		panic(logger.Errorf("Could not get csr queue size: %s", err))
 	}
 
 	for i := 0; i < MinCSRs-numCSRs; i++ {
@@ -62,17 +62,16 @@ func nodeNew(argv map[string]interface{}) (err error) {
 	name := argv["<name>"].(string)
 	pairingId := argv["--pairing-id"].(string)
 	pairingKey := argv["--pairing-key"].(string)
-	//inTags := argv["--tags"].(string)
 
 	conf := LoadConfig()
 	fsAPI := LoadAPI(conf)
 	admin := LoadAdmin(fsAPI)
 	org := LoadOrgPrivate(fsAPI, admin)
 
-	fmt.Println("Creating new node")
+	logger.Info("Creating new node")
 	node, err := entity.New(nil)
 	if err != nil {
-		panic(fmt.Sprintf("Could not create node entity: %s:", err))
+		panic(logger.Errorf("Could not create node entity: %s:", err))
 	}
 	node.Data.Body.Name = name
 	node.Data.Body.Id = NewID()
@@ -81,37 +80,37 @@ func nodeNew(argv map[string]interface{}) (err error) {
 	//adminId := fsAPI.Id
 	fsAPI.Id = node.Data.Body.Id
 
-	fmt.Println("Generating node keys")
+	logger.Info("Generating node keys")
 	if err := node.GenerateKeys(); err != nil {
-		panic(fmt.Sprintf("Could not generate node keys: %s", err))
+		panic(logger.Errorf("Could not generate node keys: %s", err))
 	}
 
-	fmt.Println("Saving node config")
+	logger.Info("Saving node config")
 	conf.AddNode(node.Data.Body.Name, node.Data.Body.Id)
 	if err := conf.Save(); err != nil {
-		panic(fmt.Sprintf("Could not save admin config: %s", err))
+		panic(logger.Errorf("Could not save admin config: %s", err))
 	}
 
-	fmt.Println("Creating public registration document")
+	logger.Info("Creating public registration document")
 	reg, err := n.NewRegistration(node)
 	if err != nil {
-		panic(fmt.Sprintf("Couldn't create registration: %s", err))
+		panic(logger.Errorf("Couldn't create registration: %s", err))
 	}
 	if err := reg.Authenticate(pairingId, pairingKey); err != nil {
-		panic(fmt.Sprintf("Couldn't authenticate registration: %s", err))
+		panic(logger.Errorf("Couldn't authenticate registration: %s", err))
 	}
 
-	fmt.Println("Pushing public document to org")
+	logger.Info("Pushing public document to org")
 	if err := fsAPI.PushIncoming(org.Data.Body.Id, "registration", reg.Dump()); err != nil {
-		panic(fmt.Sprintf("Could not push document to org: %s", err))
+		panic(logger.Errorf("Could not push document to org: %s", err))
 	}
-	fmt.Println("Saving node")
+	logger.Info("Saving node")
 	if err := fsAPI.WriteLocal(node.Data.Body.Name, node.Dump()); err != nil {
-		panic(fmt.Sprintf("Could not save node: %s", err))
+		panic(logger.Errorf("Could not save node: %s", err))
 	}
 
 	// create crs
-	fmt.Println("Creating CSRs")
+	logger.Info("Creating CSRs")
 	nodeGenerateCSRs(fsAPI, node, org)
 
 	return nil
@@ -127,16 +126,15 @@ func nodeProcessRegistrations(argv map[string]interface{}) (err error) {
 
 	// Need to rename the privte key files a bit. Then look them up via the config. Would do a search until
 	// name is matchedc
-	//nodeId := conf.Data.Nodes[0].Id // Shouldn't hardcode, assuming one node for now
 
 	nodeJson, err := fsAPI.ReadLocal(name)
 	if err != nil {
-		panic(fmt.Sprintf("Could not read node file: %s", err))
+		panic(logger.Errorf("Could not read node file: %s", err))
 	}
 
 	node, err := n.New(nodeJson)
 	if err != nil {
-		panic(fmt.Sprintf("Could not load node json: %s", err))
+		panic(logger.Errorf("Could not load node json: %s", err))
 	}
 
 	fsAPI.Id = node.Data.Body.Id
@@ -144,37 +142,30 @@ func nodeProcessRegistrations(argv map[string]interface{}) (err error) {
 	for {
 		size, err := fsAPI.IncomingSize("registrations")
 		if err != nil {
-			panic(fmt.Sprintf("Can't get queue size: %s", err))
+			panic(logger.Errorf("Can't get queue size: %s", err))
 		}
 
-		fmt.Printf("Found %d registrations to process\n", size)
+		logger.Infof("Found %d registrations to process\n", size)
 		if size > 0 {
 			nodeContainerJson, err := fsAPI.PopIncoming("registrations")
 			if err != nil {
-				panic(fmt.Sprintf("Can't pop registrations: %s", err))
+				panic(logger.Errorf("Can't pop registrations: %s", err))
 			}
 
 			nodeContainer, err := document.NewContainer(nodeContainerJson)
 			if err != nil {
-				panic(fmt.Sprintf("Can't create node container: %s", err))
+				panic(logger.Errorf("Can't create node container: %s", err))
 			}
 
 			if err := org.Verify(nodeContainer); err != nil {
-				panic(fmt.Sprintf("Can't verify node registration: %s", err))
+				panic(logger.Errorf("Can't verify node registration: %s", err))
 			}
 
 			nodeReg, err := n.New(nodeContainer.Data.Body)
 			if err != nil {
-				panic(fmt.Sprintf("Can't node registration: %s", err))
+				panic(logger.Errorf("Can't node registration: %s", err))
 			}
-			fmt.Println(nodeReg)
-
-			/*node.Data.Body.Tags = nodeReg.Data.Body.Tags
-
-			fmt.Println("Saving node")
-			if err := fsAPI.WriteLocal(node.Data.Body.Name, node.Dump()); err != nil {
-				panic(fmt.Sprintf("Could not save node: %s", err))
-			}*/
+			logger.Info(nodeReg)
 		}
 	}
 
@@ -191,16 +182,15 @@ func nodeProcessCerts(argv map[string]interface{}) (err error) {
 
 	// Need to rename the privte key files a bit. Then look them up via the config. Would do a search until
 	// name is matchedc
-	//nodeId := conf.Data.Nodes[0].Id // Shouldn't hardcode, assuming one node for now
 
 	nodeJson, err := fsAPI.ReadLocal(name)
 	if err != nil {
-		panic(fmt.Sprintf("Could not read node file: %s", err))
+		panic(logger.Errorf("Could not read node file: %s", err))
 	}
 
 	node, err := n.New(nodeJson)
 	if err != nil {
-		panic(fmt.Sprintf("Could not load node json: %s", err))
+		panic(logger.Errorf("Could not load node json: %s", err))
 	}
 
 	fsAPI.Id = node.Data.Body.Id
@@ -209,48 +199,48 @@ func nodeProcessCerts(argv map[string]interface{}) (err error) {
 	for {
 		size, err := fsAPI.IncomingSize("certs")
 		if err != nil {
-			panic(fmt.Sprintf("Can't get queue size: %s", err))
+			panic(logger.Errorf("Can't get queue size: %s", err))
 		}
 
-		fmt.Printf("Found %d certs to process\n", size)
+		logger.Infof("Found %d certs to process\n", size)
 		if size > 0 {
 			certContainerJson, err := fsAPI.PopIncoming("certs")
 			if err != nil {
-				panic(fmt.Sprintf("Can't pop cert: %s", err))
+				panic(logger.Errorf("Can't pop cert: %s", err))
 			}
 
 			certContainer, err := document.NewContainer(certContainerJson)
 			if err != nil {
-				panic(fmt.Sprintf("Can't create cert container: %s", err))
+				panic(logger.Errorf("Can't create cert container: %s", err))
 			}
 			if err := org.Verify(certContainer); err != nil {
-				panic(fmt.Sprintf("Cert didn't verify: %s", err))
+				panic(logger.Errorf("Cert didn't verify: %s", err))
 			}
 
 			cert, err := x509.NewCertificate(certContainer.Data.Body)
 			if err != nil {
-				panic(fmt.Sprintf("Can't load certificate: %s", err))
+				panic(logger.Errorf("Can't load certificate: %s", err))
 			}
 
 			// Read local CSR to get private key
 			csrContainerJson, err := fsAPI.GetPrivate(fsAPI.Id, cert.Data.Body.Id)
 			if err != nil {
-				panic(fmt.Sprintf("Couldn't load csr file: %s", err))
+				panic(logger.Errorf("Couldn't load csr file: %s", err))
 			}
 
 			csrContainer, err := document.NewContainer(csrContainerJson)
 			if err != nil {
-				panic(fmt.Sprintf("Couldn't load CSR container: %s", err))
+				panic(logger.Errorf("Couldn't load CSR container: %s", err))
 			}
 
 			csrJson, err := node.VerifyThenDecrypt(csrContainer)
 			if err != nil {
-				panic(fmt.Sprintf("Couldn't verify and decrypt container: %s", err))
+				panic(logger.Errorf("Couldn't verify and decrypt container: %s", err))
 			}
 
 			csr, err := x509.NewCSR(csrJson)
 			if err != nil {
-				panic(fmt.Sprintf("Couldn't load csr: %s", err))
+				panic(logger.Errorf("Couldn't load csr: %s", err))
 			}
 
 			// Set the private key from the csr
@@ -259,18 +249,18 @@ func nodeProcessCerts(argv map[string]interface{}) (err error) {
 			// Reuse container
 			updatedCertContainer, err := node.EncryptThenSignString(cert.Dump(), nil)
 			if err != nil {
-				panic(fmt.Sprintf("Could not encrypt then sign cert: %s", err))
+				panic(logger.Errorf("Could not encrypt then sign cert: %s", err))
 			}
 
 			if err := fsAPI.SendPrivate(node.Data.Body.Id, cert.Data.Body.Id, updatedCertContainer.Dump()); err != nil {
-				panic(fmt.Sprintf("Could save cert: %s", err))
+				panic(logger.Errorf("Could save cert: %s", err))
 			}
 
 		} else {
 			break
 		}
 	}
-	fmt.Println("Creating CSRs")
+	logger.Info("Creating CSRs")
 	nodeGenerateCSRs(fsAPI, node, org)
 	return nil
 }
@@ -281,47 +271,44 @@ func nodeShow(argv map[string]interface{}) (err error) {
 
 	conf := LoadConfig()
 	fsAPI := LoadAPI(conf)
-	//admin := LoadAdmin(fsAPI)
-	//org := LoadOrgPublic(fsAPI, admin)
 
 	// Need to rename the privte key files a bit. Then look them up via the config. Would do a search until
 	// name is matchedc
-	//nodeId := conf.Data.Nodes[0].Id // Shouldn't hardcode, assuming one node for now
 
 	nodeJson, err := fsAPI.ReadLocal(name)
 	if err != nil {
-		panic(fmt.Sprintf("Could not read node file: %s", err))
+		panic(logger.Errorf("Could not read node file: %s", err))
 	}
 
 	node, err := n.New(nodeJson)
 	if err != nil {
-		panic(fmt.Sprintf("Could not load node json: %s", err))
+		panic(logger.Errorf("Could not load node json: %s", err))
 	}
 
 	fsAPI.Id = node.Data.Body.Id
 
 	certContainerJson, err := fsAPI.GetPrivate(fsAPI.Id, certId)
 	if err != nil {
-		panic(fmt.Sprintf("Could not load cert container json: %s", err))
+		panic(logger.Errorf("Could not load cert container json: %s", err))
 	}
 
 	certContainer, err := document.NewContainer(certContainerJson)
 	if err != nil {
-		panic(fmt.Sprintf("Could not load cert container: %s", err))
+		panic(logger.Errorf("Could not load cert container: %s", err))
 	}
 
 	certJson, err := node.VerifyThenDecrypt(certContainer)
 	if err != nil {
-		panic(fmt.Sprintf("Could not verify and decrypt: %s", err))
+		panic(logger.Errorf("Could not verify and decrypt: %s", err))
 	}
 
 	cert, err := x509.NewCertificate(certJson)
 	if err != nil {
-		panic(fmt.Sprintf("Could not load cert: %s", err))
+		panic(logger.Errorf("Could not load cert: %s", err))
 	}
 
-	fmt.Printf("Certificate:\n%s\n\n", cert.Data.Body.Certificate)
-	fmt.Printf("Private Key:\n%s\n\n", cert.Data.Body.PrivateKey)
+	logger.Infof("Certificate:\n%s\n\n", cert.Data.Body.Certificate)
+	logger.Infof("Private Key:\n%s\n\n", cert.Data.Body.PrivateKey)
 
 	return nil
 }
