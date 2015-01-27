@@ -2,25 +2,31 @@ package main
 
 import (
 	"fmt"
-	//"os"
-	// http://docopt.org/
-	"github.com/docopt/docopt-go"
+	"errors"
+	docopt "github.com/docopt/docopt-go"
+	"github.com/cihub/seelog"
 )
+
+var logger seelog.LoggerInterface
+
+func init() {
+	logger = seelog.Disabled
+}
 
 func main() {
 	usage := `pki.io
 Usage:
-  pki.io init <org> [--admin=<admin>]
-  pki.io ca new <name> --tags=<tags> [--parent=<id>] 
-  pki.io ca sign <ca> <csr>
-  pki.io csr new <name>
-  pki.io node new <name> --pairing-id=<id> --pairing-key=<key>
-  pki.io node run --name=<name>
-  pki.io node show --name=<name> --cert=<cert>
-  pki.io cert show <name>
-  pki.io org show
-  pki.io org run
-  pki.io pairing-key new --tags=<tags>
+  pki.io init <org> [--admin=<admin>] [--logging=<logging>]
+  pki.io ca new <name> --tags=<tags> [--parent=<id>] [--logging=<logging>]
+  pki.io ca sign <ca> <csr> [--logging=<logging>]
+  pki.io csr new <name> [--logging=<logging>]
+  pki.io node new <name> --pairing-id=<id> --pairing-key=<key> [--logging=<logging>]
+  pki.io node run --name=<name> [--logging=<logging>]
+  pki.io node show --name=<name> --cert=<cert> [--logging=<logging>]
+  pki.io cert show <name> [--logging=<logging>]
+  pki.io org show [--logging=<logging>]
+  pki.io org run [--logging=<logging>]
+  pki.io pairing-key new --tags=<tags> [--logging=<logging>]
   pki.io --version
 
 Options:
@@ -32,6 +38,7 @@ Options:
   --pairing-key=<key> Pairing key
   --name=<name> Node name
   --cert=<cert> Certificate ID
+  --logging=<logging> Logging configuration. Logging is disabled by default.
 `
 	/*
 		Example commands:
@@ -51,8 +58,10 @@ Options:
 		pki.io client revoke ID
 		pki.io client revoke ID*/
 	arguments, _ := docopt.Parse(usage, nil, true, "pki.io", false)
-	fmt.Println(arguments)
+	initLogging(arguments)
+	defer logger.Close()
 
+	logger.Info("test")
 	if arguments["init"].(bool) {
 		runInit(arguments)
 	} else if arguments["org"].(bool) {
@@ -68,19 +77,21 @@ Options:
 	} else if arguments["pairing-key"].(bool) {
 		runPairingKey(arguments)
 	}
-	//fmt.Println("command arguments:")
-	//cmd := arguments["<command>"].(string)
-	//cmdArgs := arguments["<args>"].([]string)
-	//fmt.Println(cmdArgs)
-	//err := runCommand(cmd, cmdArgs)
-	//if err != nil {
-	//	fmt.Println(err)
-	//	os.Exit(1)
-	//}
+}
+
+// Initialize logging from command arguments.
+func initLogging(args map[string]interface {}) {
+	if loggingConfig, ok := args["--logging"].(string); ok {
+		var err error
+		logger, err = seelog.LoggerFromConfigAsFile(loggingConfig)
+		if err != nil {
+			panic(fmt.Sprintf("Failed to initialize logging: %s", err))
+		}
+	}
 }
 
 // I understand this monolithic piece of code needs proper breaking up
 // but I plan to refactor later ...
 func notImpl() (err error) {
-	return fmt.Errorf("Not Implemented ...yet")
+	return errors.New("Not Implemented ...yet")
 }
