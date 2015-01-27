@@ -12,7 +12,10 @@ import (
 
 func runInit(args []string) (err error) {
 
-	usage := `Usage: pki.io init <org> [--admin=<admin>]
+	usage := `
+Initialises a new Organisation.
+
+Usage: pki.io init <org> [--admin=<admin>]
 
 Options
     --admin   Admin name. Defaults to 'admin'

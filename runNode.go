@@ -318,6 +318,8 @@ func nodeShow(argv map[string]interface{}) (err error) {
 func runNode(args []string) (err error) {
 
 	usage := `
+Manages nodes.
+
 Usage:
     pki.io node [--help]
     pki.io node new <name> --pairing-id=<id> --pairing-key=<key>

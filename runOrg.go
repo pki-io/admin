@@ -179,6 +179,8 @@ func orgRegisterNodes(argv map[string]interface{}) (err error) {
 
 func runOrg(args []string) (err error) {
 	usage := `
+Manages the Organisation.
+
 Usage:
     pki.io org [--help]
     pki.io org run

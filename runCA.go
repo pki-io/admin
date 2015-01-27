@@ -109,6 +109,8 @@ func caSign(argv map[string]interface{}) (err error) {
 // CA related commands
 func runCA(args []string) (err error) {
 	usage := `
+Manages Certificate Authorities
+
 Usage:
     pki.io ca [--help]
     pki.io ca new <name> --tags=<tags>
