@@ -17,7 +17,10 @@ func pairingKeyNew(argv map[string]interface{}) (err error) {
 	index := LoadIndex(fsAPI, org)
 
 	id := NewID()
-	random, _ := crypto.RandomBytes(16)
+	random, err := crypto.RandomBytes(16)
+	if err != nil {
+		panic(fmt.Sprintf("Couldn't get random bytes: %s", err.Error()))
+	}
 	key := hex.EncodeToString(random)
 	tags := ParseTags(inTags)
 	index.AddPairingKey(id, key, tags)
