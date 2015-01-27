@@ -1,10 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"errors"
-	docopt "github.com/docopt/docopt-go"
+	"fmt"
 	"github.com/cihub/seelog"
+	docopt "github.com/docopt/docopt-go"
+	"os"
 )
 
 var logger seelog.LoggerInterface
@@ -14,73 +15,76 @@ func init() {
 }
 
 func main() {
-	usage := `pki.io
+	usage := `
+Open source and scalable X.509 certificate management
+
 Usage:
-  pki.io init <org> [--admin=<admin>] [--logging=<logging>]
-  pki.io ca new <name> --tags=<tags> [--parent=<id>] [--logging=<logging>]
-  pki.io ca sign <ca> <csr> [--logging=<logging>]
-  pki.io csr new <name> [--logging=<logging>]
-  pki.io node new <name> --pairing-id=<id> --pairing-key=<key> [--logging=<logging>]
-  pki.io node run --name=<name> [--logging=<logging>]
-  pki.io node show --name=<name> --cert=<cert> [--logging=<logging>]
-  pki.io cert show <name> [--logging=<logging>]
-  pki.io org show [--logging=<logging>]
-  pki.io org run [--logging=<logging>]
-  pki.io pairing-key new --tags=<tags> [--logging=<logging>]
-  pki.io --version
+    pki.io [--version] [--help] [--logging=<logging>] <command> [<args>...]
 
 Options:
-  -h --help      Show this screen
-  --version      Show version
-  --admin=<name> Administrator name. Defaults to admin.
-  --parent=<id>  Parent CA ID
-  --tags=<tags>  Comma separated list of tags
-  --pairing-key=<key> Pairing key
-  --name=<name> Node name
-  --cert=<cert> Certificate ID
-  --logging=<logging> Logging configuration. Logging is disabled by default.
+    -h, --help
+    -v, --version
+    --logging=<logging> Logging configuration. Logging is disabled by default.
+
+Commands:
+    init          Initialise an organisation
+    ca            Manage X.509 Certificate Authorities
+    node          Manage node entities
+    org           Do operations on behalf of the org
+    pairing-key   Manage pairing keys
+
+See 'pki.io help <command>' for more information on a specific command.
 `
-	/*
-		Example commands:
-		pki.io admin init ENTITY
-		pki.io admin revoke ID
-		pki.io entity new NAME --offline --parent
-		pki.io entity remove ID
-		pki.io ca new NAME --tags --parent
-		pki.io ca remove ID
-		pki.io ca rotate ID
-		pki.io ca freeze ID
-		pki.io ca revoke ID
-		pki.io client new IP --tags
-		pki.io client remove ID
-		pki.io client rotate ID
-		pki.io client freeze ID
-		pki.io client revoke ID
-		pki.io client revoke ID*/
-	arguments, _ := docopt.Parse(usage, nil, true, "pki.io", false)
+
+	arguments, _ := docopt.Parse(usage, nil, true, "pki.io release 1", true)
+
 	initLogging(arguments)
 	defer logger.Close()
 
-	logger.Info("test")
-	if arguments["init"].(bool) {
-		runInit(arguments)
-	} else if arguments["org"].(bool) {
-		runOrg(arguments)
-	} else if arguments["ca"].(bool) {
-		runCA(arguments)
-	} else if arguments["csr"].(bool) {
-		runCSR(arguments)
-	} else if arguments["cert"].(bool) {
-		runCert(arguments)
-	} else if arguments["node"].(bool) {
-		runNode(arguments)
-	} else if arguments["pairing-key"].(bool) {
-		runPairingKey(arguments)
+	cmd := arguments["<command>"].(string)
+	cmdArgs := arguments["<args>"].([]string)
+
+	if "help" == cmd {
+		if len(cmdArgs) > 0 {
+			cmd = cmdArgs[0]
+			cmdArgs = append(cmdArgs, "--help")
+		} else {
+			fmt.Println(usage)
+			os.Exit(0)
+		}
+	}
+	logger.Infof("Command: %s\n", cmd)
+	logger.Infof("Command args: %s\n", cmdArgs)
+
+	err := runCommand(cmd, cmdArgs)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
 }
 
+func runCommand(cmd string, args []string) error {
+	argv := make([]string, 1)
+	argv[0] = cmd
+	argv = append(argv, args...)
+	switch cmd {
+	case "init":
+		return runInit(argv)
+	case "ca":
+		return runCA(argv)
+	case "node":
+		return runNode(argv)
+	case "pairing-key":
+		return runPairingKey(argv)
+	case "org":
+		return runOrg(argv)
+	}
+
+	return logger.Errorf("%s is not a pki.io command. See 'pki.io help'", cmd)
+}
+
 // Initialize logging from command arguments.
-func initLogging(args map[string]interface {}) {
+func initLogging(args map[string]interface{}) {
 	if loggingConfig, ok := args["--logging"].(string); ok {
 		var err error
 		logger, err = seelog.LoggerFromConfigAsFile(loggingConfig)
@@ -90,8 +94,6 @@ func initLogging(args map[string]interface {}) {
 	}
 }
 
-// I understand this monolithic piece of code needs proper breaking up
-// but I plan to refactor later ...
 func notImpl() (err error) {
 	return errors.New("Not Implemented ...yet")
 }
