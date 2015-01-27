@@ -1,5 +1,7 @@
-default: build test
+default: get-deps build test
 
+get-deps:
+	gom install
 build:
 	gom build pki.io.go helpers.go runAPI.go runCA.go  runCert.go  runEntity.go  runOrg.go runAdmin.go runCSR.go runClient.go  runInit.go runNode.go runPairingKey.go
 
@@ -10,4 +12,4 @@ test:
 clean:
 	rm pki.io
 
-all: build test install
+all: get-deps build test install
