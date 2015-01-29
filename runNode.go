@@ -269,6 +269,7 @@ func nodeProcessCerts(argv map[string]interface{}) (err error) {
 func nodeShow(argv map[string]interface{}) (err error) {
 	name := argv["--name"].(string)
 	certId := argv["--cert"].(string)
+	exportFile := argv["--export"] // Optional, so check for nil later
 
 	conf := LoadConfig()
 	fsAPI := LoadAPI(conf)
@@ -308,8 +309,16 @@ func nodeShow(argv map[string]interface{}) (err error) {
 		panic(logger.Errorf("Could not load cert: %s", err))
 	}
 
-	logger.Infof("Certificate:\n%s\n\n", cert.Data.Body.Certificate)
-	logger.Infof("Private Key:\n%s\n\n", cert.Data.Body.PrivateKey)
+	switch exportFile.(type) {
+	case nil:
+		logger.Infof("Certificate:\n%s\n\n", cert.Data.Body.Certificate)
+		logger.Infof("Private Key:\n%s\n\n", cert.Data.Body.PrivateKey)
+	case string:
+		var files []ExportFile
+		files = append(files, ExportFile{Name: "cert.pem", Mode: 0644, Content: []byte(cert.Data.Body.Certificate)})
+		files = append(files, ExportFile{Name: "key.pem", Mode: 0600, Content: []byte(cert.Data.Body.PrivateKey)})
+		Export(files, exportFile.(string))
+	}
 
 	return nil
 }
@@ -323,14 +332,15 @@ Manages nodes.
 Usage:
     pki.io node [--help]
     pki.io node new <name> --pairing-id=<id> --pairing-key=<key>
-    pki.io node run
-    pki.io node show --name=<name> --cert=<id>
+    pki.io node run --name=<name>
+    pki.io node show --name=<name> --cert=<id> [--export=<file>]
 
 Options:
     --pairing-id=<id>   Pairing ID
     --pairing-key=<key> Pairing Key
     --name=<name>       Node name
     --cert=<cert>       Certificate ID
+    --export=<file>     Export data to file or "-" for STDOUT
 `
 
 	argv, _ := docopt.Parse(usage, args, true, "", false)

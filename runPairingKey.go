@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/hex"
+	"fmt"
 	"github.com/docopt/docopt-go"
 	"github.com/pki-io/pki.io/crypto"
 )
@@ -25,8 +26,8 @@ func pairingKeyNew(argv map[string]interface{}) (err error) {
 	index.AddPairingKey(id, key, tags)
 
 	SaveIndex(fsAPI, org, index)
-	logger.Infof("Pairing ID: %s\n", id)
-	logger.Infof("Pairing key: %s\n", key)
+	fmt.Printf("Pairing ID: %s\n", id)
+	fmt.Printf("Pairing key: %s\n", key)
 	return nil
 }
 
