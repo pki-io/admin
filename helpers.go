@@ -1,14 +1,18 @@
 package main
 
 import (
+	"archive/tar"
+	"bytes"
+	"compress/gzip"
 	"github.com/mitchellh/packer/common/uuid"
-	"os"
-	"path/filepath"
 	"github.com/pki-io/pki.io/config"
 	"github.com/pki-io/pki.io/document"
 	"github.com/pki-io/pki.io/entity"
 	"github.com/pki-io/pki.io/fs"
 	"github.com/pki-io/pki.io/index"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -142,4 +146,59 @@ func SaveIndex(fsAPI *fs.FsAPI, org *entity.Entity, indx *index.Index) {
 	if err := fsAPI.SendPrivate(org.Data.Body.Id, "index", encryptedIndexContainer.Dump()); err != nil {
 		panic(logger.Errorf("Could not save encrypted: %s", err))
 	}
+}
+
+type ExportFile struct {
+	Name    string
+	Mode    int64
+	Owner   int64
+	Group   int64
+	Content []byte
+}
+
+func TarGZ(files []ExportFile) ([]byte, error) {
+	tarBuffer := new(bytes.Buffer)
+	tarWriter := tar.NewWriter(tarBuffer)
+
+	for _, file := range files {
+		header := &tar.Header{
+			Name: file.Name,
+			Mode: int64(file.Mode),
+			Size: int64(len(file.Content)),
+		}
+		if err := tarWriter.WriteHeader(header); err != nil {
+			return nil, err
+		}
+		if _, err := tarWriter.Write(file.Content); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := tarWriter.Close(); err != nil {
+		return nil, err
+	}
+
+	zipBuffer := new(bytes.Buffer)
+	zipWriter := gzip.NewWriter(zipBuffer)
+	zipWriter.Write(tarBuffer.Bytes())
+	zipWriter.Close()
+
+	return zipBuffer.Bytes(), nil
+}
+
+func Export(files []ExportFile, outFile string) {
+	tarGz, err := TarGZ(files)
+	if err != nil {
+		panic(logger.Errorf("Couldn't tar.gz the files: %s", err))
+	}
+
+	if outFile == "-" {
+		os.Stdout.Write(tarGz)
+	} else {
+		// Write  to file
+		if err := ioutil.WriteFile(outFile, tarGz, 0600); err != nil {
+			panic(logger.Errorf("Couldn't write export file: %s", err))
+		}
+	}
+
 }
