@@ -72,6 +72,7 @@ See 'pki.io help <command>' for more information on a specific command.
 	err := runCommand(cmd, cmdArgs)
 	if err != nil {
 		logger.Error(err)
+		os.Exit(1)
 	}
 }
 
