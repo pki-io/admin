@@ -8,8 +8,6 @@ import (
 	"os"
 )
 
-var logger seelog.LoggerInterface
-
 const defaultLoggingConfig string = `
 <seelog minlevel="info" maxlevel="error">
 	<outputs formatid="raw">
@@ -20,6 +18,8 @@ const defaultLoggingConfig string = `
 	</formats>
 </seelog>
 `
+
+var logger seelog.LoggerInterface
 
 func init() {
 	var err error
