@@ -4,14 +4,29 @@ import (
 	"errors"
 	"fmt"
 	"github.com/cihub/seelog"
-	docopt "github.com/docopt/docopt-go"
+	"github.com/docopt/docopt-go"
 	"os"
 )
 
 var logger seelog.LoggerInterface
 
+const defaultLoggingConfig string = `
+<seelog minlevel="info" maxlevel="error">
+	<outputs formatid="raw">
+		<console/>
+	</outputs>
+	<formats>
+		<format id="raw" format="%Msg%n"/>
+	</formats>
+</seelog>
+`
+
 func init() {
-	logger = seelog.Disabled
+	var err error
+	logger, err = seelog.LoggerFromConfigAsString(defaultLoggingConfig)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to load default logging configuration.\n%s", err))
+	}
 }
 
 func main() {
@@ -53,13 +68,10 @@ See 'pki.io help <command>' for more information on a specific command.
 			os.Exit(0)
 		}
 	}
-	logger.Infof("Command: %s\n", cmd)
-	logger.Infof("Command args: %s\n", cmdArgs)
 
 	err := runCommand(cmd, cmdArgs)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		logger.Error(err)
 	}
 }
 
@@ -80,7 +92,7 @@ func runCommand(cmd string, args []string) error {
 		return runOrg(argv)
 	}
 
-	return logger.Errorf("%s is not a pki.io command. See 'pki.io help'", cmd)
+	return fmt.Errorf("%s is not a pki.io command. See 'pki.io help'", cmd)
 }
 
 // Initialize logging from command arguments.
