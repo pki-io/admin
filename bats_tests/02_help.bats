@@ -1,4 +1,6 @@
+load "fixtures/basics"
+
 @test "top help" {
-  run go run *.go --help
+  run $CMD --help
   [ "$status" -eq 0 ]
 }

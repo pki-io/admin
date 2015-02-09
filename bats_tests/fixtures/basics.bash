@@ -1,9 +1,14 @@
-[ -r Makefile ] || exit 1
 export SOURCE_PATH=$(pwd)
 export ORG_DIR="test-org"
+export CMD="$SOURCE_PATH/pki.io"
+
+if [[ ! -x "$CMD" ]]; then
+  echo "Can't find pki.io binary at $CMD. Did you run 'make build'?"
+  exit 1
+fi
 
 init() {
-  go run $SOURCE_PATH/*.go init $ORG_DIR
+  $CMD init $ORG_DIR
   cd $ORG_DIR
 }
 
