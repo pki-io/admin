@@ -61,25 +61,30 @@ func orgRegisterNodes(argv map[string]interface{}) (err error) {
 		}
 		logger.Infof("Found %d nodes to register\n", size)
 		if size > 0 {
+			logger.Info("Popping registration")
 			regJson, err := fsAPI.PopIncoming("registration")
 			if err != nil {
 				panic(logger.Errorf("Can't pop registration: %s", err))
 			}
 
-			nodeReg, err := node.NewRegistration(regJson)
+			container, err := document.NewContainer(regJson)
 			if err != nil {
 				fsAPI.PushIncoming(fsAPI.Id, "registration", regJson)
 				panic(logger.Errorf("Can't load registration: %s", err))
 			}
 
-			pairingId := nodeReg.Data.Options.PairingId
+			pairingId := container.Data.Options.SignatureInputs["key-id"]
+			logger.Infof("Reading pairing key: %s", pairingId)
 			pairingKey := indx.Data.Body.PairingKeys[pairingId]
-			if err := nodeReg.Verify(pairingKey.Key); err != nil {
+
+			logger.Info("Verifying and decrypting node registration")
+			nodeJson, err := org.VerifyAuthenticationThenDecrypt(container, pairingKey.Key)
+			if err != nil {
 				fsAPI.PushIncoming(fsAPI.Id, "registration", regJson)
-				panic(logger.Errorf("Couldn't verify registration: %s", err))
+				panic(logger.Errorf("Couldn't verify then decrypt registration: %s", err))
 			}
 
-			node, err := node.NewFromRegistration(nodeReg)
+			node, err := node.New(nodeJson)
 			if err != nil {
 				fsAPI.PushIncoming(fsAPI.Id, "registration", regJson)
 				panic(logger.Errorf("Couldn't create node from registration: %s", err))
@@ -90,24 +95,26 @@ func orgRegisterNodes(argv map[string]interface{}) (err error) {
 			// Sign node container
 			// Push signed container to node's incoming queue
 
-			nodeContainer, err := document.NewContainer(nil)
+			logger.Info("Encrypting and signing node for Org")
+			nodeContainer, err := org.EncryptThenSignString(node.Dump(), nil)
 			if err != nil {
 				fsAPI.PushIncoming(fsAPI.Id, "registration", regJson)
-				panic(logger.Errorf("Couldn't create node container: %s", err))
+				panic(logger.Errorf("Couldn't encrypt then sign node: %s", err))
 			}
 
-			nodeContainer.Data.Body = node.Dump()
-			if err := org.Sign(nodeContainer); err != nil {
-				fsAPI.PushIncoming(fsAPI.Id, "registration", regJson)
-				panic(logger.Errorf("Couldn't sign node container: %s", err))
-
+			// Save node
+			if err := fsAPI.SendPrivate(org.Data.Body.Id, node.Data.Body.Id, nodeContainer.Dump()); err != nil {
+				panic(logger.Errorf("Could not save node: %s", err))
 			}
 
 			// For each tag, look for CAs
 			for _, tag := range pairingKey.Tags {
+				logger.Infof("Looking for CAs for tag %s", tag)
 				for _, caId := range indx.Data.Body.Tags.CAForward[tag] {
+					logger.Infof("Found CA id %s", caId)
 
 					// For each CA get a CSR for node
+					logger.Info("Getting CSR for node")
 					csrContainerJson, err := fsAPI.PopOutgoing(node.Data.Body.Id, "csrs")
 					if err != nil {
 						panic(logger.Errorf("Couldn't get a csr: %s", err))
@@ -129,6 +136,7 @@ func orgRegisterNodes(argv map[string]interface{}) (err error) {
 					}
 
 					// Get the CA
+					logger.Info("Getting CA")
 					caContainerJson, err := fsAPI.GetPrivate(fsAPI.Id, caId)
 					caContainer, err := document.NewContainer(caContainerJson)
 					if err != nil {
@@ -145,6 +153,7 @@ func orgRegisterNodes(argv map[string]interface{}) (err error) {
 					}
 
 					// Create a cert
+					logger.Info("Creating certificate")
 					cert, err := ca.Sign(csr)
 					if err != nil {
 						panic(logger.Errorf("Couldn't sign csr: %s", err))
@@ -162,6 +171,7 @@ func orgRegisterNodes(argv map[string]interface{}) (err error) {
 					}
 
 					// Push cert to node's incoming queue
+					logger.Info("Pushing certificate to node")
 					if err := fsAPI.PushIncoming(node.Data.Body.Id, "certs", certContainer.Dump()); err != nil {
 						panic(logger.Errorf("Couldn't push cert to node: %s", err))
 
@@ -173,6 +183,7 @@ func orgRegisterNodes(argv map[string]interface{}) (err error) {
 		}
 	}
 
+	logger.Info("Saving index")
 	SaveIndex(fsAPI, org, indx)
 	return nil
 }
