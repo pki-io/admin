@@ -1,4 +1,6 @@
+load "fixtures/basics"
+
 @test "version" {
-  run go run *.go --version
+  run $CMD --version
   [ "$status" -eq 0 ]
 }

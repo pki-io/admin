@@ -12,7 +12,7 @@ import (
 
 const MinCSRs = 5
 
-func nodeNewCSR(fsAPI *fs.FsAPI, node, org *entity.Entity) {
+func nodeNewCSR(fsAPI *fs.FsAPI, node *n.Node, org *entity.Entity) {
 	logger.Info("Creating new CSR")
 	csr, err := x509.NewCSR(nil)
 	if err != nil {
@@ -47,7 +47,7 @@ func nodeNewCSR(fsAPI *fs.FsAPI, node, org *entity.Entity) {
 		panic(logger.Errorf("Could not send public CSR: %s", err))
 	}
 }
-func nodeGenerateCSRs(fsAPI *fs.FsAPI, node, org *entity.Entity) error {
+func nodeGenerateCSRs(fsAPI *fs.FsAPI, node *n.Node, org *entity.Entity) error {
 	numCSRs, err := fsAPI.OutgoingSize(fsAPI.Id, "csrs")
 	if err != nil {
 		panic(logger.Errorf("Could not get csr queue size: %s", err))
@@ -63,14 +63,15 @@ func nodeNew(argv map[string]interface{}) (err error) {
 	name := argv["<name>"].(string)
 	pairingId := argv["--pairing-id"].(string)
 	pairingKey := argv["--pairing-key"].(string)
+	offline := argv["--offline"].(bool)
 
 	conf := LoadConfig()
 	fsAPI := LoadAPI(conf)
 	admin := LoadAdmin(fsAPI)
-	org := LoadOrgPrivate(fsAPI, admin)
+	org := LoadOrgPublic(fsAPI, admin)
 
 	logger.Info("Creating new node")
-	node, err := entity.New(nil)
+	node, err := n.New(nil)
 	if err != nil {
 		panic(logger.Errorf("Could not create node entity: %s:", err))
 	}
@@ -78,7 +79,6 @@ func nodeNew(argv map[string]interface{}) (err error) {
 	node.Data.Body.Id = NewID()
 
 	// Acting on behalf of the node now, so all API is done for the node
-	//adminId := fsAPI.Id
 	fsAPI.Id = node.Data.Body.Id
 
 	logger.Info("Generating node keys")
@@ -92,17 +92,27 @@ func nodeNew(argv map[string]interface{}) (err error) {
 		panic(logger.Errorf("Could not save admin config: %s", err))
 	}
 
-	logger.Info("Creating public registration document")
-	reg, err := n.NewRegistration(node)
-	if err != nil {
-		panic(logger.Errorf("Couldn't create registration: %s", err))
+	var nodeJson string
+	if offline {
+		nodeJson = node.Dump()
+
+	} else {
+		nodeJson = node.DumpPublic()
+		if err != nil {
+			panic(logger.Errorf("Could not dump public node: %s:", err))
+		}
+
 	}
-	if err := reg.Authenticate(pairingId, pairingKey); err != nil {
-		panic(logger.Errorf("Couldn't authenticate registration: %s", err))
+	entities := []*entity.Entity{org}
+	container, err := node.EncryptThenAuthenticateString(nodeJson, entities, pairingId, pairingKey)
+	if err != nil {
+		panic(logger.Errorf("Could encrypt and authenticate node: %s:", err))
 	}
 
-	logger.Info("Pushing public document to org")
-	if err := fsAPI.PushIncoming(org.Data.Body.Id, "registration", reg.Dump()); err != nil {
+	logger.Info("Encrypting and authenticating container")
+
+	logger.Info("Pushing container to org")
+	if err := fsAPI.PushIncoming(org.Data.Body.Id, "registration", container.Dump()); err != nil {
 		panic(logger.Errorf("Could not push document to org: %s", err))
 	}
 	logger.Info("Saving node")
@@ -331,7 +341,7 @@ Manages nodes.
 
 Usage:
     pki.io node [--help]
-    pki.io node new <name> --pairing-id=<id> --pairing-key=<key>
+    pki.io node new <name> --pairing-id=<id> --pairing-key=<key> [--offline]
     pki.io node run --name=<name>
     pki.io node show --name=<name> --cert=<id> [--export=<file>]
 
@@ -339,6 +349,7 @@ Options:
     --pairing-id=<id>   Pairing ID
     --pairing-key=<key> Pairing Key
     --name=<name>       Node name
+    --offline           Create node in offline mode (false)
     --cert=<cert>       Certificate ID
     --export=<file>     Export data to file or "-" for STDOUT
 `

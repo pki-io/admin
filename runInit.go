@@ -31,10 +31,7 @@ Options
 		adminName = argv["--admin"].(string)
 	}
 
-	/**************************************************************************************************
-	 * Initialise the file system
-	 **************************************************************************************************/
-
+	logger.Info("Starting the filesystem API")
 	currentDir, err := os.Getwd()
 	if err != nil {
 		panic(logger.Errorf("Could not get current directory: %s", err))
