@@ -43,10 +43,6 @@ Options
 		panic(logger.Errorf("Could not initialise the filesystem API: %s", err))
 	}
 
-	/**************************************************************************************************
-	 * Create the Org
-	 **************************************************************************************************/
-
 	logger.Info("Creating Org entity")
 	org, err := entity.New(nil)
 	if err != nil {
@@ -63,23 +59,17 @@ Options
 		panic(logger.Errorf("Could not generate org keys: %s", err))
 	}
 
-	// Public view of the Org
 	logger.Info("Creating public copy of org to save locally")
 	publicOrg, err := org.Public()
 	if err != nil {
 		panic(logger.Errorf("Could not get public org: %s", err))
 	}
 
-	// Index
 	logger.Info("Creating org index")
-	index, err := index.New(nil)
+	index, err := index.NewOrg(nil)
 	if err != nil {
 		panic(logger.Errorf("Could not create index: %s", err))
 	}
-
-	/**************************************************************************************************
-	 * Create the admin
-	 **************************************************************************************************/
 
 	logger.Info("Creating Admin entity")
 	admin, err := entity.New(nil)
@@ -100,10 +90,6 @@ Options
 	// API is for our admin user (should be a login call?)
 	fsAPI.Id = admin.Data.Body.Id
 
-	/**************************************************************************************************
-	 * Create the config file
-	 **************************************************************************************************/
-
 	// Save the org config
 	configFile := filepath.Join(fsAPI.Path, "pki.io.conf")
 	conf := config.New(configFile)
@@ -115,18 +101,18 @@ Options
 		panic(logger.Errorf("Could not create org config: %s", err))
 	}
 
-	/**************************************************************************************************
-	 * Save admin to API
-	 **************************************************************************************************/
-
 	logger.Info("Saving admin")
 	if err := fsAPI.WriteLocal("admin", admin.Dump()); err != nil {
 		panic(logger.Errorf("Could not save admin data: %s", err))
 	}
 
-	/**************************************************************************************************
-	 * Save the org to API
-	 **************************************************************************************************/
+	logger.Info("Pushing public admin")
+	if err := fsAPI.StorePublic(admin.Data.Body.Name, admin.DumpPublic()); err != nil {
+		panic(logger.Errorf("Could not save file: %s", err))
+	}
+
+	// Org data saved in the context of the org
+	fsAPI.Id = org.Data.Body.Id
 
 	// Public keys
 	publicOrgContainer, err := admin.SignString(publicOrg.Dump())
@@ -150,7 +136,7 @@ Options
 	}
 
 	// Index
-	SaveIndex(fsAPI, org, index)
+	SaveOrgIndex(fsAPI, org, index)
 
 	return nil
 

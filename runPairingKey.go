@@ -10,12 +10,11 @@ import (
 func pairingKeyNew(argv map[string]interface{}) (err error) {
 	inTags := argv["--tags"].(string)
 
-	logger.Info("Loading")
 	conf := LoadConfig()
-	fsAPI := LoadAPI(conf)
-	admin := LoadAdmin(fsAPI)
-	org := LoadOrgPrivate(fsAPI, admin)
-	index := LoadIndex(fsAPI, org)
+	fsAPI := LoadAPI()
+	admin := LoadAdmin(fsAPI, conf)
+	org := LoadOrgPrivate(fsAPI, admin, conf)
+	index := LoadOrgIndex(fsAPI, org)
 
 	logger.Info("Creating the key")
 	id := NewID()
@@ -28,7 +27,7 @@ func pairingKeyNew(argv map[string]interface{}) (err error) {
 	logger.Info("Saving key to index")
 	tags := ParseTags(inTags)
 	index.AddPairingKey(id, key, tags)
-	SaveIndex(fsAPI, org, index)
+	SaveOrgIndex(fsAPI, org, index)
 
 	fmt.Printf("Pairing ID: %s\n", id)
 	fmt.Printf("Pairing key: %s\n", key)

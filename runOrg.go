@@ -10,10 +10,10 @@ import (
 func orgShow(argv map[string]interface{}) (err error) {
 
 	conf := LoadConfig()
-	fsAPI := LoadAPI(conf)
-	admin := LoadAdmin(fsAPI)
-	org := LoadOrgPrivate(fsAPI, admin)
-	index := LoadIndex(fsAPI, org)
+	fsAPI := LoadAPI()
+	admin := LoadAdmin(fsAPI, conf)
+	org := LoadOrgPrivate(fsAPI, admin, conf)
+	index := LoadOrgIndex(fsAPI, org)
 
 	logger.Infof("Name: %s\n", org.Data.Body.Name)
 	logger.Infof("Id: %s\n", org.Data.Body.Id)
@@ -46,10 +46,10 @@ func orgShow(argv map[string]interface{}) (err error) {
 
 func orgRegisterNodes(argv map[string]interface{}) (err error) {
 	conf := LoadConfig()
-	fsAPI := LoadAPI(conf)
-	admin := LoadAdmin(fsAPI)
-	org := LoadOrgPrivate(fsAPI, admin)
-	indx := LoadIndex(fsAPI, org)
+	fsAPI := LoadAPI()
+	admin := LoadAdmin(fsAPI, conf)
+	org := LoadOrgPrivate(fsAPI, admin, conf)
+	indx := LoadOrgIndex(fsAPI, org)
 
 	fsAPI.Id = org.Data.Body.Id
 
@@ -59,7 +59,7 @@ func orgRegisterNodes(argv map[string]interface{}) (err error) {
 		if err != nil {
 			panic(logger.Errorf("Can't get queue size: %s", err))
 		}
-		logger.Infof("Found %d nodes to register\n", size)
+		logger.Infof("Found %d nodes to register", size)
 		if size > 0 {
 			logger.Info("Popping registration")
 			regJson, err := fsAPI.PopIncoming("registration")
@@ -158,6 +158,8 @@ func orgRegisterNodes(argv map[string]interface{}) (err error) {
 					if err != nil {
 						panic(logger.Errorf("Couldn't sign csr: %s", err))
 					}
+					logger.Info("Tagging cert")
+					cert.Data.Body.Tags = append(cert.Data.Body.Tags, tag)
 
 					// Sign cert
 					certContainer, err := document.NewContainer(nil)
@@ -184,7 +186,7 @@ func orgRegisterNodes(argv map[string]interface{}) (err error) {
 	}
 
 	logger.Info("Saving index")
-	SaveIndex(fsAPI, org, indx)
+	SaveOrgIndex(fsAPI, org, indx)
 	return nil
 }
 

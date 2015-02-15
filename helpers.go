@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 func NewID() string {
@@ -31,6 +32,7 @@ func CurrentDir() string {
 func LoadConfig() *config.Config {
 
 	configFile := filepath.Join(CurrentDir(), "pki.io.conf")
+	logger.Infof("Loading local configuration file: %s", configFile)
 	conf := config.New(configFile)
 	if err := conf.Load(); err != nil {
 		panic(logger.Errorf("Could not load config file %s: %s", configFile, err))
@@ -38,13 +40,15 @@ func LoadConfig() *config.Config {
 	return conf
 }
 
-func LoadAPI(conf *config.Config) *fs.FsAPI {
+func LoadAPI() *fs.FsAPI {
+	logger.Info("Setting up the filesystem API")
 	fsAPI, _ := fs.NewAPI(CurrentDir(), "") // we're in the name'd path
-	fsAPI.Id = conf.Data.Admins[0].Id       // need to override if required
 	return fsAPI
 }
 
-func LoadAdmin(fsAPI *fs.FsAPI) *entity.Entity {
+func LoadAdmin(fsAPI *fs.FsAPI, conf *config.Config) *entity.Entity {
+	logger.Info("Reading local admin")
+	fsAPI.Id = conf.Data.Admins[0].Id // need to override if required
 	adminJson, err := fsAPI.ReadLocal("admin")
 	if err != nil {
 		panic(logger.Errorf("Could not load admin data: %s", err))
@@ -56,7 +60,10 @@ func LoadAdmin(fsAPI *fs.FsAPI) *entity.Entity {
 	return admin
 }
 
-func LoadOrgPrivate(fsAPI *fs.FsAPI, admin *entity.Entity) *entity.Entity {
+func LoadOrgPrivate(fsAPI *fs.FsAPI, admin *entity.Entity, conf *config.Config) *entity.Entity {
+	logger.Info("Loading private Org")
+	fsAPI.Id = conf.Data.Org.Id
+
 	orgJson, err := fsAPI.LoadPrivate("org")
 	if err != nil {
 		panic(logger.Errorf("Could not load org data: %s", err))
@@ -82,7 +89,10 @@ func LoadOrgPrivate(fsAPI *fs.FsAPI, admin *entity.Entity) *entity.Entity {
 	return org
 }
 
-func LoadOrgPublic(fsAPI *fs.FsAPI, admin *entity.Entity) *entity.Entity {
+func LoadOrgPublic(fsAPI *fs.FsAPI, admin *entity.Entity, conf *config.Config) *entity.Entity {
+	logger.Info("Loading public Org")
+	fsAPI.Id = conf.Data.Org.Id
+
 	orgJson, err := fsAPI.LoadPublic("org")
 	if err != nil {
 		panic(logger.Errorf("Could not load org data: %s", err))
@@ -111,7 +121,7 @@ func ParseTags(tagString string) []string {
 	return tags
 }
 
-func LoadIndex(fsAPI *fs.FsAPI, org *entity.Entity) *index.Index {
+func LoadOrgIndex(fsAPI *fs.FsAPI, org *entity.Entity) *index.OrgIndex {
 	indexJson, err := fsAPI.GetPrivate(org.Data.Body.Id, "index")
 	if err != nil {
 		panic(logger.Errorf("Could not load index data: %s", err))
@@ -131,14 +141,14 @@ func LoadIndex(fsAPI *fs.FsAPI, org *entity.Entity) *index.Index {
 		panic(logger.Errorf("Could not decrypt container: %s", err))
 	}
 
-	indx, err := index.New(decryptedIndexJson)
+	indx, err := index.NewOrg(decryptedIndexJson)
 	if err != nil {
 		panic(logger.Errorf("Could not create indx: %s", err))
 	}
 	return indx
 }
 
-func SaveIndex(fsAPI *fs.FsAPI, org *entity.Entity, indx *index.Index) {
+func SaveOrgIndex(fsAPI *fs.FsAPI, org *entity.Entity, indx *index.OrgIndex) {
 	encryptedIndexContainer, err := org.EncryptThenSignString(indx.Dump(), nil)
 	if err != nil {
 		panic(logger.Errorf("Could not encrypt and sign index: %s", err))
@@ -162,9 +172,10 @@ func TarGZ(files []ExportFile) ([]byte, error) {
 
 	for _, file := range files {
 		header := &tar.Header{
-			Name: file.Name,
-			Mode: int64(file.Mode),
-			Size: int64(len(file.Content)),
+			Name:    file.Name,
+			Mode:    int64(file.Mode),
+			Size:    int64(len(file.Content)),
+			ModTime: time.Now(),
 		}
 		if err := tarWriter.WriteHeader(header); err != nil {
 			return nil, err

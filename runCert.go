@@ -9,9 +9,9 @@ func certShow(argv map[string]interface{}) (err error) {
 	name := argv["<name>"].(string)
 
 	conf := LoadConfig()
-	fsAPI := LoadAPI(conf)
-	admin := LoadAdmin(fsAPI)
-	org := LoadOrgPublic(fsAPI, admin)
+	fsAPI := LoadAPI()
+	admin := LoadAdmin(fsAPI, conf)
+	org := LoadOrgPublic(fsAPI, admin, conf)
 
 	certJson, err := fsAPI.LoadPrivate(name)
 	if err != nil {

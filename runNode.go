@@ -6,13 +6,51 @@ import (
 	"github.com/pki-io/pki.io/document"
 	"github.com/pki-io/pki.io/entity"
 	"github.com/pki-io/pki.io/fs"
+	"github.com/pki-io/pki.io/index"
 	n "github.com/pki-io/pki.io/node"
 	"github.com/pki-io/pki.io/x509"
 )
 
 const MinCSRs = 5
 
-func nodeNewCSR(fsAPI *fs.FsAPI, node *n.Node, org *entity.Entity) {
+func LoadNodeIndex(fsAPI *fs.FsAPI, node *n.Node) *index.NodeIndex {
+	indexJson, err := fsAPI.GetPrivate(node.Data.Body.Id, "index")
+	if err != nil {
+		panic(logger.Errorf("Could not load index data: %s", err))
+
+	}
+	indexContainer, err := document.NewContainer(indexJson)
+	if err != nil {
+		panic(logger.Errorf("Could not load index container: %s", err))
+	}
+
+	if err := node.Verify(indexContainer); err != nil {
+		panic(logger.Errorf("Could not verify index: %s", err))
+	}
+
+	decryptedIndexJson, err := node.Decrypt(indexContainer)
+	if err != nil {
+		panic(logger.Errorf("Could not decrypt container: %s", err))
+	}
+
+	indx, err := index.NewNode(decryptedIndexJson)
+	if err != nil {
+		panic(logger.Errorf("Could not create indx: %s", err))
+	}
+	return indx
+}
+
+func SaveNodeIndex(fsAPI *fs.FsAPI, node *n.Node, indx *index.NodeIndex) {
+	encryptedIndexContainer, err := node.EncryptThenSignString(indx.Dump(), nil)
+	if err != nil {
+		panic(logger.Errorf("Could not encrypt and sign index: %s", err))
+	}
+	if err := fsAPI.SendPrivate(node.Data.Body.Id, "index", encryptedIndexContainer.Dump()); err != nil {
+		panic(logger.Errorf("Could not save encrypted: %s", err))
+	}
+}
+
+func nodeNewCSR(fsAPI *fs.FsAPI, node *n.Node, org *entity.Entity) string {
 	logger.Info("Creating new CSR")
 	csr, err := x509.NewCSR(nil)
 	if err != nil {
@@ -46,17 +84,21 @@ func nodeNewCSR(fsAPI *fs.FsAPI, node *n.Node, org *entity.Entity) {
 	if err := fsAPI.PushOutgoing("csrs", csrPublicContainer.Dump()); err != nil {
 		panic(logger.Errorf("Could not send public CSR: %s", err))
 	}
+
+	return csr.Data.Body.Id
 }
-func nodeGenerateCSRs(fsAPI *fs.FsAPI, node *n.Node, org *entity.Entity) error {
+
+func nodeGenerateCSRs(fsAPI *fs.FsAPI, node *n.Node, org *entity.Entity) []string {
 	numCSRs, err := fsAPI.OutgoingSize(fsAPI.Id, "csrs")
 	if err != nil {
 		panic(logger.Errorf("Could not get csr queue size: %s", err))
 	}
 
+	csrs := make([]string, 0)
 	for i := 0; i < MinCSRs-numCSRs; i++ {
-		nodeNewCSR(fsAPI, node, org)
+		csrs = append(csrs, nodeNewCSR(fsAPI, node, org))
 	}
-	return nil
+	return csrs
 }
 
 func nodeNew(argv map[string]interface{}) (err error) {
@@ -66,9 +108,9 @@ func nodeNew(argv map[string]interface{}) (err error) {
 	offline := argv["--offline"].(bool)
 
 	conf := LoadConfig()
-	fsAPI := LoadAPI(conf)
-	admin := LoadAdmin(fsAPI)
-	org := LoadOrgPublic(fsAPI, admin)
+	fsAPI := LoadAPI()
+	admin := LoadAdmin(fsAPI, conf)
+	org := LoadOrgPublic(fsAPI, admin, conf)
 
 	logger.Info("Creating new node")
 	node, err := n.New(nil)
@@ -120,10 +162,18 @@ func nodeNew(argv map[string]interface{}) (err error) {
 		panic(logger.Errorf("Could not save node: %s", err))
 	}
 
+	logger.Info("Creating node index")
+	indx, err := index.NewNode(nil)
+	if err != nil {
+		panic(logger.Errorf("Could not create index: %s", err))
+	}
+
 	// create crs
 	logger.Info("Creating CSRs")
 	nodeGenerateCSRs(fsAPI, node, org)
 
+	logger.Info("Saving index")
+	SaveNodeIndex(fsAPI, node, indx)
 	return nil
 }
 
@@ -131,9 +181,9 @@ func nodeProcessRegistrations(argv map[string]interface{}) (err error) {
 	name := argv["--name"].(string)
 
 	conf := LoadConfig()
-	fsAPI := LoadAPI(conf)
-	admin := LoadAdmin(fsAPI)
-	org := LoadOrgPublic(fsAPI, admin)
+	fsAPI := LoadAPI()
+	admin := LoadAdmin(fsAPI, conf)
+	org := LoadOrgPublic(fsAPI, admin, conf)
 
 	// Need to rename the privte key files a bit. Then look them up via the config. Would do a search until
 	// name is matchedc
@@ -156,7 +206,7 @@ func nodeProcessRegistrations(argv map[string]interface{}) (err error) {
 			panic(logger.Errorf("Can't get queue size: %s", err))
 		}
 
-		logger.Infof("Found %d registrations to process\n", size)
+		logger.Infof("Found %d registrations to process", size)
 		if size > 0 {
 			nodeContainerJson, err := fsAPI.PopIncoming("registrations")
 			if err != nil {
@@ -187,9 +237,9 @@ func nodeProcessCerts(argv map[string]interface{}) (err error) {
 	name := argv["--name"].(string)
 
 	conf := LoadConfig()
-	fsAPI := LoadAPI(conf)
-	admin := LoadAdmin(fsAPI)
-	org := LoadOrgPublic(fsAPI, admin)
+	fsAPI := LoadAPI()
+	admin := LoadAdmin(fsAPI, conf)
+	org := LoadOrgPublic(fsAPI, admin, conf)
 
 	// Need to rename the privte key files a bit. Then look them up via the config. Would do a search until
 	// name is matchedc
@@ -205,6 +255,7 @@ func nodeProcessCerts(argv map[string]interface{}) (err error) {
 	}
 
 	fsAPI.Id = node.Data.Body.Id
+	indx := LoadNodeIndex(fsAPI, node)
 
 	// For each income cert
 	for {
@@ -267,25 +318,26 @@ func nodeProcessCerts(argv map[string]interface{}) (err error) {
 				panic(logger.Errorf("Could save cert: %s", err))
 			}
 
+			if err := indx.AddCertTags(cert.Data.Body.Id, cert.Data.Body.Tags); err != nil {
+				panic(logger.Errorf("Could not add cert tags: %s", err))
+			}
+
 		} else {
 			break
 		}
 	}
 	logger.Info("Creating CSRs")
 	nodeGenerateCSRs(fsAPI, node, org)
+
+	logger.Info("Saving index")
+	SaveNodeIndex(fsAPI, node, indx)
 	return nil
 }
 
 func nodeShow(argv map[string]interface{}) (err error) {
 	name := argv["--name"].(string)
-	certId := argv["--cert"].(string)
-	exportFile := argv["--export"] // Optional, so check for nil later
 
-	conf := LoadConfig()
-	fsAPI := LoadAPI(conf)
-
-	// Need to rename the privte key files a bit. Then look them up via the config. Would do a search until
-	// name is matchedc
+	fsAPI := LoadAPI()
 
 	nodeJson, err := fsAPI.ReadLocal(name)
 	if err != nil {
@@ -298,38 +350,74 @@ func nodeShow(argv map[string]interface{}) (err error) {
 	}
 
 	fsAPI.Id = node.Data.Body.Id
+	indx := LoadNodeIndex(fsAPI, node)
 
-	certContainerJson, err := fsAPI.GetPrivate(fsAPI.Id, certId)
+	logger.Infof("Public Signing Key:\n%s", node.Data.Body.PublicSigningKey)
+	logger.Infof("Public Encryption Key:\n%s", node.Data.Body.PublicEncryptionKey)
+	logger.Infof("Certificate tags:\n%s", indx.Data.Body.Tags.CertForward)
+
+	return nil
+}
+
+func nodeCert(argv map[string]interface{}) (err error) {
+	name := argv["--name"].(string)
+	inTags := argv["--tags"].(string)
+	exportFile := argv["--export"] // Optional, so check for nil later
+
+	fsAPI := LoadAPI()
+
+	nodeJson, err := fsAPI.ReadLocal(name)
 	if err != nil {
-		panic(logger.Errorf("Could not load cert container json: %s", err))
+		panic(logger.Errorf("Could not read node file: %s", err))
 	}
 
-	certContainer, err := document.NewContainer(certContainerJson)
+	node, err := n.New(nodeJson)
 	if err != nil {
-		panic(logger.Errorf("Could not load cert container: %s", err))
+		panic(logger.Errorf("Could not load node json: %s", err))
 	}
 
-	certJson, err := node.VerifyThenDecrypt(certContainer)
-	if err != nil {
-		panic(logger.Errorf("Could not verify and decrypt: %s", err))
-	}
+	fsAPI.Id = node.Data.Body.Id
+	indx := LoadNodeIndex(fsAPI, node)
 
-	cert, err := x509.NewCertificate(certJson)
-	if err != nil {
-		panic(logger.Errorf("Could not load cert: %s", err))
-	}
+	var files []ExportFile
+	for _, tag := range ParseTags(inTags) {
+		logger.Infof("Getting certs for tag: %s", tag)
+		for _, certId := range indx.Data.Body.Tags.CertForward[tag] {
+			logger.Infof("Loading certificate: %s", certId)
+			certContainerJson, err := fsAPI.GetPrivate(fsAPI.Id, certId)
+			if err != nil {
+				panic(logger.Errorf("Could not load cert container json: %s", err))
+			}
 
-	switch exportFile.(type) {
-	case nil:
-		logger.Infof("Certificate:\n%s\n\n", cert.Data.Body.Certificate)
-		logger.Infof("Private Key:\n%s\n\n", cert.Data.Body.PrivateKey)
-	case string:
-		var files []ExportFile
-		files = append(files, ExportFile{Name: "cert.pem", Mode: 0644, Content: []byte(cert.Data.Body.Certificate)})
-		files = append(files, ExportFile{Name: "key.pem", Mode: 0600, Content: []byte(cert.Data.Body.PrivateKey)})
+			certContainer, err := document.NewContainer(certContainerJson)
+			if err != nil {
+				panic(logger.Errorf("Could not load cert container: %s", err))
+			}
+
+			certJson, err := node.VerifyThenDecrypt(certContainer)
+			if err != nil {
+				panic(logger.Errorf("Could not verify and decrypt: %s", err))
+			}
+
+			cert, err := x509.NewCertificate(certJson)
+			if err != nil {
+				panic(logger.Errorf("Could not load cert: %s", err))
+			}
+			switch exportFile.(type) {
+			case nil:
+				logger.Infof("Certificate:\n%s\n\n", cert.Data.Body.Certificate)
+				logger.Infof("Private Key:\n%s\n\n", cert.Data.Body.PrivateKey)
+			case string:
+				files = append(files, ExportFile{Name: "cert.pem", Mode: 0644, Content: []byte(cert.Data.Body.Certificate)})
+				files = append(files, ExportFile{Name: "key.pem", Mode: 0600, Content: []byte(cert.Data.Body.PrivateKey)})
+			}
+
+		}
+	}
+	if len(files) > 0 {
+		logger.Info("Exporting")
 		Export(files, exportFile.(string))
 	}
-
 	return nil
 }
 
@@ -343,7 +431,8 @@ Usage:
     pki.io node [--help]
     pki.io node new <name> --pairing-id=<id> --pairing-key=<key> [--offline]
     pki.io node run --name=<name>
-    pki.io node show --name=<name> --cert=<id> [--export=<file>]
+    pki.io node show --name=<name>
+    pki.io node cert --name=<name> --tags=<tags> [--export=<file>]
 
 Options:
     --pairing-id=<id>   Pairing ID
@@ -362,6 +451,8 @@ Options:
 		nodeProcessCerts(argv)
 	} else if argv["show"].(bool) {
 		nodeShow(argv)
+	} else if argv["cert"].(bool) {
+		nodeCert(argv)
 	}
 	return nil
 }

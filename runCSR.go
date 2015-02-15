@@ -8,9 +8,9 @@ func csrNew(argv map[string]interface{}) (err error) {
 	name := argv["<name>"].(string)
 
 	conf := LoadConfig()
-	fsAPI := LoadAPI(conf)
-	admin := LoadAdmin(fsAPI)
-	org := LoadOrgPrivate(fsAPI, admin)
+	fsAPI := LoadAPI()
+	admin := LoadAdmin(fsAPI, conf)
+	org := LoadOrgPrivate(fsAPI, admin, conf)
 
 	logger.Info("Creating new CSR")
 	csr, _ := x509.NewCSR(nil)

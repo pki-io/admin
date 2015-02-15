@@ -12,9 +12,9 @@ func caNew(argv map[string]interface{}) (err error) {
 	inTags := argv["--tags"].(string)
 
 	conf := LoadConfig()
-	fsAPI := LoadAPI(conf)
-	admin := LoadAdmin(fsAPI)
-	org := LoadOrgPrivate(fsAPI, admin)
+	fsAPI := LoadAPI()
+	admin := LoadAdmin(fsAPI, conf)
+	org := LoadOrgPrivate(fsAPI, admin, conf)
 
 	logger.Info("Creating new CA")
 	ca, _ := x509.NewCA(nil)
@@ -31,9 +31,9 @@ func caNew(argv map[string]interface{}) (err error) {
 	}
 
 	logger.Info("Updating index")
-	indx := LoadIndex(fsAPI, org)
+	indx := LoadOrgIndex(fsAPI, org)
 	indx.AddCATags(ca.Data.Body.Id, ParseTags(inTags))
-	SaveIndex(fsAPI, org, indx)
+	SaveOrgIndex(fsAPI, org, indx)
 
 	return nil
 }
@@ -43,9 +43,9 @@ func caSign(argv map[string]interface{}) (err error) {
 	csrName := argv["<csr>"].(string)
 
 	conf := LoadConfig()
-	fsAPI := LoadAPI(conf)
-	admin := LoadAdmin(fsAPI)
-	org := LoadOrgPrivate(fsAPI, admin)
+	fsAPI := LoadAPI()
+	admin := LoadAdmin(fsAPI, conf)
+	org := LoadOrgPrivate(fsAPI, admin, conf)
 
 	logger.Info("Getting CA")
 	caJson, err := fsAPI.GetPrivate(org.Data.Body.Id, caName)
