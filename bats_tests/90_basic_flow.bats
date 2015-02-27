@@ -6,6 +6,7 @@ load "fixtures/pairing_key"
 
 @test "basic flow" {
   # can't run init for some reason
+  init_init
   init
   run pairing_key_new
   [ "$status" -eq 0 ]

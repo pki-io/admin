@@ -83,12 +83,12 @@ func runCommand(cmd string, args []string) error {
 	switch cmd {
 	case "init":
 		return runInit(argv)
+	case "pairing-key":
+		return runPairingKey(argv)
 	case "ca":
 		return runCA(argv)
 	case "node":
 		return runNode(argv)
-	case "pairing-key":
-		return runPairingKey(argv)
 	case "org":
 		return runOrg(argv)
 	}

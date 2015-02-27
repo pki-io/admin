@@ -2,13 +2,43 @@ package main
 
 import (
 	"github.com/docopt/docopt-go"
-	"github.com/pki-io/pki.io/config"
-	"github.com/pki-io/pki.io/entity"
-	"github.com/pki-io/pki.io/fs"
-	"github.com/pki-io/pki.io/index"
-	"os"
-	"path/filepath"
 )
+
+func newInit(argv map[string]interface{}) {
+	var adminName string
+	orgName := argv["<org>"].(string)
+	if argv["--admin"] == nil {
+		adminName = "admin"
+	} else {
+		adminName = argv["--admin"].(string)
+	}
+
+	// TODO - Use the AdminApp
+
+	app := NewAdminApp()
+
+	app.InitLocalFs()
+	app.CreateOrgDirectory(orgName)
+
+	app.InitApiFs()
+	app.InitHomeFs()
+
+	app.CreateAdminEntity(adminName)
+	app.CreateOrgEntity(orgName)
+
+	app.SaveAdminEntity()
+	app.CreateAdminConfig()
+
+	app.SaveOrgEntity()
+	app.CreateOrgConfig()
+
+	app.CreateOrgIndex()
+	app.SaveOrgIndex()
+
+	app.config.org.Data.Index = app.index.org.Data.Body.Id
+	app.SaveAdminConfig()
+	app.SaveOrgConfig()
+}
 
 func runInit(args []string) (err error) {
 
@@ -23,121 +53,6 @@ Options
 
 	argv, _ := docopt.Parse(usage, args, true, "", false)
 
-	var adminName string
-	orgName := argv["<org>"].(string)
-	if argv["--admin"] == nil {
-		adminName = "admin"
-	} else {
-		adminName = argv["--admin"].(string)
-	}
-
-	logger.Info("Starting the filesystem API")
-	currentDir, err := os.Getwd()
-	if err != nil {
-		panic(logger.Errorf("Could not get current directory: %s", err))
-	}
-
-	// This will create the directory for us $(cwd)/NAME
-	fsAPI, err := fs.NewAPI(currentDir, orgName)
-	if err != nil {
-		panic(logger.Errorf("Could not initialise the filesystem API: %s", err))
-	}
-
-	logger.Info("Creating Org entity")
-	org, err := entity.New(nil)
-	if err != nil {
-		panic(logger.Errorf("Could not create org entity: %s", err))
-	}
-
-	// Need an ID (perhaps it should be the API via a register call?)
-	org.Data.Body.Id = NewID()
-	org.Data.Body.Name = orgName
-
-	logger.Info("Generating Org keys")
-	err = org.GenerateKeys()
-	if err != nil {
-		panic(logger.Errorf("Could not generate org keys: %s", err))
-	}
-
-	logger.Info("Creating public copy of org to save locally")
-	publicOrg, err := org.Public()
-	if err != nil {
-		panic(logger.Errorf("Could not get public org: %s", err))
-	}
-
-	logger.Info("Creating org index")
-	index, err := index.NewOrg(nil)
-	if err != nil {
-		panic(logger.Errorf("Could not create index: %s", err))
-	}
-
-	logger.Info("Creating Admin entity")
-	admin, err := entity.New(nil)
-	if err != nil {
-		panic(logger.Errorf("Could not create admin entity: %s", err))
-	}
-
-	// Need an ID (perhaps it should be the API via a register call?)
-	admin.Data.Body.Id = NewID()
-	admin.Data.Body.Name = adminName
-
-	// Generate admin keys
-	err = admin.GenerateKeys()
-	if err != nil {
-		panic(logger.Errorf("Could not generate admin keys: %s", err))
-	}
-
-	// API is for our admin user (should be a login call?)
-	fsAPI.Id = admin.Data.Body.Id
-
-	// Save the org config
-	configFile := filepath.Join(fsAPI.Path, "pki.io.conf")
-	conf := config.New(configFile)
-
-	conf.AddOrg(org.Data.Body.Name, org.Data.Body.Id)
-	conf.AddAdmin(admin.Data.Body.Name, admin.Data.Body.Id)
-
-	if err := conf.Create(); err != nil {
-		panic(logger.Errorf("Could not create org config: %s", err))
-	}
-
-	logger.Info("Saving admin")
-	if err := fsAPI.WriteLocal("admin", admin.Dump()); err != nil {
-		panic(logger.Errorf("Could not save admin data: %s", err))
-	}
-
-	logger.Info("Pushing public admin")
-	if err := fsAPI.StorePublic(admin.Data.Body.Name, admin.DumpPublic()); err != nil {
-		panic(logger.Errorf("Could not save file: %s", err))
-	}
-
-	// Org data saved in the context of the org
-	fsAPI.Id = org.Data.Body.Id
-
-	// Public keys
-	publicOrgContainer, err := admin.SignString(publicOrg.Dump())
-	if err != nil {
-		panic(logger.Errorf("Could not sign public org: %s", err))
-	}
-
-	logger.Info("Saving org data")
-	if err := fsAPI.StorePublic("org", publicOrgContainer.Dump()); err != nil {
-		panic(logger.Errorf("Could not save file: %s", err))
-	}
-
-	// Private keys
-	container, err := admin.EncryptThenSignString(org.Dump(), nil)
-	if err != nil {
-		panic(logger.Errorf("Could encrypt org: %s", err))
-	}
-
-	if err := fsAPI.StorePrivate("org", container.Dump()); err != nil {
-		panic(logger.Errorf("Could not store container to json: %s", err))
-	}
-
-	// Index
-	SaveOrgIndex(fsAPI, org, index)
-
+	newInit(argv)
 	return nil
-
 }
