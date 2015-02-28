@@ -3,6 +3,7 @@ load "fixtures/node"
 load "fixtures/pairing_key"
 
 @test "node new" {
+  init_init
   init
   pairing_key_new
   run node_new

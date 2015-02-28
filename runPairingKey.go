@@ -1,37 +1,32 @@
 package main
 
 import (
-	"encoding/hex"
 	"fmt"
 	"github.com/docopt/docopt-go"
-	"github.com/pki-io/pki.io/crypto"
 )
 
 func pairingKeyNew(argv map[string]interface{}) (err error) {
 	inTags := argv["--tags"].(string)
 
-	logger.Info("Loading")
-	conf := LoadConfig()
-	fsAPI := LoadAPI(conf)
-	admin := LoadAdmin(fsAPI)
-	org := LoadOrgPrivate(fsAPI, admin)
-	index := LoadIndex(fsAPI, org)
+	app := NewAdminApp()
+	app.Load()
 
 	logger.Info("Creating the key")
+
 	id := NewID()
-	random, err := crypto.RandomBytes(16)
-	if err != nil {
-		panic(logger.Errorf("Couldn't get random bytes: %s", err))
-	}
-	key := hex.EncodeToString(random)
+	key := NewID()
 
 	logger.Info("Saving key to index")
 	tags := ParseTags(inTags)
-	index.AddPairingKey(id, key, tags)
-	SaveIndex(fsAPI, org, index)
+
+	app.LoadOrgIndex()
+	// TODO -check error
+	app.index.org.AddPairingKey(id, key, tags)
+	app.SaveOrgIndex()
 
 	fmt.Printf("Pairing ID: %s\n", id)
 	fmt.Printf("Pairing key: %s\n", key)
+
 	return nil
 }
 
