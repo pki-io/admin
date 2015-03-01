@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/docopt/docopt-go"
 )
 
@@ -120,11 +121,14 @@ func nodeCert(argv map[string]interface{}) (err error) {
 	for _, cert := range certs {
 		switch exportFile.(type) {
 		case nil:
-			logger.Infof("Certificate:\n%s\n\n", cert.Data.Body.Certificate)
-			logger.Infof("Private Key:\n%s\n\n", cert.Data.Body.PrivateKey)
+			logger.Infof("Subject: %s", cert.Data.Body.Name)
+			logger.Infof("Certificate:\n%s", cert.Data.Body.Certificate)
+			logger.Infof("Private Key:\n%s", cert.Data.Body.PrivateKey)
 		case string:
-			files = append(files, ExportFile{Name: "cert.pem", Mode: 0644, Content: []byte(cert.Data.Body.Certificate)})
-			files = append(files, ExportFile{Name: "key.pem", Mode: 0600, Content: []byte(cert.Data.Body.PrivateKey)})
+			certFile := fmt.Sprintf("%s-cert.pem", cert.Data.Body.Name)
+			keyFile := fmt.Sprintf("%s-key.pem", cert.Data.Body.Name)
+			files = append(files, ExportFile{Name: certFile, Mode: 0644, Content: []byte(cert.Data.Body.Certificate)})
+			files = append(files, ExportFile{Name: keyFile, Mode: 0600, Content: []byte(cert.Data.Body.PrivateKey)})
 		}
 	}
 
