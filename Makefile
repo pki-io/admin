@@ -16,9 +16,9 @@ clean:
 	test ! -e pki.io || rm pki.io
 
 dev: clean get-deps
-	test -d _vendor/src/github.com/pki-io/pki.io  && \
-	rm -rf _vendor/src/github.com/pki-io/pki.io/* && \
-	for d in $(DIRS); do (cd _vendor/src/github.com/pki-io/pki.io && ln -s ../../../../../../pki.io/$$d .); done && \
+	test -d _vendor/src/github.com/pki-io/core  && \
+	rm -rf _vendor/src/github.com/pki-io/core/* && \
+	for d in $(DIRS); do (cd _vendor/src/github.com/pki-io/core && ln -s ../../../../../../core/$$d .); done && \
 	rm -rf _vendor/pkg
 
 all: get-deps build test install
