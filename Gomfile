@@ -1,7 +1,7 @@
 gom "github.com/docopt/docopt-go"
-gom "github.com/pki-io/pki.io/config"
-gom "github.com/pki-io/pki.io/fs"
-gom "github.com/pki-io/pki.io/index"
+gom "github.com/pki-io/core/config"
+gom "github.com/pki-io/core/fs"
+gom "github.com/pki-io/core/index"
 gom "github.com/cihub/seelog"
 
 
