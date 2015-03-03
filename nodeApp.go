@@ -1,13 +1,13 @@
 package main
 
 import (
-	"github.com/pki-io/pki.io/config"
-	"github.com/pki-io/pki.io/document"
-	"github.com/pki-io/pki.io/entity"
-	"github.com/pki-io/pki.io/fs"
-	"github.com/pki-io/pki.io/index"
-	"github.com/pki-io/pki.io/node"
-	"github.com/pki-io/pki.io/x509"
+	"github.com/pki-io/core/config"
+	"github.com/pki-io/core/document"
+	"github.com/pki-io/core/entity"
+	"github.com/pki-io/core/fs"
+	"github.com/pki-io/core/index"
+	"github.com/pki-io/core/node"
+	"github.com/pki-io/core/x509"
 	"os"
 )
 

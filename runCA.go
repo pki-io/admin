@@ -2,20 +2,24 @@ package main
 
 import (
 	"github.com/docopt/docopt-go"
-	"github.com/pki-io/pki.io/x509"
-	"time"
+	"github.com/pki-io/core/x509"
 )
 
 func caNew(argv map[string]interface{}) (err error) {
-	name := argv["<name>"].(string)
-	inTags := argv["--tags"].(string)
+	name := ArgString(argv["<name>"], nil)
+	inTags := ArgString(argv["--tags"], nil)
+	caExpiry := ArgInt(argv["--ca-expiry"], 365)
+	certExpiry := ArgInt(argv["--cert-expiry"], 90)
 
 	app := NewAdminApp()
 	app.Load()
 
 	ca, _ := x509.NewCA(nil)
 	ca.Data.Body.Name = name
-	ca.GenerateRoot(time.Now(), time.Now().AddDate(5, 5, 5))
+	ca.Data.Body.CAExpiry = caExpiry
+	ca.Data.Body.CertExpiry = certExpiry
+
+	ca.GenerateRoot()
 
 	logger.Info("Saving CA")
 	caContainer, err := app.entities.org.EncryptThenSignString(ca.Dump(), nil)
@@ -41,10 +45,12 @@ Manages Certificate Authorities
 
 Usage:
     pki.io ca [--help]
-    pki.io ca new <name> --tags=<tags>
+    pki.io ca new <name> --tags=<tags> [--ca-expiry=<days>] [--cert-expiry=<days>]
 
 Options:
-    --tags=<tags>   List of comma-separated tags
+    --tags=<tags>        List of comma-separated tags
+    --ca-expiry=<days>   Expiry period for CA in days [default: 365]
+    --cert-expiry=<days> Expiry period for certs in day [default: 90]
 `
 
 	argv, _ := docopt.Parse(usage, args, true, "", false)
