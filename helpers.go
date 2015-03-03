@@ -5,9 +5,10 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/hex"
-	"github.com/pki-io/pki.io/crypto"
+	"github.com/pki-io/core/crypto"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -26,6 +27,32 @@ func ParseTags(tagString string) []string {
 		tags[i] = strings.TrimSpace(strings.ToLower(e))
 	}
 	return tags
+}
+
+func ArgInt(arg interface{}, def interface{}) int {
+	switch t := arg.(type) {
+	case string:
+		if argInt, err := strconv.ParseInt(arg.(string), 10, 64); err != nil {
+			panic(logger.Errorf("Couldn't convert to int: %s", err))
+		} else {
+			return int(argInt)
+		}
+	case nil:
+		return def.(int)
+	default:
+		panic(logger.Errorf("Wrong arg type: %T", t))
+	}
+}
+
+func ArgString(arg interface{}, def interface{}) string {
+	switch t := arg.(type) {
+	case string:
+		return arg.(string)
+	case nil:
+		return def.(string)
+	default:
+		panic(logger.Errorf("Wrong arg type: %T", t))
+	}
 }
 
 type ExportFile struct {
