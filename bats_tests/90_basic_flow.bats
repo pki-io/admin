@@ -8,14 +8,10 @@ load "fixtures/pairing_key"
   # can't run init for some reason
   init_init
   init
-  run pairing_key_new
-  [ "$status" -eq 0 ]
-  run ca_new
-  [ "$status" -eq 0 ]
-  run node_new
-  [ "$status" -eq 0 ]
-  run org_run
-  [ "$status" -eq 0 ]
+  pairing_key_new
+  ca_new
+  node_new
+  org_run
   run node_run
   [ "$status" -eq 0 ]
   cleanup
