@@ -4,13 +4,16 @@ default: get-deps build test
 
 get-deps:
 	gom install
+
 build:
-	gom build pki.io.go adminApp.go runNode.go helpers.go runCA.go runOrg.go nodeApp.go runInit.go runPairingKey.go runAdmin.go
+	gom build -o pki.io
 
 install:
 	install -m 0755 pki.io /usr/local/bin
+
 test:
 	bats bats_tests
+
 clean:
 	test ! -d _vendor || rm -rf _vendor/*
 	test ! -e pki.io || rm pki.io
