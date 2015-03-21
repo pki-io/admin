@@ -3,3 +3,5 @@
 _vendor
 .vendor
 pki.io
+.vagrant
+Vagrantfile

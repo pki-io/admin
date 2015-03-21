@@ -43,6 +43,7 @@ Options:
 
 Commands:
     init          Initialise an organisation
+    admin         Manage admins  
     ca            Manage X.509 Certificate Authorities
     node          Manage node entities
     org           Do operations on behalf of the org
@@ -91,6 +92,8 @@ func runCommand(cmd string, args []string) error {
 		return runNode(argv)
 	case "org":
 		return runOrg(argv)
+	case "admin":
+		return runAdmin(argv)
 	}
 
 	return fmt.Errorf("%s is not a pki.io command. See 'pki.io help'", cmd)

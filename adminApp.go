@@ -117,9 +117,23 @@ func (app *AdminApp) CreateOrgEntity(name string) {
 }
 
 func (app *AdminApp) SaveAdminEntity() {
-	logger.Info("Saving admin")
-	if err := app.fs.home.Write(app.entities.admin.Data.Body.Id, app.entities.admin.Dump()); err != nil {
-		panic(logger.Errorf("Couldn't save admin: %s", err))
+	id := app.entities.admin.Data.Body.Id
+
+	logger.Info("Saving local admin")
+	if err := app.fs.home.Write(id, app.entities.admin.Dump()); err != nil {
+		panic(logger.Errorf("Couldn't save local admin: %s", err))
+	}
+
+	logger.Info("Saving public admin")
+	if err := app.fs.api.SendPublic(id, id, app.entities.admin.DumpPublic()); err != nil {
+		panic(logger.Errorf("Couldn't save public admin: %s", err))
+	}
+}
+
+func (app *AdminApp) SaveOrgEntityPublic() {
+	logger.Info("Saving org public entity to home")
+	if err := app.fs.home.Write(app.entities.org.Data.Body.Id, app.entities.org.DumpPublic()); err != nil {
+		panic(logger.Errorf("Couldn't save public org: %s", err))
 	}
 }
 
@@ -150,7 +164,12 @@ func (app *AdminApp) CreateAdminConfig() {
 	if err != nil {
 		panic(logger.Errorf("Couldn't initialize admin config: %s", err))
 	}
-	app.config.admin.AddOrg(app.entities.org.Data.Body.Name, app.entities.org.Data.Body.Id, app.entities.admin.Data.Body.Id)
+
+	if app.entities.admin == nil {
+		panic(logger.Error("admin entity cannot be nil"))
+	}
+
+	app.config.admin.AddOrg(app.config.org.Data.Name, app.config.org.Data.Id, app.entities.admin.Data.Body.Id)
 }
 
 func (app *AdminApp) SaveAdminConfig() {
@@ -178,8 +197,11 @@ func (app *AdminApp) LoadAdminConfig() {
 	}
 }
 
-func (app *AdminApp) SaveOrgEntity() {
-	container, err := app.entities.admin.EncryptThenSignString(app.entities.org.Dump(), nil)
+func (app *AdminApp) SendOrgEntity() {
+
+	// Get array of admin entities
+	//entities := []*entity.Entity{app.entities.admin}
+	container, err := app.entities.org.EncryptThenSignString(app.entities.org.Dump(), app.GetAdminEntities())
 	if err != nil {
 		panic(logger.Errorf("Couldn't encrypt org: %s", err))
 	}
@@ -200,6 +222,16 @@ func (app *AdminApp) LoadOrgEntity() {
 	orgId := app.config.org.Data.Id
 	app.fs.api.Authenticate(orgId, "")
 
+	orgPublicJson, err := app.fs.home.Read(orgId)
+	if err != nil {
+		panic(logger.Errorf("Couldn't read org public entity: %s", err))
+	}
+
+	app.entities.org, err = entity.New(orgPublicJson)
+	if err != nil {
+		panic(logger.Errorf("Could not create org entity: %s", err))
+	}
+
 	orgEntity, err := app.fs.api.LoadPrivate(orgId)
 	if err != nil {
 		panic(logger.Errorf("Couldn't load org entity: %s", err))
@@ -210,7 +242,7 @@ func (app *AdminApp) LoadOrgEntity() {
 		panic(logger.Errorf("Could not load org container: %s", err))
 	}
 
-	if err := app.entities.admin.Verify(orgContainer); err != nil {
+	if err := app.entities.org.Verify(orgContainer); err != nil {
 		panic(logger.Errorf("Could not verify org: %s", err))
 	}
 
@@ -482,4 +514,153 @@ func (app *AdminApp) GetNode(name string) *node.Node {
 		panic(logger.Errorf("Couldn't create node: %s", err))
 	}
 	return nde
+}
+
+func (app *AdminApp) SecureSendStringToOrg(adminJson, inviteId, inviteKey string) {
+	logger.Info("Encrypting node for org")
+
+	container, err := app.entities.admin.EncryptThenAuthenticateString(adminJson, inviteId, inviteKey)
+	if err != nil {
+		panic(logger.Errorf("Could encrypt and authenticate invite: %s:", err))
+	}
+
+	logger.Info("Pushing container to org")
+	if err := app.fs.api.PushIncoming(app.config.org.Data.Id, "invite", container.Dump()); err != nil {
+		panic(logger.Errorf("Could not push document to org: %s", err))
+	}
+}
+
+func (app *AdminApp) SecureSendPublicToOrg(inviteId, inviteKey string) {
+	adminJson := app.entities.admin.DumpPublic()
+	app.SecureSendStringToOrg(adminJson, inviteId, inviteKey)
+}
+
+func (app *AdminApp) SecureSendPrivateToOrg(inviteId, inviteKey string) {
+	adminJson := app.entities.admin.Dump()
+	app.SecureSendStringToOrg(adminJson, inviteId, inviteKey)
+}
+
+func (app *AdminApp) GetAdminEntity(id string) *entity.Entity {
+	adminJson, err := app.fs.api.GetPublic(id, id)
+	if err != nil {
+		panic(logger.Errorf("Couldn't get admin json: %s", err))
+	}
+
+	admin, err := entity.New(adminJson)
+	if err != nil {
+		panic(logger.Errorf("Couldn't create admin entity: %s", err))
+	}
+
+	return admin
+}
+
+func (app *AdminApp) GetAdminEntities() []*entity.Entity {
+	adminIds, err := app.index.org.GetAdmins()
+	if err != nil {
+		panic(logger.Errorf("Can't get admins from index: %s", err))
+	}
+
+	adminEntities := make([]*entity.Entity, 0, 0)
+	for _, id := range adminIds {
+		adminEntities = append(adminEntities, app.GetAdminEntity(id))
+	}
+
+	return adminEntities
+}
+
+func (app *AdminApp) ProcessNextInvite() {
+	orgId := app.entities.org.Data.Body.Id
+
+	inviteJson, err := app.fs.api.PopIncoming("invite")
+	if err != nil {
+		panic(logger.Errorf("Can't pop invite: %s", err))
+	}
+
+	container, err := document.NewContainer(inviteJson)
+	if err != nil {
+		app.fs.api.PushIncoming(orgId, "invite", inviteJson)
+		panic(logger.Errorf("Can't load invite: %s", err))
+	}
+	inviteId := container.Data.Options.SignatureInputs["key-id"]
+	logger.Infof("Reading invite key: %s", inviteId)
+	inviteKey, err := app.index.org.GetInviteKey(inviteId)
+	if err != nil {
+		app.fs.api.PushIncoming(orgId, "invite", inviteJson)
+		panic(logger.Errorf("Couldn't get invite key: %s", err))
+	}
+
+	logger.Info("Verifying and decrypting admin invite")
+	adminJson, err := app.entities.org.VerifyAuthenticationThenDecrypt(container, inviteKey.Key)
+	if err != nil {
+		app.fs.api.PushIncoming(orgId, "invite", inviteJson)
+		panic(logger.Errorf("Couldn't verify then decrypt invite: %s", err))
+	}
+
+	admin, err := entity.New(adminJson)
+	if err != nil {
+		app.fs.api.PushIncoming(orgId, "invite", inviteJson)
+		panic(logger.Errorf("Couldn't load admin entity: %s", err))
+	}
+
+	if err := app.index.org.AddAdmin(admin.Data.Body.Name, admin.Data.Body.Id); err != nil {
+		panic(logger.Errorf("Couldn't add admin to index: %s", err))
+	}
+
+	app.SendOrgEntity()
+	//app.entities.org.EncryptThenSignString(app.entities.org.Dump(), app.GetAdminEntities())
+
+	orgContainer, err := app.entities.admin.EncryptThenAuthenticateString(app.entities.org.DumpPublic(), inviteId, inviteKey.Key)
+	if err != nil {
+		panic(logger.Errorf("Couldn't encrypt and authenticate org public: %s", err))
+	}
+
+	if err := app.fs.api.PushIncoming(admin.Data.Body.Id, "invite", orgContainer.Dump()); err != nil {
+		panic(logger.Errorf("Could not push org container: %s", err))
+	}
+
+	// Delete invite ID
+}
+
+func (app *AdminApp) ProcessInvites() {
+	logger.Info("Processing invites")
+	for {
+		size, err := app.fs.api.IncomingSize("invite")
+		if err != nil {
+			panic(logger.Errorf("Can't get queue size: %s", err))
+		}
+		logger.Infof("Found %d invites to process", size)
+
+		if size > 0 {
+			app.ProcessNextInvite()
+		} else {
+			break
+		}
+	}
+}
+
+func (app *AdminApp) CompleteInvite(inviteId, inviteKey string) {
+	if err := app.fs.api.Authenticate(app.entities.admin.Data.Body.Id, ""); err != nil {
+		panic(logger.Errorf("Couldn't authenticate to API: %s", err))
+	}
+
+	orgContainerJson, err := app.fs.api.PopIncoming("invite")
+	if err != nil {
+		panic(logger.Errorf("Can't pop invite: %s", err))
+	}
+	orgContainer, err := document.NewContainer(orgContainerJson)
+	if err != nil {
+		panic(logger.Errorf("Can't create org container: %s", err))
+	}
+
+	orgJson, err := app.entities.admin.VerifyAuthenticationThenDecrypt(orgContainer, inviteKey)
+	if err != nil {
+		panic(logger.Errorf("Couldn't verify invite: %s", err))
+	}
+
+	app.entities.org, err = entity.New(orgJson)
+	if err != nil {
+		panic(logger.Errorf("Couldn't create org entitiy: %s", err))
+	}
+
+	app.SaveOrgEntityPublic()
 }

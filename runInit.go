@@ -13,8 +13,6 @@ func newInit(argv map[string]interface{}) {
 		adminName = argv["--admin"].(string)
 	}
 
-	// TODO - Use the AdminApp
-
 	app := NewAdminApp()
 
 	app.InitLocalFs()
@@ -25,15 +23,21 @@ func newInit(argv map[string]interface{}) {
 
 	app.CreateAdminEntity(adminName)
 	app.CreateOrgEntity(orgName)
-
-	app.SaveAdminEntity()
-	app.CreateAdminConfig()
-
-	app.SaveOrgEntity()
 	app.CreateOrgConfig()
 
+	app.SaveAdminEntity()
+
 	app.CreateOrgIndex()
+	if err := app.index.org.AddAdmin(app.entities.admin.Data.Body.Name, app.entities.admin.Data.Body.Id); err != nil {
+		panic(logger.Errorf("Couldn't add admin to index: %s", err))
+
+	}
 	app.SaveOrgIndex()
+
+	app.SaveOrgEntityPublic()
+	app.CreateAdminConfig()
+
+	app.SendOrgEntity()
 
 	app.config.org.Data.Index = app.index.org.Data.Body.Id
 	app.SaveAdminConfig()

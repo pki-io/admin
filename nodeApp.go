@@ -313,9 +313,8 @@ func (app *NodeApp) CreateNodeEntity(name string) {
 
 func (app *NodeApp) SecureSendStringToOrg(nodeJson, pairingId, pairingKey string) {
 	logger.Info("Encrypting node for org")
-	entities := []*entity.Entity{app.entities.org}
 
-	container, err := app.entities.org.EncryptThenAuthenticateString(nodeJson, entities, pairingId, pairingKey)
+	container, err := app.entities.org.EncryptThenAuthenticateString(nodeJson, pairingId, pairingKey)
 	if err != nil {
 		panic(logger.Errorf("Could encrypt and authenticate node: %s:", err))
 	}
