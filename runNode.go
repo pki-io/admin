@@ -124,11 +124,14 @@ func nodeCert(argv map[string]interface{}) (err error) {
 			logger.Infof("Subject: %s", cert.Data.Body.Name)
 			logger.Infof("Certificate:\n%s", cert.Data.Body.Certificate)
 			logger.Infof("Private Key:\n%s", cert.Data.Body.PrivateKey)
+			logger.Infof("CA Certificate:\n%s", cert.Data.Body.CACertificate)
 		case string:
 			certFile := fmt.Sprintf("%s-cert.pem", cert.Data.Body.Name)
 			keyFile := fmt.Sprintf("%s-key.pem", cert.Data.Body.Name)
+			caFile := fmt.Sprintf("%s-cacert.pem", cert.Data.Body.Name)
 			files = append(files, ExportFile{Name: certFile, Mode: 0644, Content: []byte(cert.Data.Body.Certificate)})
 			files = append(files, ExportFile{Name: keyFile, Mode: 0600, Content: []byte(cert.Data.Body.PrivateKey)})
+			files = append(files, ExportFile{Name: caFile, Mode: 0644, Content: []byte(cert.Data.Body.CACertificate)})
 		}
 	}
 
