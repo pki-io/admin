@@ -8,7 +8,9 @@ import (
 	"os"
 )
 
-const defaultLoggingConfig string = `
+// The next const isn't required anymore but leaving here for now as we might need it when we try
+// to get config working again.
+/*const defaultLoggingConfig string = `
 <seelog minlevel="info" maxlevel="error">
 	<outputs formatid="raw">
 		<console/>
@@ -17,13 +19,23 @@ const defaultLoggingConfig string = `
 		<format id="raw" format="%Msg%n"/>
 	</formats>
 </seelog>
-`
+`*/
 
 var logger seelog.LoggerInterface
 
+// https://github.com/cihub/seelog/wiki/custom-receivers
+type StderrWriter struct{}
+
+func (sw *StderrWriter) Write(p []byte) (n int, err error) {
+	return fmt.Fprint(os.Stderr, string(p))
+}
+
 func init() {
 	var err error
-	logger, err = seelog.LoggerFromConfigAsString(defaultLoggingConfig)
+	// The next line isn't required at the moment, but leaving here for now as we might need it
+	// when we try to get config working again.
+	//logger, err = seelog.LoggerFromConfigAsString(defaultLoggingConfig)
+	logger, err = seelog.LoggerFromWriterWithMinLevelAndFormat(&StderrWriter{}, seelog.InfoLvl, "%Msg%n")
 	if err != nil {
 		panic(fmt.Sprintf("Failed to load default logging configuration.\n%s", err))
 	}
