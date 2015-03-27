@@ -50,9 +50,7 @@ func certNew(argv map[string]interface{}) (err error) {
 	}
 
 	cert, err := x509.NewCertificate(nil)
-	if err != nil {
-		panic(logger.Errorf("Couldn't create new certificate: %s", err))
-	}
+	checkAppFatal("Couldn't create new certificate: %s", err)
 
 	cert.Data.Body.Name = name
 	cert.Data.Body.Expiry = expiry
@@ -64,9 +62,9 @@ func certNew(argv map[string]interface{}) (err error) {
 	caFile := fmt.Sprintf("%s-cacert.pem", cert.Data.Body.Name)
 	if caName == "" {
 		// Self-signed
-		if err := cert.Generate(nil, &subject); err != nil {
-			panic(logger.Errorf("Couldn't generate certificate: %s", err))
-		}
+		err := cert.Generate(nil, &subject)
+		checkAppFatal("Couldn't generate certificate: %s", err)
+
 		files = append(files, ExportFile{Name: caFile, Mode: 0644, Content: []byte(cert.Data.Body.Certificate)})
 	} else {
 		app := NewAdminApp()
@@ -74,28 +72,20 @@ func certNew(argv map[string]interface{}) (err error) {
 		app.LoadOrgIndex()
 
 		caId, err := app.index.org.GetCA(caName)
-		if err != nil {
-			panic(logger.Errorf("Couldn't get CA id: %s", err))
-		}
+		checkAppFatal("Couldn't get CA id: %s", err)
 
 		caContainerJson, err := app.fs.api.GetPrivate(app.entities.org.Data.Body.Id, caId)
 		caContainer, err := document.NewContainer(caContainerJson)
-		if err != nil {
-			panic(logger.Errorf("Couldn't create container from json: %s", err))
-		}
+		checkAppFatal("Couldn't create container from json: %s", err)
+
 		caJson, err := app.entities.org.VerifyThenDecrypt(caContainer)
-		if err != nil {
-			panic(logger.Errorf("Couldn't verify and decrypt ca container: %s", err))
-		}
+		checkAppFatal("Couldn't verify and decrypt ca container: %s", err)
 
 		ca, err := x509.NewCA(caJson)
-		if err != nil {
-			panic(logger.Errorf("Couldn't create ca: %s", err))
-		}
+		checkAppFatal("Couldn't create ca: %s", err)
 
-		if err := cert.Generate(ca, &subject); err != nil {
-			panic(logger.Errorf("Couldn't generate certificate: %s", err))
-		}
+		err = cert.Generate(ca, &subject)
+		checkAppFatal("Couldn't generate certificate: %s", err)
 		files = append(files, ExportFile{Name: caFile, Mode: 0644, Content: []byte(ca.Data.Body.Certificate)})
 	}
 

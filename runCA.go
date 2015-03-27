@@ -54,13 +54,10 @@ func caNew(argv map[string]interface{}) (err error) {
 
 	logger.Info("Saving CA")
 	caContainer, err := app.entities.org.EncryptThenSignString(ca.Dump(), nil)
-	if err != nil {
-		panic(logger.Errorf("Could not encrypt CA: %s", err))
-	}
+	checkAppFatal("Could not encrypt CA: %s", err)
 
-	if err := app.fs.api.SendPrivate(app.entities.org.Data.Body.Id, ca.Data.Body.Id, caContainer.Dump()); err != nil {
-		panic(logger.Errorf("Could not save CA: %s", err))
-	}
+	err = app.fs.api.SendPrivate(app.entities.org.Data.Body.Id, ca.Data.Body.Id, caContainer.Dump())
+	checkAppFatal("Could not save CA: %s", err)
 
 	logger.Info("Updating index")
 	app.LoadOrgIndex()

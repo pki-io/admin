@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"github.com/cihub/seelog"
 	"github.com/docopt/docopt-go"
@@ -36,14 +35,12 @@ func init() {
 	// when we try to get config working again.
 	//logger, err = seelog.LoggerFromConfigAsString(defaultLoggingConfig)
 	logger, err = seelog.LoggerFromWriterWithMinLevelAndFormat(&StderrWriter{}, seelog.InfoLvl, "%Msg%n")
-	if err != nil {
-		panic(fmt.Sprintf("Failed to load default logging configuration.\n%s", err))
-	}
+	checkAppFatal("Failed to load default logging configuration.\n%s", err)
 }
 
 func main() {
 	usage := `
-Open source and scalable X.509 certificate management
+pki.io - Open source and scalable X.509 certificate management
 
 Usage:
     pki.io [--version] [--help] [--logging=<logging>] <command> [<args>...]
@@ -119,12 +116,6 @@ func initLogging(args map[string]interface{}) {
 	if loggingConfig, ok := args["--logging"].(string); ok {
 		var err error
 		logger, err = seelog.LoggerFromConfigAsFile(loggingConfig)
-		if err != nil {
-			panic(fmt.Sprintf("Failed to initialize logging: %s", err))
-		}
+		checkAppFatal("Failed to initialize logging: %s", err)
 	}
-}
-
-func notImpl() (err error) {
-	return errors.New("Not Implemented ...yet")
 }
