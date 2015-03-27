@@ -13,11 +13,37 @@ import (
 	"time"
 )
 
+func checkUserFatal(format string, a ...interface{}) {
+	if len(a) > 0 && a[len(a)-1] == nil {
+		return
+	}
+	logger.Errorf(format, a...)
+	os.Exit(1)
+}
+
+func checkAppFatal(format string, a ...interface{}) {
+	if len(a) > 0 && a[len(a)-1] == nil {
+		return
+	}
+
+	bigError := "*************************************************\n" +
+		"*                CONGRATULATIONS                *\n" +
+		"*************************************************\n\n" +
+		"You may have just found a bug in pki.io :)\n\n" +
+		"Please let us know by raising an issue on GitHub here: https://github.com/pki-io/core/issues\n\n" +
+		"Or by dropping an email to: dev@pki.io\n\n" +
+		"If possible, please include this full error message, including the below panic.\n\n" +
+		"Many thanks,\n" +
+		"The pki.io team\n\n" +
+		"The error was: " + format + "\n\n"
+
+	logger.Errorf(bigError, a...)
+	panic("...")
+}
+
 func NewID() string {
 	idBytes, err := crypto.RandomBytes(16)
-	if err != nil {
-		panic(logger.Errorf("Couldn't get random bytes: %s", err))
-	}
+	checkAppFatal("Couldn't get random bytes: %s", err)
 	return hex.EncodeToString(idBytes)
 }
 
@@ -32,15 +58,15 @@ func ParseTags(tagString string) []string {
 func ArgInt(arg interface{}, def interface{}) int {
 	switch t := arg.(type) {
 	case string:
-		if argInt, err := strconv.ParseInt(arg.(string), 10, 64); err != nil {
-			panic(logger.Errorf("Couldn't convert to int: %s", err))
-		} else {
-			return int(argInt)
-		}
+		argInt, err := strconv.ParseInt(arg.(string), 10, 64)
+		checkAppFatal("Couldn't convert to int: %s", err)
+		return int(argInt)
 	case nil:
 		return def.(int)
 	default:
-		panic(logger.Errorf("Wrong arg type: %T", t))
+		checkAppFatal("Wrong arg type: %T", t)
+		// Never gets to the next line
+		return 0
 	}
 }
 
@@ -51,7 +77,9 @@ func ArgString(arg interface{}, def interface{}) string {
 	case nil:
 		return def.(string)
 	default:
-		panic(logger.Errorf("Wrong arg type: %T", t))
+		checkAppFatal("Wrong arg type: %T", t)
+		// Never gets to the next line
+		return ""
 	}
 }
 
@@ -96,17 +124,14 @@ func TarGZ(files []ExportFile) ([]byte, error) {
 
 func Export(files []ExportFile, outFile string) {
 	tarGz, err := TarGZ(files)
-	if err != nil {
-		panic(logger.Errorf("Couldn't tar.gz the files: %s", err))
-	}
+	checkAppFatal("Couldn't tar.gz the files: %s", err)
 
 	if outFile == "-" {
 		os.Stdout.Write(tarGz)
 	} else {
 		// Write  to file
-		if err := ioutil.WriteFile(outFile, tarGz, 0600); err != nil {
-			panic(logger.Errorf("Couldn't write export file: %s", err))
-		}
+		err := ioutil.WriteFile(outFile, tarGz, 0600)
+		checkAppFatal("Couldn't write export file: %s", err)
 	}
 
 }

@@ -28,10 +28,9 @@ func newInit(argv map[string]interface{}) {
 	app.SaveAdminEntity()
 
 	app.CreateOrgIndex()
-	if err := app.index.org.AddAdmin(app.entities.admin.Data.Body.Name, app.entities.admin.Data.Body.Id); err != nil {
-		panic(logger.Errorf("Couldn't add admin to index: %s", err))
+	err := app.index.org.AddAdmin(app.entities.admin.Data.Body.Name, app.entities.admin.Data.Body.Id)
+	checkAppFatal("Couldn't add admin to index: %s", err)
 
-	}
 	app.SaveOrgIndex()
 
 	app.SaveOrgEntityPublic()
