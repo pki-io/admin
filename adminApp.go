@@ -302,6 +302,9 @@ func (app *AdminApp) SignCSRForNode(node *node.Node, caId, tag string) {
 	csr, err := x509.NewCSR(csrJson)
 	checkAppFatal("Couldn't create csr from json: %s", err)
 
+	logger.Info("Setting CSR name from node")
+	csr.Data.Body.Name = node.Data.Body.Name
+
 	logger.Info("Getting CA")
 	caContainerJson, err := app.fs.api.GetPrivate(app.entities.org.Data.Body.Id, caId)
 	caContainer, err := document.NewContainer(caContainerJson)
