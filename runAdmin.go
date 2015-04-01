@@ -5,6 +5,20 @@ import (
 	"github.com/docopt/docopt-go"
 )
 
+func adminList(argv map[string]interface{}) (err error) {
+	app := NewAdminApp()
+	app.Load()
+	app.LoadOrgIndex()
+	admins, err := app.index.org.GetAdmins()
+	checkAppFatal("Unable to get admins: %s", err)
+
+	logger.Info("Admins:")
+	for name, id := range admins {
+		fmt.Printf("* %s %s\n", name, id)
+	}
+	return nil
+}
+
 func adminInvite(argv map[string]interface{}) (err error) {
 	name := ArgString(argv["<name>"], nil)
 
@@ -78,31 +92,55 @@ func adminComplete(argv map[string]interface{}) (err error) {
 	return nil
 }
 
+func adminDelete(argv map[string]interface{}) (err error) {
+	name := ArgString(argv["<name>"], nil)
+	reason := ArgString(argv["--confirm-delete"], nil)
+
+	logger.Infof("Deleting admin %s: %s", name, reason)
+	app := NewAdminApp()
+	app.Load()
+
+	app.LoadOrgIndex()
+	err = app.index.org.RemoveAdmin(name)
+	checkAppFatal("Can't delete admin: %s", err)
+
+	app.SaveOrgIndex()
+	app.SendOrgEntity()
+	return nil
+}
+
 func runAdmin(args []string) (err error) {
 	usage := `
 Manages Admins
 
 Usage:
     pki.io admin [--help]
+    pki.io admin list
     pki.io admin invite <name>
     pki.io admin new <name> --invite-id=<id> --invite-key=<key>
     pki.io admin run
     pki.io admin complete <name> --invite-id=<id> --invite-key=<key>
+    pki.io admin delete <name> --confirm-delete=<reason>
 Options:
-    --invite-id=<id>     Invitation ID
-    --invite-key=<key>   Invitation key
+    --invite-id=<id>                Invitation ID
+    --invite-key=<key>              Invitation key
+    --confirm-delete=<reason>       Reason for deleting admin
 `
 
 	argv, _ := docopt.Parse(usage, args, true, "", false)
 
 	if argv["invite"].(bool) {
 		adminInvite(argv)
+	} else if argv["list"].(bool) {
+		adminList(argv)
 	} else if argv["new"].(bool) {
 		adminNew(argv)
 	} else if argv["run"].(bool) {
 		adminRun(argv)
 	} else if argv["complete"].(bool) {
 		adminComplete(argv)
+	} else if argv["delete"].(bool) {
+		adminDelete(argv)
 	}
 	return nil
 }
