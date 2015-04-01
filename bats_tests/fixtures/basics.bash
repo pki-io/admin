@@ -10,6 +10,7 @@ fi
 init_init() {
   export PKIIO_LOCAL_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'pkiiotmp')
   export PKIIO_HOME_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'pkiiotmp')
+  export PKIIO_HOME2_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'pkiiotmp')
   export PKIIO_LOCAL="$PKIIO_LOCAL_DIR"
   export PKIIO_HOME="$PKIIO_HOME_DIR"
 
@@ -23,13 +24,15 @@ init() {
 }
 
 cleanup() {
-  echo "CLEANING $PKIIO_LOCAL_DIR $PKIIO_HOME_DIR" >> /tmp/wtf.txt
+  #echo "CLEANING $PKIIO_LOCAL_DIR $PKIIO_HOME_DIR" >> /tmp/wtf.txt
   if [[ "$NO_CLEAN" -ne "1" ]]; then
     [ -d "$PKIIO_LOCAL_DIR" ] && rm -rf "$PKIIO_LOCAL_DIR"
     [ -d "$PKIIO_HOME_DIR" ] && rm -rf "$PKIIO_HOME_DIR"
+    [ -d "$PKIIO_HOME2_DIR" ] && rm -rf "$PKIIO_HOME2_DIR"
   fi
   export PKIIO_HOME=""
   export PKIIO_LOCAL=""
   export PKIIO_HOME_DIR=""
+  export PKIIO_HOME2_DIR=""
   export PKIIO_LOCAL_DIR=""
 }
