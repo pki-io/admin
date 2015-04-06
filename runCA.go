@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/docopt/docopt-go"
 	"github.com/pki-io/core/x509"
 )
@@ -56,13 +57,54 @@ func caNew(argv map[string]interface{}) (err error) {
 	caContainer, err := app.entities.org.EncryptThenSignString(ca.Dump(), nil)
 	checkAppFatal("Could not encrypt CA: %s", err)
 
-	err = app.fs.api.SendPrivate(app.entities.org.Data.Body.Id, ca.Data.Body.Id, caContainer.Dump())
+	err = app.fs.api.Authenticate(app.entities.org.Data.Body.Id, "")
+	checkAppFatal("Could not authenticate to API as Org: %s", err)
+
+	err = app.fs.api.StorePrivate(ca.Data.Body.Id, caContainer.Dump())
 	checkAppFatal("Could not save CA: %s", err)
 
 	logger.Info("Updating index")
 	app.LoadOrgIndex()
 	app.index.org.AddCA(ca.Data.Body.Name, ca.Data.Body.Id)
 	app.index.org.AddCATags(ca.Data.Body.Id, ParseTags(inTags))
+	app.SaveOrgIndex()
+
+	return nil
+}
+
+func caList(argv map[string]interface{}) (err error) {
+	app := NewAdminApp()
+	app.Load()
+	app.LoadOrgIndex()
+
+	logger.Info("CAs:")
+	for name, id := range app.index.org.GetCAs() {
+		fmt.Printf("* %s %s\n", name, id)
+	}
+	return nil
+}
+
+func caDelete(argv map[string]interface{}) (err error) {
+	name := ArgString(argv["<name>"], nil)
+	reason := ArgString(argv["--confirm-delete"], nil)
+
+	app := NewAdminApp()
+	app.Load()
+	app.LoadOrgIndex()
+	logger.Infof("Deleting CA %s with reason: %s", name, reason)
+	logger.Info("Note: This does not revoke existing certificates signed by the CA")
+
+	caId, err := app.index.org.GetCA(name)
+	checkAppFatal("Could not get CA ID: %s", err)
+
+	err = app.fs.api.Authenticate(app.entities.org.Data.Body.Id, "")
+	checkAppFatal("Could not authenticate to API as Org: %s", err)
+
+	err = app.fs.api.DeletePrivate(caId)
+	checkAppFatal("Could not delete CA: %s", err)
+
+	err = app.index.org.RemoveCA(name)
+	checkAppFatal("Could not remove CA: %s", err)
 	app.SaveOrgIndex()
 
 	return nil
@@ -75,6 +117,8 @@ Manages Certificate Authorities
 Usage: 
     pki.io ca [--help]
     pki.io ca new <name> --tags <tags> [--ca-expiry <days>] [--cert-expiry <days>] [--dn-l <locality>] [--dn-st <state>] [--dn-o <org>] [--dn-ou <orgUnit>] [--dn-c <country>] [--dn-street <street>] [--dn-postal <postalCode>]
+    pki.io ca list
+    pki.io ca delete <name> --confirm-delete=<reason>
 
 Options:
     --tags <tags>             List of comma-separated tags
@@ -93,6 +137,10 @@ Options:
 
 	if argv["new"].(bool) {
 		caNew(argv)
+	} else if argv["list"].(bool) {
+		caList(argv)
+	} else if argv["delete"].(bool) {
+		caDelete(argv)
 	}
 	return nil
 }
