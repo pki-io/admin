@@ -10,3 +10,15 @@ node_new_offline() {
 node_run() {
   $CMD node run --name "$NODENAME"
 }
+
+node_delete() {
+  $CMD node delete --name "$NODENAME" --confirm-delete "this is just a test"
+}
+
+node_list() {
+  $CMD node list
+}
+
+node_check_exists() {
+  $CMD node list | grep -q "$NODENAME"
+}
