@@ -143,6 +143,55 @@ func nodeCert(argv map[string]interface{}) (err error) {
 	return nil
 }
 
+func nodeList(argv map[string]interface{}) (err error) {
+	adminApp := NewAdminApp()
+	adminApp.Load()
+
+	adminApp.LoadOrgIndex()
+	logger.Info("Nodes:")
+	for name, id := range adminApp.index.org.GetNodes() {
+		fmt.Printf("* %s %s\n", name, id)
+	}
+	return nil
+}
+
+func nodeDelete(argv map[string]interface{}) (err error) {
+	name := ArgString(argv["--name"], nil)
+	reason := ArgString(argv["--confirm-delete"], nil)
+
+	adminApp := NewAdminApp()
+	adminApp.Load()
+	adminApp.fs.api.Authenticate(adminApp.entities.org.Data.Body.Id, "")
+
+	nodeApp := NewNodeApp()
+	nodeApp.Load()
+
+	nodeApp.entities.org = adminApp.entities.org
+
+	adminApp.LoadOrgIndex()
+	nodeApp.entities.node = adminApp.GetNode(name)
+	nodeApp.fs.api.Authenticate(nodeApp.entities.node.Data.Body.Id, "")
+	nodeApp.LoadNodeIndex()
+
+	logger.Infof("Deleting node %s with reason %s", name, reason)
+	logger.Info("Deleting node index")
+	err = nodeApp.fs.api.DeletePrivate(nodeApp.index.node.Data.Body.Id)
+	checkAppFatal("Could not delete node index: %s", err)
+
+	logger.Info("Removing node from config")
+	err = nodeApp.config.node.RemoveNode(name)
+	checkAppFatal("Could not remove node from config: %s", err)
+	nodeApp.SaveNodeConfig()
+
+	logger.Info("Removing node from org index")
+	adminApp.LoadOrgIndex()
+	err = adminApp.index.org.RemoveNode(name)
+	checkAppFatal("Could not remove node from org index", err)
+	adminApp.SaveOrgIndex()
+
+	return nil
+}
+
 func runNode(args []string) (err error) {
 
 	usage := `
@@ -154,6 +203,9 @@ Usage:
     pki.io node run --name=<name>
     pki.io node show --name=<name>
     pki.io node cert --name=<name> --tags=<tags> [--export=<file>]
+    pki.io node list
+    pki.io node delete --name=<name> --confirm-delete=<reason>
+
 
 Options:
     --pairing-id=<id>   Pairing ID
@@ -174,6 +226,10 @@ Options:
 		nodeShow(argv)
 	} else if argv["cert"].(bool) {
 		nodeCert(argv)
+	} else if argv["list"].(bool) {
+		nodeList(argv)
+	} else if argv["delete"].(bool) {
+		nodeDelete(argv)
 	}
 	return nil
 }
