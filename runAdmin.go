@@ -117,14 +117,14 @@ Usage:
     pki.io admin [--help]
     pki.io admin list
     pki.io admin invite <name>
-    pki.io admin new <name> --invite-id=<id> --invite-key=<key>
+    pki.io admin new <name> --invite-id <id> --invite-key <key>
     pki.io admin run
-    pki.io admin complete <name> --invite-id=<id> --invite-key=<key>
-    pki.io admin delete <name> --confirm-delete=<reason>
+    pki.io admin complete <name> --invite-id <id> --invite-key <key>
+    pki.io admin delete <name> --confirm-delete <reason>
 Options:
-    --invite-id=<id>                Invitation ID
-    --invite-key=<key>              Invitation key
-    --confirm-delete=<reason>       Reason for deleting admin
+    --invite-id <id>                Invitation ID
+    --invite-key <key>              Invitation key
+    --confirm-delete <reason>       Reason for deleting admin
 `
 
 	argv, _ := docopt.Parse(usage, args, true, "", false)

@@ -43,12 +43,12 @@ func main() {
 pki.io - Open source and scalable X.509 certificate management
 
 Usage:
-    pki.io [--version] [--help] [--logging=<logging>] <command> [<args>...]
+    pki.io [--version] [--help] [--logging <logging>] <command> [<args>...]
 
 Options:
     -h, --help
     -v, --version
-    --logging=<logging> Logging configuration. Logging is disabled by default.
+    --logging <logging> Logging configuration. Logging is disabled by default.
 
 Commands:
     init          Initialise an organisation
