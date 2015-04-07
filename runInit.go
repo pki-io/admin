@@ -5,13 +5,8 @@ import (
 )
 
 func newInit(argv map[string]interface{}) {
-	var adminName string
-	orgName := argv["<org>"].(string)
-	if argv["--admin"] == nil {
-		adminName = "admin"
-	} else {
-		adminName = argv["--admin"].(string)
-	}
+	orgName := ArgString(argv["<org>"], nil)
+	adminName := ArgString(argv["--admin"], "admin")
 
 	app := NewAdminApp()
 
@@ -48,10 +43,10 @@ func runInit(args []string) (err error) {
 	usage := `
 Initialises a new Organisation.
 
-Usage: pki.io init <org> [--admin=<admin>]
+Usage: pki.io init <org> [--admin <admin>]
 
 Options
-    --admin   Admin name. Defaults to 'admin'
+    --admin <admin>  Admin name. Defaults to 'admin'
 `
 
 	argv, _ := docopt.Parse(usage, args, true, "", false)

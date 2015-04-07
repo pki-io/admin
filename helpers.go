@@ -65,6 +65,8 @@ func ArgInt(arg interface{}, def interface{}) int {
 		return int(argInt)
 	case nil:
 		return def.(int)
+	case bool:
+		return def.(int)
 	default:
 		checkAppFatal("Wrong arg type: %T", t)
 		// Never gets to the next line
@@ -78,8 +80,10 @@ func ArgString(arg interface{}, def interface{}) string {
 		return arg.(string)
 	case nil:
 		return def.(string)
+	case bool:
+		return def.(string)
 	default:
-		checkAppFatal("Wrong arg type: %T", t)
+		checkAppFatal("Wrong arg type %T for arg %s", t, arg)
 		// Never gets to the next line
 		return ""
 	}

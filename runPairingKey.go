@@ -6,7 +6,7 @@ import (
 )
 
 func pairingKeyNew(argv map[string]interface{}) (err error) {
-	inTags := argv["--tags"].(string)
+	inTags := ArgString(argv["--tags"], nil)
 
 	app := NewAdminApp()
 	app.Load()
@@ -34,10 +34,10 @@ func runPairingKey(args []string) (err error) {
 	usage := `
 Usage:
     pki.io pairing-key [--help]
-    pki.io pairing-key new --tags=<tags>
+    pki.io pairing-key new --tags <tags>
 
 Options:
-    --tags=<tags>   Comma-separated list of tags
+    --tags <tags>   Comma-separated list of tags
 `
 
 	argv, _ := docopt.Parse(usage, args, true, "", false)
