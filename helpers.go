@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/hex"
+	"fmt"
 	"github.com/pki-io/core/crypto"
 	"io/ioutil"
 	"os"
@@ -37,6 +38,7 @@ func checkAppFatal(format string, a ...interface{}) {
 		"The pki.io team\n\n" +
 		"The error was: " + format + "\n\n"
 
+	fmt.Println(logger)
 	logger.Errorf(bigError, a...)
 	panic("...")
 }
