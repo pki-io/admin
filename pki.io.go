@@ -2,53 +2,21 @@ package main
 
 import (
 	"fmt"
-	"github.com/cihub/seelog"
 	"github.com/docopt/docopt-go"
 	"os"
 )
-
-// The next const isn't required anymore but leaving here for now as we might need it when we try
-// to get config working again.
-/*const defaultLoggingConfig string = `
-<seelog minlevel="info" maxlevel="error">
-	<outputs formatid="raw">
-		<console/>
-	</outputs>
-	<formats>
-		<format id="raw" format="%Msg%n"/>
-	</formats>
-</seelog>
-`*/
-
-var logger seelog.LoggerInterface
-
-// https://github.com/cihub/seelog/wiki/custom-receivers
-type StderrWriter struct{}
-
-func (sw *StderrWriter) Write(p []byte) (n int, err error) {
-	return fmt.Fprint(os.Stderr, string(p))
-}
-
-func init() {
-	var err error
-	// The next line isn't required at the moment, but leaving here for now as we might need it
-	// when we try to get config working again.
-	//logger, err = seelog.LoggerFromConfigAsString(defaultLoggingConfig)
-	logger, err = seelog.LoggerFromWriterWithMinLevelAndFormat(&StderrWriter{}, seelog.InfoLvl, "%Msg%n")
-	checkAppFatal("Failed to load default logging configuration.\n%s", err)
-}
 
 func main() {
 	usage := `
 pki.io - Open source and scalable X.509 certificate management
 
 Usage:
-    pki.io [--version] [--help] [--logging=<logging>] <command> [<args>...]
+    pki.io [--version] [--help] [--logging <file>] <command> [<args>...]
 
 Options:
     -h, --help
     -v, --version
-    --logging=<logging> Logging configuration. Logging is disabled by default.
+    --logging <file>  Load alternative logging config file.
 
 Commands:
     init          Initialise an organisation
@@ -64,7 +32,8 @@ See 'pki.io help <command>' for more information on a specific command.
 
 	arguments, _ := docopt.Parse(usage, nil, true, "pki.io release 1", true)
 
-	initLogging(arguments)
+	initLogging(ArgString(arguments["--logging"], ""))
+
 	defer logger.Close()
 
 	cmd := arguments["<command>"].(string)
@@ -109,13 +78,4 @@ func runCommand(cmd string, args []string) error {
 	}
 
 	return fmt.Errorf("%s is not a pki.io command. See 'pki.io help'", cmd)
-}
-
-// Initialize logging from command arguments.
-func initLogging(args map[string]interface{}) {
-	if loggingConfig, ok := args["--logging"].(string); ok {
-		var err error
-		logger, err = seelog.LoggerFromConfigAsFile(loggingConfig)
-		checkAppFatal("Failed to initialize logging: %s", err)
-	}
 }
