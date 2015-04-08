@@ -118,19 +118,20 @@ Usage:
     pki.io ca [--help]
     pki.io ca new <name> --tags <tags> [--ca-expiry <days>] [--cert-expiry <days>] [--dn-l <locality>] [--dn-st <state>] [--dn-o <org>] [--dn-ou <orgUnit>] [--dn-c <country>] [--dn-street <street>] [--dn-postal <postalCode>]
     pki.io ca list
-    pki.io ca delete <name> --confirm-delete=<reason>
+    pki.io ca delete <name> --confirm-delete <reason>
 
 Options:
-    --tags <tags>             List of comma-separated tags
-    --ca-expiry <days>        Expiry period for CA in days [default: 365]
-    --cert-expiry <days>      Expiry period for certs in day [default: 90]
-    --dn-l <locality>         Locality for DN scope
-    --dn-st <state>           State/province for DN scope
-    --dn-o <org>              Organization for DN scope
-    --dn-ou <orgUnit>         Organizational unit for DN scope
-    --dn-c <country>          Country for DN scope
-    --dn-street <street>      Street for DN scope
-    --dn-postal <postalCode>  Postal code for DN scope
+    --tags <tags>              List of comma-separated tags
+    --ca-expiry <days>         Expiry period for CA in days [default: 365]
+    --cert-expiry <days>       Expiry period for certs in day [default: 90]
+    --dn-l <locality>          Locality for DN scope
+    --dn-st <state>            State/province for DN scope
+    --dn-o <org>               Organization for DN scope
+    --dn-ou <orgUnit>          Organizational unit for DN scope
+    --dn-c <country>           Country for DN scope
+    --dn-street <street>       Street for DN scope
+    --dn-postal <postalCode>   Postal code for DN scope
+    --confirm-delete <reason>  Reason for deleting node
 `
 
 	argv, _ := docopt.Parse(usage, args, true, "", false)

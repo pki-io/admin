@@ -6,9 +6,9 @@ import (
 )
 
 func nodeNew(argv map[string]interface{}) (err error) {
-	name := argv["<name>"].(string)
-	pairingId := argv["--pairing-id"].(string)
-	pairingKey := argv["--pairing-key"].(string)
+	name := ArgString(argv["<name>"], nil)
+	pairingId := ArgString(argv["--pairing-id"], nil)
+	pairingKey := ArgString(argv["--pairing-key"], nil)
 
 	adminApp := NewAdminApp()
 	adminApp.Load()
@@ -41,7 +41,7 @@ func nodeNew(argv map[string]interface{}) (err error) {
 }
 
 func nodeRun(argv map[string]interface{}) (err error) {
-	name := argv["--name"].(string)
+	name := ArgString(argv["--name"], nil)
 
 	adminApp := NewAdminApp()
 	adminApp.Load()
@@ -65,7 +65,7 @@ func nodeRun(argv map[string]interface{}) (err error) {
 }
 
 func nodeShow(argv map[string]interface{}) (err error) {
-	name := argv["--name"].(string)
+	name := ArgString(argv["--name"], nil)
 
 	adminApp := NewAdminApp()
 	adminApp.Load()
@@ -94,9 +94,9 @@ func nodeShow(argv map[string]interface{}) (err error) {
 }
 
 func nodeCert(argv map[string]interface{}) (err error) {
-	name := argv["--name"].(string)
-	inTags := argv["--tags"].(string)
-	exportFile := argv["--export"]
+	name := ArgString(argv["--name"], nil)
+	inTags := ArgString(argv["--tags"], nil)
+	exportFile := ArgString(argv["--export"], "")
 
 	adminApp := NewAdminApp()
 	adminApp.Load()
@@ -119,13 +119,12 @@ func nodeCert(argv map[string]interface{}) (err error) {
 
 	var files []ExportFile
 	for _, cert := range certs {
-		switch exportFile.(type) {
-		case nil:
+		if exportFile == "" {
 			logger.Infof("Subject: %s", cert.Data.Body.Name)
 			logger.Infof("Certificate:\n%s", cert.Data.Body.Certificate)
 			logger.Infof("Private Key:\n%s", cert.Data.Body.PrivateKey)
 			logger.Infof("CA Certificate:\n%s", cert.Data.Body.CACertificate)
-		case string:
+		} else {
 			certFile := fmt.Sprintf("%s-cert.pem", cert.Data.Body.Name)
 			keyFile := fmt.Sprintf("%s-key.pem", cert.Data.Body.Name)
 			caFile := fmt.Sprintf("%s-cacert.pem", cert.Data.Body.Name)
@@ -137,7 +136,7 @@ func nodeCert(argv map[string]interface{}) (err error) {
 
 	if len(files) > 0 {
 		logger.Info("Exporting")
-		Export(files, exportFile.(string))
+		Export(files, exportFile)
 	}
 
 	return nil
@@ -199,21 +198,21 @@ Manages nodes.
 
 Usage:
     pki.io node [--help]
-    pki.io node new <name> --pairing-id=<id> --pairing-key=<key> [--offline]
-    pki.io node run --name=<name>
-    pki.io node show --name=<name>
-    pki.io node cert --name=<name> --tags=<tags> [--export=<file>]
+    pki.io node new <name> --pairing-id <id> --pairing-key <key>
+    pki.io node run --name <name>
+    pki.io node show --name <name>
+    pki.io node cert --name <name> --tags <tags> [--export <file>]
     pki.io node list
-    pki.io node delete --name=<name> --confirm-delete=<reason>
+    pki.io node delete --name <name> --confirm-delete <reason>
 
 
 Options:
-    --pairing-id=<id>   Pairing ID
-    --pairing-key=<key> Pairing Key
-    --name=<name>       Node name
-    --offline           Create node in offline mode (false)
-    --cert=<cert>       Certificate ID
-    --export=<file>     Export data to file or "-" for STDOUT
+    --pairing-id <id>          Pairing ID
+    --pairing-key <key>        Pairing Key
+    --name <name>              Node name
+    --cert <cert>              Certificate ID
+    --export <file>            Export data to file or "-" for STDOUT
+    --confirm-delete <reason>  Reason for deleting node
 `
 
 	argv, _ := docopt.Parse(usage, args, true, "", false)
