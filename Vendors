@@ -1,0 +1,19 @@
+vendor "github.com/pki-io/docopt.go" "github.com/docopt/docopt-go"
+vendor "github.com/pki-io/seelog" "github.com/cihub/seelog"
+vendor "github.com/pki-io/toml" "github.com/BurntSushi/toml"
+vendor "github.com/pki-io/go-homedir" "github.com/mitchellh/go-homedir"
+vendor "github.com/pki-io/ecies" "obscuren/ecies"
+
+vendor "github.com/pki-io/gojsonpointer" "github.com/xeipuuv/gojsonpointer"
+vendor "github.com/pki-io/gojsonreference" "github.com/xeipuuv/gojsonreference"
+vendor "github.com/pki-io/gojsonschema" "github.com/xeipuuv/gojsonschema"
+
+vendor_clone "github.com/pki-io/crypto" "golang.org/x/crypto"
+vendor_build "github.com/pki-io/crypto" "golang.org/x/crypto" "golang.org/x/crypto/pbkdf2"
+
+unforked_vendor_clone "github.com/pki-io/core"
+if [[ "${FDM_ENV:-}" != "DEV" ]]; then
+  for d in config crypto document entity fs index node x509; do
+    unforked_vendor_build "github.com/pki-io/core" "./$d/"
+  done
+fi
