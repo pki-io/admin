@@ -1,8 +1,0 @@
-gom "github.com/BurntSushi/toml"
-gom "github.com/docopt/docopt-go"
-gom "github.com/pki-io/core/fs"
-gom "github.com/pki-io/core/index"
-gom "github.com/cihub/seelog"
-
-
-

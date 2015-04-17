@@ -3,10 +3,10 @@ DIRS = config crypto document entity fs index node x509
 default: get-deps build test
 
 get-deps:
-	gom install
+	fdm
 
 build:
-	gom build -o pki.io
+	fdm build -o pki.io
 
 install:
 	install -m 0755 pki.io /usr/local/bin
@@ -18,10 +18,12 @@ clean:
 	test ! -d _vendor || rm -rf _vendor/*
 	test ! -e pki.io || rm pki.io
 
-dev: clean get-deps
-	test -d _vendor/src/github.com/pki-io/core  && \
+dev: clean
+	FDM_ENV=DEV fdm
+	mkdir -p _vendor/src/github.com/pki-io/core  && \
 	rm -rf _vendor/src/github.com/pki-io/core/* && \
 	for d in $(DIRS); do (cd _vendor/src/github.com/pki-io/core && ln -s ../../../../../../core/$$d .); done && \
 	rm -rf _vendor/pkg
+	fdm
 
 all: get-deps build test install
