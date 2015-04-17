@@ -33,7 +33,8 @@ func checkAppFatal(format string, a ...interface{}) {
 		"You may have just found a bug in pki.io :)\n\n" +
 		"Please let us know by raising an issue on GitHub here: https://github.com/pki-io/core/issues\n\n" +
 		"Or by dropping an email to: dev@pki.io\n\n" +
-		"If possible, please include this full error message, including the below panic.\n\n" +
+		"If possible, please include this full error message, including the below panic,\n" +
+		"and anything else relevant like what command you ran.\n\n" +
 		"Many thanks,\n" +
 		"The pki.io team\n\n" +
 		"The error was: " + format + "\n\n"

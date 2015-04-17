@@ -53,7 +53,17 @@ func adminNew(argv map[string]interface{}) (err error) {
 	app.InitApiFs()
 
 	app.CreateAdminEntity(name)
-	app.CreateAdminConfig()
+
+	exists, err := app.AdminConfigExists()
+	checkAppFatal("Could not check admin config existence: %s", err)
+
+	if exists {
+		logger.Info("Existing admin config found")
+		app.LoadAdminConfig()
+	} else {
+		app.CreateAdminConfig()
+	}
+	app.config.admin.AddOrg(app.config.org.Data.Name, app.config.org.Data.Id, app.entities.admin.Data.Body.Id)
 
 	app.SaveAdminEntity()
 	app.SaveAdminConfig()
