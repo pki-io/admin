@@ -125,6 +125,7 @@ func (app *AdminApp) LoadAdminEntity() {
 	orgName := app.config.org.Data.Name
 
 	adminOrgConfig, err := app.config.admin.GetOrg(orgName)
+	checkAppFatal("Could not get org from admin config: %s", err)
 
 	adminId := adminOrgConfig.AdminId
 
@@ -140,22 +141,24 @@ func (app *AdminApp) CreateAdminConfig() {
 	app.config.admin, err = config.NewAdmin()
 	checkAppFatal("Couldn't initialize admin config: %s", err)
 
-	if app.entities.admin == nil {
-		checkAppFatal("admin entity cannot be nil")
-	}
-
-	app.config.admin.AddOrg(app.config.org.Data.Name, app.config.org.Data.Id, app.entities.admin.Data.Body.Id)
 }
 
 func (app *AdminApp) SaveAdminConfig() {
+	logger.Info("Saving admin config")
 	cfgString, err := app.config.admin.Dump()
+	logger.Info(cfgString)
 	checkAppFatal("Couldn't dump admin config: %s", err)
 
 	err = app.fs.home.Write(AdminConfigFile, cfgString)
 	checkAppFatal("Couldn't save admin config: %s", err)
 }
 
+func (app *AdminApp) AdminConfigExists() (bool, error) {
+	return app.fs.home.Exists(AdminConfigFile)
+}
+
 func (app *AdminApp) LoadAdminConfig() {
+	logger.Info("Loading admin config")
 	adminConfig, err := app.fs.home.Read(AdminConfigFile)
 	checkAppFatal("Couldn't read admin config: %s", err)
 
