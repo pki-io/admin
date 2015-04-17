@@ -3,8 +3,11 @@ go:
   - 1.4
   - 1.3
 before_install:
-    - git clone https://github.com/sstephenson/bats.git
-    - cd bats
-    - sudo ./install.sh /usr/local
-    - cd ..
-    - go get github.com/mattn/gom
+  - git clone https://github.com/sstephenson/bats.git
+  - cd bats
+  - sudo ./install.sh /usr/local
+  - cd ..
+  - mkdir /tmp/fdm
+  - wget https://raw.githubusercontent.com/pki-io/fdm/master/fdm -O /tmp/fdm/fdm
+  - chmod +x /tmp/fdm/fdm
+  - export PATH=$PATH:/tmp/fdm
