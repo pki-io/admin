@@ -146,7 +146,6 @@ func (app *AdminApp) CreateAdminConfig() {
 func (app *AdminApp) SaveAdminConfig() {
 	logger.Info("Saving admin config")
 	cfgString, err := app.config.admin.Dump()
-	logger.Info(cfgString)
 	checkAppFatal("Couldn't dump admin config: %s", err)
 
 	err = app.fs.home.Write(AdminConfigFile, cfgString)
