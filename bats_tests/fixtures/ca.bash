@@ -17,3 +17,7 @@ ca_check_exists() {
 ca_delete() {
   $CMD ca delete testca --confirm-delete "this is just a test"
 }
+
+ca_show() {
+  $CMD ca show testca
+}

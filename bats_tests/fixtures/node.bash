@@ -22,3 +22,7 @@ node_list() {
 node_check_exists() {
   $CMD node list | grep -q "$NODENAME"
 }
+
+node_show() {
+  $CMD node show --name "$NODENAME"
+}

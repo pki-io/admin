@@ -90,6 +90,18 @@ func ArgString(arg interface{}, def interface{}) string {
 	}
 }
 
+func ArgBool(arg interface{}, def interface{}) bool {
+	switch t := arg.(type) {
+	case string:
+		return arg.(string) == "true"
+	case bool:
+		return arg.(bool)
+	default:
+		checkAppFatal("Wrong arg type %T for arg %s", t, arg)
+		return false
+	}
+}
+
 type ExportFile struct {
 	Name    string
 	Mode    int64

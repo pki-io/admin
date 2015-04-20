@@ -82,3 +82,11 @@ load "fixtures/admin"
   [ "$status" -eq 1 ]
   cleanup
 }
+
+@test "admin show" {
+  init_init
+  init
+  run admin_show
+  [ "$status" -eq 0 ]
+  cleanup
+}
