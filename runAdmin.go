@@ -13,9 +13,29 @@ func adminList(argv map[string]interface{}) (err error) {
 	checkAppFatal("Unable to get admins: %s", err)
 
 	logger.Info("Admins:")
+	// Flush?
 	for name, id := range admins {
 		fmt.Printf("* %s %s\n", name, id)
 	}
+	return nil
+}
+
+func adminShow(argv map[string]interface{}) (err error) {
+	name := ArgString(argv["<name>"], nil)
+
+	app := NewAdminApp()
+	app.Load()
+	app.LoadOrgIndex()
+	adminId, err := app.index.org.GetAdmin(name)
+	checkAppFatal("Unable to get admin id: %s", err)
+
+	admin := app.GetAdminEntity(adminId)
+
+	fmt.Printf("Name: %s\n", admin.Data.Body.Name)
+	fmt.Printf("ID: %s\n", admin.Data.Body.Id)
+	fmt.Printf("Key type: %s\n", admin.Data.Body.KeyType)
+	fmt.Printf("Public encryption key:\n%s\n", admin.Data.Body.PublicEncryptionKey)
+	fmt.Printf("Public signing key:\n%s\n", admin.Data.Body.PublicSigningKey)
 	return nil
 }
 
@@ -126,6 +146,7 @@ Manages Admins
 Usage:
     pki.io admin [--help]
     pki.io admin list
+    pki.io admin show <name>
     pki.io admin invite <name>
     pki.io admin new <name> --invite-id <id> --invite-key <key>
     pki.io admin run
@@ -143,6 +164,8 @@ Options:
 		adminInvite(argv)
 	} else if argv["list"].(bool) {
 		adminList(argv)
+	} else if argv["show"].(bool) {
+		adminShow(argv)
 	} else if argv["new"].(bool) {
 		adminNew(argv)
 	} else if argv["run"].(bool) {

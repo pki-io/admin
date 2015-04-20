@@ -84,6 +84,48 @@ func caList(argv map[string]interface{}) (err error) {
 	return nil
 }
 
+func caShow(argv map[string]interface{}) (err error) {
+	name := ArgString(argv["<name>"], nil)
+	private := ArgBool(argv["--private"], false)
+
+	app := NewAdminApp()
+	app.Load()
+	app.LoadOrgIndex()
+
+	// TODO - refactor
+	var caSerial string
+	for n, id := range app.index.org.GetCAs() {
+		if n == name {
+			caSerial = id
+		}
+	}
+	if len(caSerial) == 0 {
+		checkUserFatal("Could not find CA: %s", name)
+	}
+
+	ca := app.GetCA(caSerial)
+	fmt.Printf("Name: %s\n", ca.Data.Body.Name)
+	fmt.Printf("ID: %s\n", ca.Data.Body.Id)
+	fmt.Printf("CA expiry period: %d\n", ca.Data.Body.CAExpiry)
+	fmt.Printf("Cert expiry period: %d\n", ca.Data.Body.CertExpiry)
+	fmt.Printf("Key type: %s\n", ca.Data.Body.KeyType)
+	fmt.Printf("DN country: %s\n", ca.Data.Body.DNScope.Country)
+	fmt.Printf("DN organization: %s\n", ca.Data.Body.DNScope.Organization)
+	fmt.Printf("DN organizational unit: %s\n", ca.Data.Body.DNScope.OrganizationalUnit)
+	fmt.Printf("DN locality: %s\n", ca.Data.Body.DNScope.Locality)
+	fmt.Printf("DN province: %s\n", ca.Data.Body.DNScope.Province)
+	fmt.Printf("DN street address: %s\n", ca.Data.Body.DNScope.StreetAddress)
+	fmt.Printf("DN postal code: %s\n", ca.Data.Body.DNScope.PostalCode)
+	fmt.Printf("Certficate:\n%s\n", ca.Data.Body.Certificate)
+
+	if private {
+		fmt.Printf("Private key:\n%s\n", ca.Data.Body.PrivateKey)
+
+	}
+
+	return nil
+}
+
 func caDelete(argv map[string]interface{}) (err error) {
 	name := ArgString(argv["<name>"], nil)
 	reason := ArgString(argv["--confirm-delete"], nil)
@@ -118,6 +160,7 @@ Usage:
     pki.io ca [--help]
     pki.io ca new <name> --tags <tags> [--ca-expiry <days>] [--cert-expiry <days>] [--dn-l <locality>] [--dn-st <state>] [--dn-o <org>] [--dn-ou <orgUnit>] [--dn-c <country>] [--dn-street <street>] [--dn-postal <postalCode>]
     pki.io ca list
+    pki.io ca show <name> [--private]
     pki.io ca delete <name> --confirm-delete <reason>
 
 Options:
@@ -132,6 +175,7 @@ Options:
     --dn-street <street>       Street for DN scope
     --dn-postal <postalCode>   Postal code for DN scope
     --confirm-delete <reason>  Reason for deleting node
+    --private                  Show private data (e.g. keys)
 `
 
 	argv, _ := docopt.Parse(usage, args, true, "", false)
@@ -140,6 +184,8 @@ Options:
 		caNew(argv)
 	} else if argv["list"].(bool) {
 		caList(argv)
+	} else if argv["show"].(bool) {
+		caShow(argv)
 	} else if argv["delete"].(bool) {
 		caDelete(argv)
 	}

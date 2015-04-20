@@ -53,3 +53,12 @@ load "fixtures/ca"
   [ "$status" -eq 1 ]
   cleanup
 }
+
+@test "ca show" {
+  init_init
+  init
+  ca_new
+  run ca_show
+  [ "$status" -eq 0 ]
+  cleanup
+}

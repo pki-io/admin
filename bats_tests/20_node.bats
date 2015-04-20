@@ -56,3 +56,14 @@ load "fixtures/pairing_key"
   cleanup
 }
 
+@test "node show" {
+  init_init
+  init
+  pairing_key_new
+  node_new
+  org_run
+  node_run
+  run node_show 
+  [ "$status" -eq 0 ]
+  cleanup
+}

@@ -146,7 +146,6 @@ func (app *AdminApp) CreateAdminConfig() {
 func (app *AdminApp) SaveAdminConfig() {
 	logger.Info("Saving admin config")
 	cfgString, err := app.config.admin.Dump()
-	logger.Info(cfgString)
 	checkAppFatal("Couldn't dump admin config: %s", err)
 
 	err = app.fs.home.Write(AdminConfigFile, cfgString)
@@ -290,6 +289,20 @@ func (app *AdminApp) SaveOrgIndex() {
 	checkAppFatal("Could not save encrypted: %s", err)
 }
 
+func (app *AdminApp) GetCA(id string) *x509.CA {
+	logger.Info("Getting CA")
+	caContainerJson, err := app.fs.api.GetPrivate(app.entities.org.Data.Body.Id, id)
+	caContainer, err := document.NewContainer(caContainerJson)
+	checkAppFatal("Couldn't create container from json: %s", err)
+
+	caJson, err := app.entities.org.VerifyThenDecrypt(caContainer)
+	checkAppFatal("Couldn't verify and decrypt ca container: %s", err)
+
+	ca, err := x509.NewCA(caJson)
+	checkAppFatal("Couldn't create ca: %s", err)
+	return ca
+}
+
 func (app *AdminApp) SignCSRForNode(node *node.Node, caId, tag string) {
 	logger.Info("Getting CSR for node")
 	csrContainerJson, err := app.fs.api.PopOutgoing(node.Data.Body.Id, "csrs")
@@ -308,16 +321,7 @@ func (app *AdminApp) SignCSRForNode(node *node.Node, caId, tag string) {
 	logger.Info("Setting CSR name from node")
 	csr.Data.Body.Name = node.Data.Body.Name
 
-	logger.Info("Getting CA")
-	caContainerJson, err := app.fs.api.GetPrivate(app.entities.org.Data.Body.Id, caId)
-	caContainer, err := document.NewContainer(caContainerJson)
-	checkAppFatal("Couldn't create container from json: %s", err)
-
-	caJson, err := app.entities.org.VerifyThenDecrypt(caContainer)
-	checkAppFatal("Couldn't verify and decrypt ca container: %s", err)
-
-	ca, err := x509.NewCA(caJson)
-	checkAppFatal("Couldn't create ca: %s", err)
+	ca := app.GetCA(caId)
 
 	logger.Info("Creating certificate")
 	cert, err := ca.Sign(csr)
