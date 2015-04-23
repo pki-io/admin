@@ -78,6 +78,7 @@ func caList(argv map[string]interface{}) (err error) {
 	app.LoadOrgIndex()
 
 	logger.Info("CAs:")
+	logger.Flush()
 	for name, id := range app.index.org.GetCAs() {
 		fmt.Printf("* %s %s\n", name, id)
 	}
