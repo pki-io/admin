@@ -24,6 +24,7 @@ func pairingKeyNew(argv map[string]interface{}) (err error) {
 	app.index.org.AddPairingKey(id, key, tags)
 	app.SaveOrgIndex()
 
+	logger.Flush()
 	fmt.Printf("Pairing ID: %s\n", id)
 	fmt.Printf("Pairing key: %s\n", key)
 

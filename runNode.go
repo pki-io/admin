@@ -148,6 +148,7 @@ func nodeList(argv map[string]interface{}) (err error) {
 
 	adminApp.LoadOrgIndex()
 	logger.Info("Nodes:")
+	logger.Flush()
 	for name, id := range adminApp.index.org.GetNodes() {
 		fmt.Printf("* %s %s\n", name, id)
 	}
