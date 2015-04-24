@@ -13,7 +13,7 @@ func adminList(argv map[string]interface{}) (err error) {
 	checkAppFatal("Unable to get admins: %s", err)
 
 	logger.Info("Admins:")
-	// Flush?
+	logger.Flush()
 	for name, id := range admins {
 		fmt.Printf("* %s %s\n", name, id)
 	}
@@ -54,6 +54,7 @@ func adminInvite(argv map[string]interface{}) (err error) {
 	app.index.org.AddInviteKey(id, key, name)
 	app.SaveOrgIndex()
 
+	logger.Flush()
 	fmt.Printf("Invite ID: %s\n", id)
 	fmt.Printf("Invite key: %s\n", key)
 
