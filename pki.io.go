@@ -30,7 +30,7 @@ Commands:
 See 'pki.io help <command>' for more information on a specific command.
 `
 
-	arguments, _ := docopt.Parse(usage, nil, true, "pki.io release 1", true)
+	arguments, _ := docopt.Parse(usage, nil, true, Version(), true)
 
 	initLogging(ArgString(arguments["--logging"], ""))
 
