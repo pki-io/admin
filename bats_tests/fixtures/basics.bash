@@ -1,7 +1,11 @@
 export SOURCE_PATH=$(pwd)
 export ORG="test-org"
 export ORG2="test-org-2"
-export CMD="$SOURCE_PATH/pki.io"
+if [[ -n "$PKIIO_CMD" ]]; then
+  export CMD="$PKIIO_CMD"
+else
+  export CMD="$SOURCE_PATH/pki.io"
+fi
 
 if [[ ! -x "$CMD" ]]; then
   echo "Can't find pki.io binary at $CMD. Did you run 'make build'?"
