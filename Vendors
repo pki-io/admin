@@ -8,7 +8,7 @@ vendor "github.com/pki-io/gojsonpointer" "github.com/xeipuuv/gojsonpointer" chec
 vendor "github.com/pki-io/gojsonreference" "github.com/xeipuuv/gojsonreference" checkout 2df3c0c802434c5cb984dbc21425f5960bda4d16
 vendor "github.com/pki-io/gojsonschema" "github.com/xeipuuv/gojsonschema" checkout 71b85f61a135e79143f3d3238d5175a4f29b6689
 
-vendor_clone "github.com/pki-io/crypto" "golang.org/x/crypto" 5c68cfdf2a545b5ff576c075b459d1fc0c606f82
+vendor_clone "github.com/pki-io/crypto" "golang.org/x/crypto" checkout 5c68cfdf2a545b5ff576c075b459d1fc0c606f82
 vendor_build "github.com/pki-io/crypto" "golang.org/x/crypto" "golang.org/x/crypto/pbkdf2"
 
 unforked_vendor_clone "github.com/pki-io/core" checkout 0.1.0
