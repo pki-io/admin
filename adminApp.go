@@ -75,6 +75,7 @@ func (app *AdminApp) CreateOrgDirectory(name string) {
 func (app *AdminApp) CreateAdminEntity(name string) {
 	var err error
 	logger.Info("Creating Admin entity")
+	_ = "breakpoint"
 	app.entities.admin, err = entity.New(nil)
 	checkAppFatal("Could not create admin entity: %s", err)
 
