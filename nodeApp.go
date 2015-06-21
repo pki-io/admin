@@ -126,7 +126,8 @@ func (app *NodeApp) CreateNodeConfig() {
 	var err error
 	app.config.node, err = config.NewNode()
 	checkAppFatal("Couldn't initialize node config: %s", err)
-	app.config.node.AddNode(app.entities.node.Data.Body.Name, app.entities.node.Data.Body.Id, app.index.node.Data.Body.Id)
+	err = app.config.node.AddNode(app.entities.node.Data.Body.Name, app.entities.node.Data.Body.Id, app.index.node.Data.Body.Id)
+	checkUserFatal("Cannot add node to node config: %s", err)
 }
 
 func (app *NodeApp) SaveNodeConfig() {

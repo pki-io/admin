@@ -19,6 +19,7 @@ func checkUserFatal(format string, a ...interface{}) {
 		return
 	}
 	logger.Errorf(format, a...)
+	logger.Flush()
 	os.Exit(1)
 }
 
@@ -41,6 +42,7 @@ func checkAppFatal(format string, a ...interface{}) {
 
 	fmt.Println(logger)
 	logger.Errorf(bigError, a...)
+	logger.Flush()
 	panic("...")
 }
 

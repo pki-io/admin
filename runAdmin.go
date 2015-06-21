@@ -84,7 +84,8 @@ func adminNew(argv map[string]interface{}) (err error) {
 	} else {
 		app.CreateAdminConfig()
 	}
-	app.config.admin.AddOrg(app.config.org.Data.Name, app.config.org.Data.Id, app.entities.admin.Data.Body.Id)
+	err = app.config.admin.AddOrg(app.config.org.Data.Name, app.config.org.Data.Id, app.entities.admin.Data.Body.Id)
+	checkUserFatal("Cannot add org to admin config: %s", err)
 
 	app.SaveAdminEntity()
 	app.SaveAdminConfig()
