@@ -25,16 +25,21 @@ init_init() {
 }
 
 init() {
+  export PKIIO_LOCAL="$PKIIO_LOCAL_DIR"
   $CMD init $ORG
+  e="$?"
   cd "$PKIIO_LOCAL/$ORG"
   export PKIIO_LOCAL=""
+  return "$e"
 }
 
 init2() {
   export PKIIO_LOCAL="$PKIIO_LOCAL2_DIR"
   $CMD init $ORG2
+  e="$?"
   cd "$PKIIO_LOCAL/$ORG2"
   export PKIIO_LOCAL=""
+  return "$e"
 }
 
 cleanup() {

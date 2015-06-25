@@ -19,11 +19,11 @@ clean:
 	test ! -e pki.io || rm pki.io
 
 dev: clean
-	FDM_ENV=DEV fdm
+	FDM_ENV=DEV fdm --dev
 	mkdir -p _vendor/src/github.com/pki-io/core  && \
 	rm -rf _vendor/src/github.com/pki-io/core/* && \
 	for d in $(DIRS); do (cd _vendor/src/github.com/pki-io/core && ln -s ../../../../../../core/$$d .); done && \
 	rm -rf _vendor/pkg
-	fdm
+	fdm --dev
 
 all: get-deps build test install
