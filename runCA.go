@@ -6,7 +6,6 @@ import (
 	"github.com/pki-io/core/crypto"
 	"github.com/pki-io/core/fs"
 	"github.com/pki-io/core/x509"
-	"math"
 	"time"
 )
 
@@ -91,6 +90,7 @@ func caList(argv map[string]interface{}) (err error) {
 
 func caShow(argv map[string]interface{}) (err error) {
 	name := ArgString(argv["<name>"], nil)
+	//exportFile := ArgString(argv["--export"], "")
 	private := ArgBool(argv["--private"], false)
 
 	app := NewAdminApp()
@@ -161,8 +161,8 @@ func caImport(argv map[string]interface{}) (err error) {
 	name := ArgString(argv["<name>"], nil)
 	inTags := ArgString(argv["--tags"], nil)
 
-	certFile := ArgString(argv["cert"], nil)
-	keyFile := ArgString(argv["privateKey"], "")
+	certFile := ArgString(argv["<cert>"], nil)
+	keyFile := ArgString(argv["<privateKey>"], "")
 
 	certExpiry := ArgInt(argv["--cert-expiry"], 90)
 
@@ -174,6 +174,7 @@ func caImport(argv map[string]interface{}) (err error) {
 	dnStreet := ArgString(argv["--dn-street"], "")
 	dnPostal := ArgString(argv["--dn-postal"], "")
 
+	logger.Infof("Importing %s as %s", certFile, name)
 	app := NewAdminApp()
 	app.Load()
 
@@ -209,13 +210,17 @@ func caImport(argv map[string]interface{}) (err error) {
 	}
 	certPem, err := fs.ReadFile(certFile)
 
-	cert, err := x509.PemDecodeX509Certificate(bytes(certPem))
+	cert, err := x509.PemDecodeX509Certificate([]byte(certPem))
 	checkUserFatal("Not a valid certificate PEM for %s: %s", certFile, err)
+	// TODO - consider converting cert back to pem to use for consistency
 
-	ca.Data.Body.Certificate = cert
+	// We generate a random ID instead of using the serial number because we
+	// don't control the serial
+	ca.Data.Body.Id = NewID()
+	ca.Data.Body.Certificate = certPem
 	ca.Data.Body.CertExpiry = certExpiry
-	//ca.Data.Body.CAExpiry = caExpiry
-	caExpiry = math.Ceil(cert.NotAfter.Sub(cert.NotBefore).Hour / 24)
+	caExpiry := int(cert.NotAfter.Sub(cert.NotBefore) / (time.Hour * 24))
+	ca.Data.Body.CAExpiry = caExpiry
 
 	if keyFile != "" {
 		ok, err = fs.Exists(keyFile)
@@ -225,9 +230,14 @@ func caImport(argv map[string]interface{}) (err error) {
 		}
 		keyPem, err := fs.ReadFile(keyFile)
 
-		key, err := crypto.PemDecodePrivate(bytes(key))
+		key, err := crypto.PemDecodePrivate([]byte(keyPem))
 		checkUserFatal("Not a valid private key PEM for %s: %s", keyFile, err)
+		// TODO - consider converting key back to pem to use for consistency
 
+		keyType, err := crypto.GetKeyType(key)
+		checkUserFatal("Unknow private key file for %s: %s", keyFile, err)
+
+		ca.Data.Body.KeyType = string(keyType)
 		ca.Data.Body.PrivateKey = keyPem
 	}
 
@@ -258,9 +268,9 @@ Usage:
     pki.io ca [--help]
     pki.io ca new <name> --tags <tags> [--ca-expiry <days>] [--cert-expiry <days>] [--dn-l <locality>] [--dn-st <state>] [--dn-o <org>] [--dn-ou <orgUnit>] [--dn-c <country>] [--dn-street <street>] [--dn-postal <postalCode>]
     pki.io ca list
-    pki.io ca show <name> [--private]
+    pki.io ca show <name> [--export <file>] [--private]
     pki.io ca delete <name> --confirm-delete <reason>
-    pki.io ca import <name> <cert> [<privateKey] --tags <tags> [--ca-expiry <days>] [--cert-expiry <days>] [--dn-l <locality>] [--dn-st <state>] [--dn-o <org>] [--dn-ou <orgUnit>] [--dn-c <country>] [--dn-street <street>] [--dn-postal <postalCode>]
+    pki.io ca import <name> <cert> [<privateKey>] --tags <tags> [--ca-expiry <days>] [--cert-expiry <days>] [--dn-l <locality>] [--dn-st <state>] [--dn-o <org>] [--dn-ou <orgUnit>] [--dn-c <country>] [--dn-street <street>] [--dn-postal <postalCode>]
 
 Options:
     --tags <tags>              List of comma-separated tags

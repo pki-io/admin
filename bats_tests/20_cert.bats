@@ -7,6 +7,7 @@ load "fixtures/cert"
   init
   run cert_new
   [ "$status" -eq 0 ]
+  [ -r "$CERT_EXPORT_FILE" ]
   cleanup
 }
 
@@ -15,6 +16,7 @@ load "fixtures/cert"
   init
   run cert_new_dn
   [ "$status" -eq 0 ]
+  [ -r "$CERT_EXPORT_FILE" ]
   cleanup
 }
 
@@ -24,5 +26,12 @@ load "fixtures/cert"
   ca_new
   run cert_new_ca
   [ "$status" -eq 0 ]
+  [ -r "$CERT_EXPORT_FILE" ]
+  tar -xOzf "$CERT_EXPORT_FILE" "${CERT_NAME}-cert.pem" | grep -q "BEGIN CERTIFICATE"
+  [ "$?" -eq 0 ]
+  tar -xOzf "$CERT_EXPORT_FILE" "${CERT_NAME}-cacert.pem" | grep -q "BEGIN CERTIFICATE"
+  [ "$?" -eq 0 ]
+  tar -xOzf "$CERT_EXPORT_FILE" "${CERT_NAME}-key.pem" | grep -q "PRIVATE KEY"
+  [ "$?" -eq 0 ]
   cleanup
 }
