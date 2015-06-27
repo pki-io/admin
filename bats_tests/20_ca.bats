@@ -62,3 +62,45 @@ load "fixtures/ca"
   [ "$status" -eq 0 ]
   cleanup
 }
+
+@test "ca import public" {
+  init_init
+  init
+  create_external_ca
+  run ca_import_public
+  [ "$status" -eq 0 ]
+  cleanup
+}
+
+@test "ca import private" {
+  init_init
+  init
+  create_external_ca
+  run ca_import_private
+  [ "$status" -eq 0 ]
+  cleanup
+}
+
+@test "ca show import public" {
+  init_init
+  init
+  create_external_ca
+  ca_import_public
+  run ca_show
+  [ "$status" -eq 0 ]
+  echo "$output" | grep -q "BEGIN CERTIFICATE"
+  [ "$?" -eq 0 ]
+  cleanup
+}
+
+@test "ca show import private" {
+  init_init
+  init
+  create_external_ca
+  ca_import_private
+  run ca_show_private
+  [ "$status" -eq 0 ]
+  echo "$output" | grep -q "BEGIN RSA PRIVATE KEY"
+  [ "$?" -eq 0 ]
+  cleanup
+}

@@ -1,11 +1,11 @@
 load "fixtures/basics"
 load "fixtures/node"
 load "fixtures/ca"
+load "fixtures/cert"
 load "fixtures/org"
 load "fixtures/pairing_key"
 
 @test "basic flow" {
-  # can't run init for some reason
   init_init
   init
   pairing_key_new
@@ -17,3 +17,21 @@ load "fixtures/pairing_key"
   cleanup
 }
 
+@test "standalone cert" {
+  init_init
+  init
+  ca_new
+  run cert_new_ca
+  [ "$status" -eq 0 ]
+  cleanup
+}
+
+@test "standalone cert imported ca" {
+  init_init
+  init
+  create_external_ca
+  ca_import_private
+  run cert_new_ca
+  [ "$status" -eq 0 ]
+  cleanup
+}

@@ -3,7 +3,10 @@ package main
 import (
 	"fmt"
 	"github.com/docopt/docopt-go"
+	"github.com/pki-io/core/crypto"
+	"github.com/pki-io/core/fs"
 	"github.com/pki-io/core/x509"
+	"time"
 )
 
 func caNew(argv map[string]interface{}) (err error) {
@@ -87,6 +90,7 @@ func caList(argv map[string]interface{}) (err error) {
 
 func caShow(argv map[string]interface{}) (err error) {
 	name := ArgString(argv["<name>"], nil)
+	//exportFile := ArgString(argv["--export"], "")
 	private := ArgBool(argv["--private"], false)
 
 	app := NewAdminApp()
@@ -153,6 +157,109 @@ func caDelete(argv map[string]interface{}) (err error) {
 	return nil
 }
 
+func caImport(argv map[string]interface{}) (err error) {
+	name := ArgString(argv["<name>"], nil)
+	inTags := ArgString(argv["--tags"], nil)
+
+	certFile := ArgString(argv["<cert>"], nil)
+	keyFile := ArgString(argv["<privateKey>"], "")
+
+	certExpiry := ArgInt(argv["--cert-expiry"], 90)
+
+	dnLocality := ArgString(argv["--dn-l"], "")
+	dnState := ArgString(argv["--dn-st"], "")
+	dnOrg := ArgString(argv["--dn-o"], "")
+	dnOrgUnit := ArgString(argv["--dn-ou"], "")
+	dnCountry := ArgString(argv["--dn-c"], "")
+	dnStreet := ArgString(argv["--dn-street"], "")
+	dnPostal := ArgString(argv["--dn-postal"], "")
+
+	logger.Infof("Importing %s as %s", certFile, name)
+	app := NewAdminApp()
+	app.Load()
+
+	ca, _ := x509.NewCA(nil)
+	ca.Data.Body.Name = name
+
+	if dnLocality != "" {
+		ca.Data.Body.DNScope.Locality = dnLocality
+	}
+	if dnState != "" {
+		ca.Data.Body.DNScope.Province = dnState
+	}
+	if dnOrg != "" {
+		ca.Data.Body.DNScope.Organization = dnOrg
+	}
+	if dnOrgUnit != "" {
+		ca.Data.Body.DNScope.OrganizationalUnit = dnOrgUnit
+	}
+	if dnCountry != "" {
+		ca.Data.Body.DNScope.Country = dnCountry
+	}
+	if dnStreet != "" {
+		ca.Data.Body.DNScope.StreetAddress = dnStreet
+	}
+	if dnPostal != "" {
+		ca.Data.Body.DNScope.PostalCode = dnPostal
+	}
+
+	ok, err := fs.Exists(certFile)
+	checkAppFatal("Could not check file existence for %s: %s", certFile, err)
+	if !ok {
+		checkUserFatal("File does not exist: %s", certFile)
+	}
+	certPem, err := fs.ReadFile(certFile)
+
+	cert, err := x509.PemDecodeX509Certificate([]byte(certPem))
+	checkUserFatal("Not a valid certificate PEM for %s: %s", certFile, err)
+	// TODO - consider converting cert back to pem to use for consistency
+
+	// We generate a random ID instead of using the serial number because we
+	// don't control the serial
+	ca.Data.Body.Id = NewID()
+	ca.Data.Body.Certificate = certPem
+	ca.Data.Body.CertExpiry = certExpiry
+	caExpiry := int(cert.NotAfter.Sub(cert.NotBefore) / (time.Hour * 24))
+	ca.Data.Body.CAExpiry = caExpiry
+
+	if keyFile != "" {
+		ok, err = fs.Exists(keyFile)
+		checkAppFatal("Could not check file existence for %s: %s", keyFile, err)
+		if !ok {
+			checkUserFatal("File does not exist: %s", keyFile)
+		}
+		keyPem, err := fs.ReadFile(keyFile)
+
+		key, err := crypto.PemDecodePrivate([]byte(keyPem))
+		checkUserFatal("Not a valid private key PEM for %s: %s", keyFile, err)
+		// TODO - consider converting key back to pem to use for consistency
+
+		keyType, err := crypto.GetKeyType(key)
+		checkUserFatal("Unknow private key file for %s: %s", keyFile, err)
+
+		ca.Data.Body.KeyType = string(keyType)
+		ca.Data.Body.PrivateKey = keyPem
+	}
+
+	logger.Info("Saving CA")
+	caContainer, err := app.entities.org.EncryptThenSignString(ca.Dump(), nil)
+	checkAppFatal("Could not encrypt CA: %s", err)
+
+	err = app.fs.api.Authenticate(app.entities.org.Data.Body.Id, "")
+	checkAppFatal("Could not authenticate to API as Org: %s", err)
+
+	err = app.fs.api.StorePrivate(ca.Data.Body.Id, caContainer.Dump())
+	checkAppFatal("Could not save CA: %s", err)
+
+	logger.Info("Updating index")
+	app.LoadOrgIndex()
+	app.index.org.AddCA(ca.Data.Body.Name, ca.Data.Body.Id)
+	app.index.org.AddCATags(ca.Data.Body.Id, ParseTags(inTags))
+	app.SaveOrgIndex()
+
+	return nil
+}
+
 func runCA(args []string) (err error) {
 	usage := `
 Manages Certificate Authorities
@@ -161,8 +268,9 @@ Usage:
     pki.io ca [--help]
     pki.io ca new <name> --tags <tags> [--ca-expiry <days>] [--cert-expiry <days>] [--dn-l <locality>] [--dn-st <state>] [--dn-o <org>] [--dn-ou <orgUnit>] [--dn-c <country>] [--dn-street <street>] [--dn-postal <postalCode>]
     pki.io ca list
-    pki.io ca show <name> [--private]
+    pki.io ca show <name> [--export <file>] [--private]
     pki.io ca delete <name> --confirm-delete <reason>
+    pki.io ca import <name> <cert> [<privateKey>] --tags <tags> [--ca-expiry <days>] [--cert-expiry <days>] [--dn-l <locality>] [--dn-st <state>] [--dn-o <org>] [--dn-ou <orgUnit>] [--dn-c <country>] [--dn-street <street>] [--dn-postal <postalCode>]
 
 Options:
     --tags <tags>              List of comma-separated tags
@@ -189,6 +297,8 @@ Options:
 		caShow(argv)
 	} else if argv["delete"].(bool) {
 		caDelete(argv)
+	} else if argv["import"].(bool) {
+		caImport(argv)
 	}
 	return nil
 }
