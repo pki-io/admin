@@ -1,3 +1,4 @@
+// ThreatSpec package main
 package main
 
 import (
@@ -39,6 +40,9 @@ func NewAdminApp() *AdminApp {
 	return new(AdminApp)
 }
 
+// ThreatSpec TMv0.1 for AdminApp.InitLocalFs
+// Does initialisation of local filesytem for App:Admin
+
 func (app *AdminApp) InitLocalFs() {
 	var err error
 	app.fs.local, err = fs.NewLocal(os.Getenv("PKIIO_LOCAL"))
@@ -57,6 +61,9 @@ func (app *AdminApp) InitHomeFs() {
 	checkAppFatal("Couldn't initialise home fs: %s", err)
 }
 
+// ThreatSpec TMv0.1 for AdminApp.CreateOrgDirectory
+// Creates org directory for App:Admin
+
 func (app *AdminApp) CreateOrgDirectory(name string) {
 	exists, err := app.fs.local.Exists(name)
 	checkAppFatal("Couldn't check existence of org: %s", err)
@@ -72,6 +79,9 @@ func (app *AdminApp) CreateOrgDirectory(name string) {
 	checkAppFatal("Couldn't change to org directory: %s", err)
 }
 
+// ThreatSpec TMv0.1 for AdminApp.CreateAdminEntity
+// Does org entity creation for App:Admin
+
 func (app *AdminApp) CreateAdminEntity(name string) {
 	var err error
 	logger.Info("Creating Admin entity")
@@ -85,6 +95,9 @@ func (app *AdminApp) CreateAdminEntity(name string) {
 	err = app.entities.admin.GenerateKeys()
 	checkAppFatal("Could not generate admin keys: %s", err)
 }
+
+// ThreatSpec TMv0.1 for AdminApp.CreateOrgEntity
+// Does org entity creation for App:Org
 
 func (app *AdminApp) CreateOrgEntity(name string) {
 	var err error
@@ -167,6 +180,9 @@ func (app *AdminApp) LoadAdminConfig() {
 	err = app.config.admin.Load(adminConfig)
 	checkAppFatal("Couldn't load admin config: %s", err)
 }
+
+// ThreatSpec TMv0.1 for AdminApp.SendOrgEntity
+// It encrypts and uploads org entity for App:Org
 
 func (app *AdminApp) SendOrgEntity() {
 

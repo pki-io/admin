@@ -1,8 +1,12 @@
+// ThreatSpec package main
 package main
 
 import (
 	"github.com/docopt/docopt-go"
 )
+
+// ThreatSpec TMv0.1 for newInit
+// Does new org initialisation for App:Org
 
 func newInit(argv map[string]interface{}) {
 	orgName := ArgString(argv["<org>"], nil)

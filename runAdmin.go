@@ -1,9 +1,13 @@
+// ThreatSpec package main
 package main
 
 import (
 	"fmt"
 	"github.com/docopt/docopt-go"
 )
+
+// ThreatSpec TMv0.1 for adminList
+// Does admin list display for App:Admin
 
 func adminList(argv map[string]interface{}) (err error) {
 	app := NewAdminApp()
@@ -19,6 +23,9 @@ func adminList(argv map[string]interface{}) (err error) {
 	}
 	return nil
 }
+
+// ThreatSpec TMv0.1 for adminShow
+// Does admin display for App:Admin
 
 func adminShow(argv map[string]interface{}) (err error) {
 	name := ArgString(argv["<name>"], nil)
@@ -38,6 +45,9 @@ func adminShow(argv map[string]interface{}) (err error) {
 	fmt.Printf("Public signing key:\n%s\n", admin.Data.Body.PublicSigningKey)
 	return nil
 }
+
+// ThreatSpec TMv0.1 for adminInvite
+// Does admin invitation for App:Admin
 
 func adminInvite(argv map[string]interface{}) (err error) {
 	name := ArgString(argv["<name>"], nil)
@@ -60,6 +70,9 @@ func adminInvite(argv map[string]interface{}) (err error) {
 
 	return nil
 }
+
+// ThreatSpec TMv0.1 for adminNew
+// Does admin creation for App:Admin
 
 func adminNew(argv map[string]interface{}) (err error) {
 	name := ArgString(argv["<name>"], nil)
@@ -93,6 +106,9 @@ func adminNew(argv map[string]interface{}) (err error) {
 	app.SecureSendPublicToOrg(inviteId, inviteKey)
 	return nil
 }
+
+// ThreatSpec TMv0.1 for adminRun
+// Does all admin processing for App:Admin
 
 func adminRun(argv map[string]interface{}) (err error) {
 
