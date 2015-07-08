@@ -72,7 +72,7 @@ func certNew(argv map[string]interface{}) (err error) {
 		app.LoadOrgIndex()
 
 		caId, err := app.index.org.GetCA(caName)
-		checkAppFatal("Couldn't get CA id: %s", err)
+		checkUserFatal("Couldn't find CA '%s'", caName)
 
 		caContainerJson, err := app.fs.api.GetPrivate(app.entities.org.Data.Body.Id, caId)
 		caContainer, err := document.NewContainer(caContainerJson)
