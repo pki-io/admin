@@ -24,8 +24,6 @@ load "fixtures/basics"
   mv "${PKIIO_LOCAL_DIR}/${ORG}" "${PKIIO_LOCAL_DIR}/{$ORG2}"
   run init
   [ "$status" -eq 1 ]
-  echo "$output" | grep -q "name already exists"
-  already_exists="$?"
-  [ "$already_exists" -eq 0 ]
+  [[ "$output" =~ "already exists in admin config" ]]
   cleanup
 }

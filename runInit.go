@@ -11,24 +11,11 @@ func newInit(argv map[string]interface{}) {
 	app := NewAdminApp()
 
 	app.InitLocalFs()
-	app.CreateOrgDirectory(orgName)
-
-	app.InitApiFs()
 	app.InitHomeFs()
 
-	app.CreateAdminEntity(adminName)
-	app.CreateOrgEntity(orgName)
-	app.CreateOrgConfig()
-
-	app.SaveAdminEntity()
-
-	app.CreateOrgIndex()
-	err := app.index.org.AddAdmin(app.entities.admin.Data.Body.Name, app.entities.admin.Data.Body.Id)
-	checkAppFatal("Couldn't add admin to index: %s", err)
-
-	app.SaveOrgIndex()
-
-	app.SaveOrgEntityPublic()
+	// Do some checks now to prevent changes before obvious errors
+	app.ErrorIfOrgDirectoryExists(orgName)
+	// TODO - check admin config for org and error if it exists
 
 	exists, err := app.AdminConfigExists()
 	checkAppFatal("Could not check admin config existence: %s", err)
@@ -40,12 +27,35 @@ func newInit(argv map[string]interface{}) {
 		app.CreateAdminConfig()
 	}
 
+	if app.config.admin.OrgExists(orgName) {
+		checkUserFatal("Org '%s' already exists in admin config.")
+	}
+
+	app.CreateOrgDirectory(orgName)
+
+	// Initialise the API fs asap but it depends on an org config existing
+	app.InitApiFs()
+
+	app.CreateAdminEntity(adminName)
+	app.CreateOrgEntity(orgName)
+	app.CreateOrgConfig()
+
+	app.SaveAdminEntity()
+
+	app.CreateOrgIndex()
+	err = app.index.org.AddAdmin(app.entities.admin.Data.Body.Name, app.entities.admin.Data.Body.Id)
+	checkAppFatal("Couldn't add admin to index: %s", err)
+
+	app.SaveOrgIndex()
+
+	app.SaveOrgEntityPublic()
+
 	if app.entities.admin == nil {
 		checkAppFatal("admin entity cannot be nil")
 	}
 
 	err = app.config.admin.AddOrg(app.config.org.Data.Name, app.config.org.Data.Id, app.entities.admin.Data.Body.Id)
-	checkUserFatal("Cannot add org to admin config: %s", err)
+	checkUserFatal("Could not add org to admin config: %s", err)
 
 	app.SendOrgEntity()
 
