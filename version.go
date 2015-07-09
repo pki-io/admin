@@ -6,7 +6,7 @@ import (
 
 const (
 	name    string = "pki.io"
-	version string = "0.1.1"
+	version string = "0.1.2"
 	release string = "release1"
 )
 
