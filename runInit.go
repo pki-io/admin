@@ -28,7 +28,7 @@ func newInit(argv map[string]interface{}) {
 	}
 
 	if app.config.admin.OrgExists(orgName) {
-		checkUserFatal("Org '%s' already exists in admin config.")
+		checkUserFatal("Org '%s' already exists in admin config.", orgName)
 	}
 
 	app.CreateOrgDirectory(orgName)
