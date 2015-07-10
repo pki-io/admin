@@ -61,18 +61,21 @@ func (app *AdminApp) InitHomeFs() {
 	checkAppFatal("Couldn't initialise home fs: %s", err)
 }
 
+func (app *AdminApp) ErrorIfOrgDirectoryExists(name string) {
+	exists, err := app.fs.local.Exists(name)
+	checkAppFatal("Couldn't check existence of org: %s", err)
+	if exists {
+		checkUserFatal("Org directory '%name' already exists.", name)
+	}
+}
+
 // ThreatSpec TMv0.1 for AdminApp.CreateOrgDirectory
 // Creates org directory for App:Admin
 
 func (app *AdminApp) CreateOrgDirectory(name string) {
-	exists, err := app.fs.local.Exists(name)
-	checkAppFatal("Couldn't check existence of org: %s", err)
+	app.ErrorIfOrgDirectoryExists(name)
 
-	if exists {
-		checkUserFatal("Org directory '%name' already exists.", name)
-	}
-
-	err = app.fs.local.CreateDirectory(name)
+	err := app.fs.local.CreateDirectory(name)
 	checkAppFatal("Couldn't create org directory: %s", err)
 
 	err = app.fs.local.ChangeToDirectory(name)
@@ -246,7 +249,7 @@ func (app *AdminApp) SaveOrgConfig() {
 
 func (app *AdminApp) LoadOrgConfig() {
 	orgConfig, err := app.fs.local.Read(OrgConfigFile)
-	checkAppFatal("Couldn't read org config: %s", err)
+	checkUserFatal("Couldn't read org config: %s. Are you in an org directory?", err)
 
 	app.config.org, err = config.NewOrg()
 	checkAppFatal("Couldn't initialize org config: %s", err)
