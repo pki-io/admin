@@ -201,6 +201,9 @@ func (app *AdminApp) SendOrgEntity() {
 	checkAppFatal("Couldn't store container to json: %s", err)
 }
 
+// ThreatSpec TMv0.1 for AdminApp.LoadOrgEntity
+// It gets and loads org entity for App:Org
+
 func (app *AdminApp) LoadOrgEntity() {
 	logger.Info("Loading org entity")
 	var err error
@@ -267,6 +270,9 @@ func (app *AdminApp) CreateOrgIndex() {
 	app.index.org.Data.Body.Id = NewID()
 	app.index.org.Data.Body.ParentId = app.entities.org.Data.Body.Id
 }
+
+// ThreatSpec TMv0.1 for AdminApp.Load
+// It loads all components required for App:Admin
 
 func (app *AdminApp) Load() {
 	logger.Info("Loading admin app")
