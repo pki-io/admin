@@ -22,7 +22,8 @@ Commands:
     init          Initialise an organisation
     admin         Manage admins  
     ca            Manage X.509 Certificate Authorities
-    cert          Manage standalone X.509 certificates
+    cert          Manage X.509 certificates
+    csr           Manage X.509 Certificate Signing Requests
     node          Manage node entities
     org           Do operations on behalf of the org
     pairing-key   Manage pairing keys
@@ -69,6 +70,8 @@ func runCommand(cmd string, args []string) error {
 		return runCA(argv)
 	case "cert":
 		return runCert(argv)
+	case "csr":
+		return runCSR(argv)
 	case "node":
 		return runNode(argv)
 	case "org":

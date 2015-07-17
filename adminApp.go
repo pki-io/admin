@@ -295,6 +295,7 @@ func (app *AdminApp) SaveOrgIndex() {
 func (app *AdminApp) GetCA(id string) *x509.CA {
 	logger.Info("Getting CA")
 	caContainerJson, err := app.fs.api.GetPrivate(app.entities.org.Data.Body.Id, id)
+	checkAppFatal("Could not get container: %s", err)
 	caContainer, err := document.NewContainer(caContainerJson)
 	checkAppFatal("Couldn't create container from json: %s", err)
 
@@ -304,6 +305,36 @@ func (app *AdminApp) GetCA(id string) *x509.CA {
 	ca, err := x509.NewCA(caJson)
 	checkAppFatal("Couldn't create ca: %s", err)
 	return ca
+}
+
+func (app *AdminApp) GetCert(id string) *x509.Certificate {
+	logger.Info("Getting certificate")
+	certContainerJson, err := app.fs.api.GetPrivate(app.entities.org.Data.Body.Id, id)
+	checkAppFatal("Could not get container: %s", err)
+	certContainer, err := document.NewContainer(certContainerJson)
+	checkAppFatal("Couldn't create container from json: %s", err)
+
+	certJson, err := app.entities.org.VerifyThenDecrypt(certContainer)
+	checkAppFatal("Couldn't verify and decrypt cert container: %s", err)
+
+	cert, err := x509.NewCertificate(certJson)
+	checkAppFatal("Couldn't create cert: %s", err)
+	return cert
+}
+
+func (app *AdminApp) GetCSR(id string) *x509.CSR {
+	logger.Info("Getting CSR")
+	csrContainerJson, err := app.fs.api.GetPrivate(app.entities.org.Data.Body.Id, id)
+	checkAppFatal("Could not get container: %s", err)
+	csrContainer, err := document.NewContainer(csrContainerJson)
+	checkAppFatal("Couldn't create container from json: %s", err)
+
+	csrJson, err := app.entities.org.VerifyThenDecrypt(csrContainer)
+	checkAppFatal("Couldn't verify and decrypt CSR container: %s", err)
+
+	csr, err := x509.NewCSR(csrJson)
+	checkAppFatal("Couldn't create CSR: %s", err)
+	return csr
 }
 
 func (app *AdminApp) SignCSRForNode(node *node.Node, caId, tag string) {

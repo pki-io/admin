@@ -11,7 +11,7 @@ import (
 
 func caNew(argv map[string]interface{}) (err error) {
 	name := ArgString(argv["<name>"], nil)
-	inTags := ArgString(argv["--tags"], nil)
+	tags := ArgString(argv["--tags"], nil)
 
 	caExpiry := ArgInt(argv["--ca-expiry"], 365)
 	certExpiry := ArgInt(argv["--cert-expiry"], 90)
@@ -69,7 +69,7 @@ func caNew(argv map[string]interface{}) (err error) {
 	logger.Info("Updating index")
 	app.LoadOrgIndex()
 	app.index.org.AddCA(ca.Data.Body.Name, ca.Data.Body.Id)
-	app.index.org.AddCATags(ca.Data.Body.Id, ParseTags(inTags))
+	app.index.org.AddCATags(ca.Data.Body.Id, ParseTags(tags))
 	app.SaveOrgIndex()
 
 	return nil
@@ -90,7 +90,7 @@ func caList(argv map[string]interface{}) (err error) {
 
 func caShow(argv map[string]interface{}) (err error) {
 	name := ArgString(argv["<name>"], nil)
-	//exportFile := ArgString(argv["--export"], "")
+	exportFile := ArgString(argv["--export"], "")
 	private := ArgBool(argv["--private"], false)
 
 	app := NewAdminApp()
@@ -98,33 +98,42 @@ func caShow(argv map[string]interface{}) (err error) {
 	app.LoadOrgIndex()
 
 	// TODO - refactor
-	var caSerial string
-	for n, id := range app.index.org.GetCAs() {
-		if n == name {
-			caSerial = id
-		}
-	}
-	if len(caSerial) == 0 {
-		checkUserFatal("Could not find CA: %s", name)
-	}
+	caSerial, err := app.index.org.GetCA(name)
+	checkUserFatal("Could not find CA: %s%.0s\n", name, err)
 
 	ca := app.GetCA(caSerial)
-	fmt.Printf("Name: %s\n", ca.Data.Body.Name)
-	fmt.Printf("ID: %s\n", ca.Data.Body.Id)
-	fmt.Printf("CA expiry period: %d\n", ca.Data.Body.CAExpiry)
-	fmt.Printf("Cert expiry period: %d\n", ca.Data.Body.CertExpiry)
-	fmt.Printf("Key type: %s\n", ca.Data.Body.KeyType)
-	fmt.Printf("DN country: %s\n", ca.Data.Body.DNScope.Country)
-	fmt.Printf("DN organization: %s\n", ca.Data.Body.DNScope.Organization)
-	fmt.Printf("DN organizational unit: %s\n", ca.Data.Body.DNScope.OrganizationalUnit)
-	fmt.Printf("DN locality: %s\n", ca.Data.Body.DNScope.Locality)
-	fmt.Printf("DN province: %s\n", ca.Data.Body.DNScope.Province)
-	fmt.Printf("DN street address: %s\n", ca.Data.Body.DNScope.StreetAddress)
-	fmt.Printf("DN postal code: %s\n", ca.Data.Body.DNScope.PostalCode)
-	fmt.Printf("Certficate:\n%s\n", ca.Data.Body.Certificate)
 
-	if private {
-		fmt.Printf("Private key:\n%s\n", ca.Data.Body.PrivateKey)
+	if exportFile == "" {
+		fmt.Printf("Name: %s\n", ca.Data.Body.Name)
+		fmt.Printf("ID: %s\n", ca.Data.Body.Id)
+		fmt.Printf("CA expiry period: %d\n", ca.Data.Body.CAExpiry)
+		fmt.Printf("Cert expiry period: %d\n", ca.Data.Body.CertExpiry)
+		fmt.Printf("Key type: %s\n", ca.Data.Body.KeyType)
+		fmt.Printf("DN country: %s\n", ca.Data.Body.DNScope.Country)
+		fmt.Printf("DN organization: %s\n", ca.Data.Body.DNScope.Organization)
+		fmt.Printf("DN organizational unit: %s\n", ca.Data.Body.DNScope.OrganizationalUnit)
+		fmt.Printf("DN locality: %s\n", ca.Data.Body.DNScope.Locality)
+		fmt.Printf("DN province: %s\n", ca.Data.Body.DNScope.Province)
+		fmt.Printf("DN street address: %s\n", ca.Data.Body.DNScope.StreetAddress)
+		fmt.Printf("DN postal code: %s\n", ca.Data.Body.DNScope.PostalCode)
+		fmt.Printf("Certficate:\n%s\n", ca.Data.Body.Certificate)
+
+		if private {
+			fmt.Printf("Private key:\n%s\n", ca.Data.Body.PrivateKey)
+		}
+	} else {
+		var files []ExportFile
+		certFile := fmt.Sprintf("%s-cert.pem", ca.Data.Body.Name)
+		keyFile := fmt.Sprintf("%s-key.pem", ca.Data.Body.Name)
+
+		files = append(files, ExportFile{Name: certFile, Mode: 0644, Content: []byte(ca.Data.Body.Certificate)})
+
+		if private {
+			files = append(files, ExportFile{Name: keyFile, Mode: 0600, Content: []byte(ca.Data.Body.PrivateKey)})
+		}
+
+		logger.Infof("Export to '%s'", exportFile)
+		Export(files, exportFile)
 
 	}
 
@@ -142,7 +151,7 @@ func caDelete(argv map[string]interface{}) (err error) {
 	logger.Info("Note: This does not revoke existing certificates signed by the CA")
 
 	caId, err := app.index.org.GetCA(name)
-	checkAppFatal("Could not get CA ID: %s", err)
+	checkUserFatal("CA %s does not exist%.0s", name, err)
 
 	err = app.fs.api.Authenticate(app.entities.org.Data.Body.Id, "")
 	checkAppFatal("Could not authenticate to API as Org: %s", err)
@@ -159,10 +168,10 @@ func caDelete(argv map[string]interface{}) (err error) {
 
 func caImport(argv map[string]interface{}) (err error) {
 	name := ArgString(argv["<name>"], nil)
-	inTags := ArgString(argv["--tags"], nil)
+	tags := ArgString(argv["--tags"], nil)
 
-	certFile := ArgString(argv["<cert>"], nil)
-	keyFile := ArgString(argv["<privateKey>"], "")
+	certFile := ArgString(argv["<certFile>"], nil)
+	keyFile := ArgString(argv["<privateKeyFile>"], "")
 
 	certExpiry := ArgInt(argv["--cert-expiry"], 90)
 
@@ -174,7 +183,7 @@ func caImport(argv map[string]interface{}) (err error) {
 	dnStreet := ArgString(argv["--dn-street"], "")
 	dnPostal := ArgString(argv["--dn-postal"], "")
 
-	logger.Infof("Importing %s as %s", certFile, name)
+	logger.Infof("Importing CA %s as %s", certFile, name)
 	app := NewAdminApp()
 	app.Load()
 
@@ -254,7 +263,7 @@ func caImport(argv map[string]interface{}) (err error) {
 	logger.Info("Updating index")
 	app.LoadOrgIndex()
 	app.index.org.AddCA(ca.Data.Body.Name, ca.Data.Body.Id)
-	app.index.org.AddCATags(ca.Data.Body.Id, ParseTags(inTags))
+	app.index.org.AddCATags(ca.Data.Body.Id, ParseTags(tags))
 	app.SaveOrgIndex()
 
 	return nil
@@ -270,7 +279,7 @@ Usage:
     pki.io ca list
     pki.io ca show <name> [--export <file>] [--private]
     pki.io ca delete <name> --confirm-delete <reason>
-    pki.io ca import <name> <cert> [<privateKey>] --tags <tags> [--ca-expiry <days>] [--cert-expiry <days>] [--dn-l <locality>] [--dn-st <state>] [--dn-o <org>] [--dn-ou <orgUnit>] [--dn-c <country>] [--dn-street <street>] [--dn-postal <postalCode>]
+    pki.io ca import <name> <certFile> [<privateKeyFile>] --tags <tags> [--ca-expiry <days>] [--cert-expiry <days>] [--dn-l <locality>] [--dn-st <state>] [--dn-o <org>] [--dn-ou <orgUnit>] [--dn-c <country>] [--dn-street <street>] [--dn-postal <postalCode>]
 
 Options:
     --tags <tags>              List of comma-separated tags
@@ -284,9 +293,9 @@ Options:
     --dn-street <street>       Street for DN scope
     --dn-postal <postalCode>   Postal code for DN scope
     --confirm-delete <reason>  Reason for deleting node
+    --export <file>            Exports cert to <file>
     --private                  Show private data (e.g. keys)
 `
-
 	argv, _ := docopt.Parse(usage, args, true, "", false)
 
 	if argv["new"].(bool) {
