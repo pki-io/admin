@@ -21,7 +21,7 @@ load "fixtures/pairing_key"
   init_init
   init
   ca_new
-  run cert_new_ca
+  run cert_new_ca_standalone
   [ "$status" -eq 0 ]
   cleanup
 }
@@ -31,7 +31,7 @@ load "fixtures/pairing_key"
   init
   create_external_ca
   ca_import_private
-  run cert_new_ca
+  run cert_new_ca_standalone
   [ "$status" -eq 0 ]
   cleanup
 }
