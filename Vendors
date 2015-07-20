@@ -1,17 +1,17 @@
 vendor -f "github.com/pki-io/docopt.go" -r "github.com/docopt/docopt-go" -g "checkout 854c423c810880e30b9fecdabb12d54f4a92f9bb"
-vendor -f "github.com/pki-io/seelog" -r "github.com/cihub/seelog" -g "checkout 8762324945b8f31888f8bfa3bd7fca04c20e2639"
-vendor -f "github.com/pki-io/toml" -r "github.com/BurntSushi/toml" -g "checkout 443a628bc233f634a75bcbdd71fe5350789f1afa"
-vendor -f "github.com/pki-io/go-homedir" -r "github.com/mitchellh/go-homedir" -g "checkout 7d2d8c8a4e078ce3c58736ab521a40b37a504c52"
+vendor -f "github.com/pki-io/seelog" -r "github.com/cihub/seelog" -g "checkout c510775bb50d98213cfafca75a4bc5e3fddc8d8f"
+vendor -f "github.com/pki-io/toml" -r "github.com/BurntSushi/toml" -g "checkout 056c9bc7be7190eaa7715723883caffa5f8fa3e4"
+vendor -f "github.com/pki-io/go-homedir" -r "github.com/mitchellh/go-homedir" -g "checkout 1f6da4a72e57d4e7edd4a7295a585e0a3999a2d4"
 vendor -f "github.com/pki-io/ecies" -r "github.com/obscuren/ecies" -g "checkout 582e689ca8661237e08b02068435199ea8a55318"
 
 vendor -f "github.com/pki-io/gojsonpointer" -r "github.com/xeipuuv/gojsonpointer" -g "checkout 636edb2500d21f2ed09ea96a00deb36bbd07cf70"
-vendor -f "github.com/pki-io/gojsonreference" -r "github.com/xeipuuv/gojsonreference" -g "checkout 2df3c0c802434c5cb984dbc21425f5960bda4d16"
-vendor -f "github.com/pki-io/gojsonschema" -r "github.com/xeipuuv/gojsonschema" -g "checkout 71b85f61a135e79143f3d3238d5175a4f29b6689"
+vendor -f "github.com/pki-io/gojsonreference" -r "github.com/xeipuuv/gojsonreference" -g "checkout bc91f381155d8aab2993d3c1ac02ce5a7f7822ab"
+vendor -f "github.com/pki-io/gojsonschema" -r "github.com/xeipuuv/gojsonschema" -g "checkout eb966db2a6901073163758bd7473008c0d9a1167"
 
-vendor --clone -f "github.com/pki-io/crypto" -r "golang.org/x/crypto" -g "checkout 5c68cfdf2a545b5ff576c075b459d1fc0c606f82"
+vendor --clone -f "github.com/pki-io/crypto" -r "golang.org/x/crypto" -g "checkout 7d5b0be716b9d6d4269afdaae10032bb296d3cdf"
 vendor --build -f "github.com/pki-io/crypto" -r "golang.org/x/crypto" -p "pbkdf2"
 
-vendor --clone -r "github.com/pki-io/core" -g "checkout 9fe2bb91c99bc4d71e0fc6b67030259c06a4c31e"
+vendor --clone -r "github.com/pki-io/core" -g "checkout development"
 if [[ "${FDM_ENV:-}" != "DEV" ]]; then
   for d in config crypto document entity fs index node x509; do
     vendor --build -r "github.com/pki-io/core" -p "$d"
