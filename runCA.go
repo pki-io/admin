@@ -140,6 +140,127 @@ func caShow(argv map[string]interface{}) (err error) {
 	return nil
 }
 
+func caUpdate(argv map[string]interface{}) (err error) {
+	name := ArgString(argv["<name>"], nil)
+
+	certFile := ArgString(argv["--cert"], "")
+	keyFile := ArgString(argv["--key"], "")
+	tags := ArgString(argv["--tags"], "")
+	caExpiry := ArgInt(argv["--ca-expiry"], 0)
+	certExpiry := ArgInt(argv["--cert-expiry"], 0)
+	dnLocality := ArgString(argv["--dn-l"], "")
+	dnState := ArgString(argv["--dn-st"], "")
+	dnOrg := ArgString(argv["--dn-o"], "")
+	dnOrgUnit := ArgString(argv["--dn-ou"], "")
+	dnCountry := ArgString(argv["--dn-c"], "")
+	dnStreet := ArgString(argv["--dn-street"], "")
+	dnPostal := ArgString(argv["--dn-postal"], "")
+
+	app := NewAdminApp()
+	app.Load()
+	app.LoadOrgIndex()
+
+	// TODO - refactor
+	caSerial, err := app.index.org.GetCA(name)
+	checkUserFatal("Could not find CA: %s%.0s\n", name, err)
+
+	ca := app.GetCA(caSerial)
+
+	if certFile != "" {
+		ok, err := fs.Exists(certFile)
+		checkAppFatal("Could not check file existence for %s: %s", certFile, err)
+		if !ok {
+			checkUserFatal("File does not exist: %s", certFile)
+		}
+		certPem, err := fs.ReadFile(certFile)
+
+		_, err = x509.PemDecodeX509Certificate([]byte(certPem))
+		checkUserFatal("Not a valid certificate PEM for %s: %s", certFile, err)
+		// TODO - consider converting cert back to pem to use for consistency
+
+		logger.Info("Setting CA certificate PEM")
+		ca.Data.Body.Certificate = certPem
+	}
+
+	if keyFile != "" {
+		ok, err := fs.Exists(keyFile)
+		checkAppFatal("Could not check file existence for %s: %s", keyFile, err)
+		if !ok {
+			checkUserFatal("File does not exist: %s", keyFile)
+		}
+		keyPem, err := fs.ReadFile(keyFile)
+
+		key, err := crypto.PemDecodePrivate([]byte(keyPem))
+		checkUserFatal("Not a valid private key PEM for %s: %s", keyFile, err)
+		// TODO - consider converting key back to pem to use for consistency
+
+		keyType, err := crypto.GetKeyType(key)
+		checkUserFatal("Unknow private key file for %s: %s", keyFile, err)
+
+		ca.Data.Body.KeyType = string(keyType)
+		logger.Info("Setting CA key PEM")
+		ca.Data.Body.PrivateKey = keyPem
+	}
+
+	if caExpiry != 0 {
+		logger.Info("Setting CA expiry")
+		ca.Data.Body.CAExpiry = caExpiry
+	}
+
+	if certExpiry != 0 {
+		logger.Info("Setting certificate expiry")
+		ca.Data.Body.CertExpiry = certExpiry
+	}
+
+	if dnLocality != "" {
+		logger.Info("Setting locality DN scope")
+		ca.Data.Body.DNScope.Locality = dnLocality
+	}
+	if dnState != "" {
+		logger.Info("Setting province DN scope")
+		ca.Data.Body.DNScope.Province = dnState
+	}
+	if dnOrg != "" {
+		logger.Info("Setting organisation DN scope")
+		ca.Data.Body.DNScope.Organization = dnOrg
+	}
+	if dnOrgUnit != "" {
+		logger.Info("Setting organisational unit DN scope")
+		ca.Data.Body.DNScope.OrganizationalUnit = dnOrgUnit
+	}
+	if dnCountry != "" {
+		logger.Info("Setting country DN scope")
+		ca.Data.Body.DNScope.Country = dnCountry
+	}
+	if dnStreet != "" {
+		logger.Info("Setting street address DN scope")
+		ca.Data.Body.DNScope.StreetAddress = dnStreet
+	}
+	if dnPostal != "" {
+		logger.Info("Setting postal code DN scope")
+		ca.Data.Body.DNScope.PostalCode = dnPostal
+	}
+
+	if tags != "" {
+		logger.Info("Setting tags")
+		app.index.org.ClearCATags(caSerial)
+		app.index.org.AddCATags(caSerial, ParseTags(tags))
+		app.SaveOrgIndex()
+	}
+
+	logger.Info("Saving CA")
+	caContainer, err := app.entities.org.EncryptThenSignString(ca.Dump(), nil)
+	checkAppFatal("Could not encrypt CA: %s", err)
+
+	err = app.fs.api.Authenticate(app.entities.org.Data.Body.Id, "")
+	checkAppFatal("Could not authenticate to API as Org: %s", err)
+
+	err = app.fs.api.StorePrivate(ca.Data.Body.Id, caContainer.Dump())
+	checkAppFatal("Could not save CA: %s", err)
+
+	return nil
+}
+
 func caDelete(argv map[string]interface{}) (err error) {
 	name := ArgString(argv["<name>"], nil)
 	reason := ArgString(argv["--confirm-delete"], nil)
@@ -278,13 +399,14 @@ Usage:
     pki.io ca new <name> --tags <tags> [--ca-expiry <days>] [--cert-expiry <days>] [--dn-l <locality>] [--dn-st <state>] [--dn-o <org>] [--dn-ou <orgUnit>] [--dn-c <country>] [--dn-street <street>] [--dn-postal <postalCode>]
     pki.io ca list
     pki.io ca show <name> [--export <file>] [--private]
+    pki.io ca update <name> [--cert <certFile>] [--key <keyFile>] [--tags <tags>] [--ca-expiry <days>] [--cert-expiry <days>] [--dn-l <locality>] [--dn-st <state>] [--dn-o <org>] [--dn-ou <orgUnit>] [--dn-c <country>] [--dn-street <street>] [--dn-postal <postalCode>]
     pki.io ca delete <name> --confirm-delete <reason>
     pki.io ca import <name> <certFile> [<privateKeyFile>] --tags <tags> [--ca-expiry <days>] [--cert-expiry <days>] [--dn-l <locality>] [--dn-st <state>] [--dn-o <org>] [--dn-ou <orgUnit>] [--dn-c <country>] [--dn-street <street>] [--dn-postal <postalCode>]
 
 Options:
     --tags <tags>              List of comma-separated tags
-    --ca-expiry <days>         Expiry period for CA in days [default: 365]
-    --cert-expiry <days>       Expiry period for certs in day [default: 90]
+    --ca-expiry <days>         Expiry period for CA in days
+    --cert-expiry <days>       Expiry period for certs in day
     --dn-l <locality>          Locality for DN scope
     --dn-st <state>            State/province for DN scope
     --dn-o <org>               Organization for DN scope
@@ -304,6 +426,8 @@ Options:
 		caList(argv)
 	} else if argv["show"].(bool) {
 		caShow(argv)
+	} else if argv["update"].(bool) {
+		caUpdate(argv)
 	} else if argv["delete"].(bool) {
 		caDelete(argv)
 	} else if argv["import"].(bool) {
