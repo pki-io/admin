@@ -7,7 +7,7 @@ import (
 const (
 	name    string = "pki.io"
 	version string = "0.2.0"
-	release string = "release1"
+	release string = "development"
 )
 
 func Version() string {
