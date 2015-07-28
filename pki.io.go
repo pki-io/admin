@@ -1,3 +1,4 @@
+// ThreatSpec package main
 package main
 
 import (
@@ -5,6 +6,9 @@ import (
 	"github.com/docopt/docopt-go"
 	"os"
 )
+
+// ThreatSpec TMv0.1 for main
+// Does stuff for App:CLI
 
 func main() {
 	usage := `

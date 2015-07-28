@@ -1,9 +1,13 @@
+// ThreatSpec package main
 package main
 
 import (
 	"fmt"
 	"github.com/docopt/docopt-go"
 )
+
+// ThreatSpec TMv0.1 for nodeNew
+// Creates a new node for App:Node
 
 func nodeNew(argv map[string]interface{}) (err error) {
 	name := ArgString(argv["<name>"], nil)

@@ -1,8 +1,12 @@
+// ThreatSpec package main
 package main
 
 import (
 	"github.com/docopt/docopt-go"
 )
+
+// ThreatSpec TMv0.1 for orgShow
+// Does org display for App:Org
 
 func orgShow(argv map[string]interface{}) (err error) {
 	app := NewAdminApp()
