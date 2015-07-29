@@ -2,6 +2,7 @@
 package main
 
 import (
+	"crypto/x509/pkix"
 	"github.com/pki-io/core/config"
 	"github.com/pki-io/core/document"
 	"github.com/pki-io/core/entity"
@@ -160,7 +161,8 @@ func (app *NodeApp) NewCSR() {
 
 	csr.Data.Body.Id = NewID()
 	csr.Data.Body.Name = app.entities.node.Data.Body.Name
-	csr.Generate()
+	subject := pkix.Name{CommonName: csr.Data.Body.Name}
+	csr.Generate(&subject)
 
 	logger.Info("Saving local CSR")
 
