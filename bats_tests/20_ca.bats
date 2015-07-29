@@ -104,3 +104,22 @@ load "fixtures/ca"
   [ "$?" -eq 0 ]
   cleanup
 }
+
+@test "ca update import private" {
+  init_init
+  init
+  create_external_ca
+  ca_import_private
+  run ca_show
+  [ "$status" -eq 0 ]
+  old_ca="$output"
+  create_external_ca
+  run ca_update_private
+  [ "$status" -eq 0 ]
+  run ca_show
+  [ "$status" -eq 0 ]
+  new_ca="$output"
+  [ "$new_ca" != "$old_ca" ]
+  cleanup
+}
+
