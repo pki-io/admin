@@ -58,7 +58,7 @@ func csrNew(argv map[string]interface{}) (err error) {
 
 	csr.Data.Body.Id = NewID()
 	csr.Data.Body.Name = name
-	csr.Generate()
+	csr.Generate(&subject)
 
 	if standaloneFile == "" {
 		logger.Info("Saving CSR")
