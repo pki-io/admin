@@ -417,6 +417,8 @@ Options:
     --confirm-delete <reason>  Reason for deleting node
     --export <file>            Exports cert to <file>
     --private                  Show private data (e.g. keys)
+    --cert <certFile>          CA certificate file
+    --key <keyFile>            CA key file
 `
 	argv, _ := docopt.Parse(usage, args, true, "", false)
 

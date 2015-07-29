@@ -43,3 +43,7 @@ ca_import_public() {
 ca_import_private() {
   $CMD ca import $CA_NAME ${CA_EXTERNAL_CA_NAME}-cert.pem ${CA_EXTERNAL_CA_NAME}-key.pem --tags $CA_TAG $CA_DN_ARG
 }
+
+ca_update_private() {
+  $CMD ca update $CA_NAME --cert ${CA_EXTERNAL_CA_NAME}-cert.pem --key ${CA_EXTERNAL_CA_NAME}-key.pem
+}
