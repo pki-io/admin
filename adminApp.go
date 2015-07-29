@@ -1,3 +1,4 @@
+// ThreatSpec package main
 package main
 
 import (
@@ -39,6 +40,9 @@ func NewAdminApp() *AdminApp {
 	return new(AdminApp)
 }
 
+// ThreatSpec TMv0.1 for AdminApp.InitLocalFs
+// Does initialisation of local filesytem for App:Admin
+
 func (app *AdminApp) InitLocalFs() {
 	var err error
 	app.fs.local, err = fs.NewLocal(os.Getenv("PKIIO_LOCAL"))
@@ -65,6 +69,9 @@ func (app *AdminApp) ErrorIfOrgDirectoryExists(name string) {
 	}
 }
 
+// ThreatSpec TMv0.1 for AdminApp.CreateOrgDirectory
+// Creates org directory for App:Admin
+
 func (app *AdminApp) CreateOrgDirectory(name string) {
 	app.ErrorIfOrgDirectoryExists(name)
 
@@ -74,6 +81,9 @@ func (app *AdminApp) CreateOrgDirectory(name string) {
 	err = app.fs.local.ChangeToDirectory(name)
 	checkAppFatal("Couldn't change to org directory: %s", err)
 }
+
+// ThreatSpec TMv0.1 for AdminApp.CreateAdminEntity
+// Does org entity creation for App:Admin
 
 func (app *AdminApp) CreateAdminEntity(name string) {
 	var err error
@@ -88,6 +98,9 @@ func (app *AdminApp) CreateAdminEntity(name string) {
 	err = app.entities.admin.GenerateKeys()
 	checkAppFatal("Could not generate admin keys: %s", err)
 }
+
+// ThreatSpec TMv0.1 for AdminApp.CreateOrgEntity
+// Does org entity creation for App:Org
 
 func (app *AdminApp) CreateOrgEntity(name string) {
 	var err error
@@ -171,6 +184,9 @@ func (app *AdminApp) LoadAdminConfig() {
 	checkAppFatal("Couldn't load admin config: %s", err)
 }
 
+// ThreatSpec TMv0.1 for AdminApp.SendOrgEntity
+// It encrypts and uploads org entity for App:Org
+
 func (app *AdminApp) SendOrgEntity() {
 
 	// Get array of admin entities
@@ -184,6 +200,9 @@ func (app *AdminApp) SendOrgEntity() {
 	err = app.fs.api.StorePrivate(app.entities.org.Data.Body.Id, container.Dump())
 	checkAppFatal("Couldn't store container to json: %s", err)
 }
+
+// ThreatSpec TMv0.1 for AdminApp.LoadOrgEntity
+// It gets and loads org entity for App:Org
 
 func (app *AdminApp) LoadOrgEntity() {
 	logger.Info("Loading org entity")
@@ -251,6 +270,9 @@ func (app *AdminApp) CreateOrgIndex() {
 	app.index.org.Data.Body.Id = NewID()
 	app.index.org.Data.Body.ParentId = app.entities.org.Data.Body.Id
 }
+
+// ThreatSpec TMv0.1 for AdminApp.Load
+// It loads all components required for App:Admin
 
 func (app *AdminApp) Load() {
 	logger.Info("Loading admin app")

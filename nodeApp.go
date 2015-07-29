@@ -1,3 +1,4 @@
+// ThreatSpec package main
 package main
 
 import (
@@ -148,6 +149,9 @@ func (app *NodeApp) GenerateCSRs() {
 		app.NewCSR()
 	}
 }
+
+// ThreatSpec TMv0.1 for NodeApp.NewCSR
+// Creates a new node CSR for App:Node
 
 func (app *NodeApp) NewCSR() {
 	logger.Info("Creating new CSR")
