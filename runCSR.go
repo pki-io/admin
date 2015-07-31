@@ -15,6 +15,7 @@ func csrNew(argv map[string]interface{}) (err error) {
 	tags := ArgString(argv["--tags"], nil)
 
 	standaloneFile := ArgString(argv["--standalone"], "")
+	keyType := ArgString(argv["--keytype"], "ec")
 
 	dnLocality := ArgString(argv["--dn-l"], "")
 	dnState := ArgString(argv["--dn-st"], "")
@@ -58,6 +59,15 @@ func csrNew(argv map[string]interface{}) (err error) {
 
 	csr.Data.Body.Id = NewID()
 	csr.Data.Body.Name = name
+
+	// TODO - better validation after refactor
+	if keyType == "rsa" || keyType == "ec" {
+		logger.Infof("Setting key type to %s", keyType)
+		csr.Data.Body.KeyType = keyType
+	} else {
+		checkUserFatal("Invalid key type given. Must be rsa or ec.")
+	}
+
 	csr.Generate(&subject)
 
 	if standaloneFile == "" {
@@ -248,7 +258,7 @@ Manages Certificate Signing Requests
 
 Usage:
     pki.io csr [--help]
-    pki.io csr new <name> --tags <tags> [--standalone <file>] [--dn-l <locality>] [--dn-st <state>] [--dn-o <org>] [--dn-ou <orgUnit>] [--dn-c <country>] [--dn-street <street>] [--dn-postal <postalCode>]
+    pki.io csr new <name> --tags <tags> [--standalone <file>] [--keytype <type>] [--dn-l <locality>] [--dn-st <state>] [--dn-o <org>] [--dn-ou <orgUnit>] [--dn-c <country>] [--dn-street <street>] [--dn-postal <postalCode>]
     pki.io csr list
     pki.io csr show <name> [--export <file>] [--private]
     pki.io csr delete <name> --confirm-delete <reason>
@@ -258,6 +268,7 @@ Options:
     --tags <tags>              List of comma-separated tags
     --standalone <file>        Certificate isn't tracked by the Org but is exported to <file>
     --ca <ca>                  Name of CA
+    --keytype <type>           Key type to use (rsa or ec) [default: ec]
     --dn-l <locality>          Locality for DN scope
     --dn-st <state>            State/province for DN scope
     --dn-o <org>               Organization for DN scope

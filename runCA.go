@@ -15,6 +15,7 @@ func caNew(argv map[string]interface{}) (err error) {
 
 	caExpiry := ArgInt(argv["--ca-expiry"], 365)
 	certExpiry := ArgInt(argv["--cert-expiry"], 90)
+	keyType := ArgString(argv["--keytype"], "ec")
 
 	dnLocality := ArgString(argv["--dn-l"], "")
 	dnState := ArgString(argv["--dn-st"], "")
@@ -31,6 +32,13 @@ func caNew(argv map[string]interface{}) (err error) {
 	ca.Data.Body.Name = name
 	ca.Data.Body.CAExpiry = caExpiry
 	ca.Data.Body.CertExpiry = certExpiry
+
+	// TODO - better validation after refactor
+	if keyType == "rsa" || keyType == "ec" {
+		ca.Data.Body.KeyType = keyType
+	} else {
+		checkUserFatal("Invalid key type given. Must be rsa or ec.")
+	}
 
 	if dnLocality != "" {
 		ca.Data.Body.DNScope.Locality = dnLocality
@@ -396,7 +404,7 @@ Manages Certificate Authorities
 
 Usage: 
     pki.io ca [--help]
-    pki.io ca new <name> --tags <tags> [--ca-expiry <days>] [--cert-expiry <days>] [--dn-l <locality>] [--dn-st <state>] [--dn-o <org>] [--dn-ou <orgUnit>] [--dn-c <country>] [--dn-street <street>] [--dn-postal <postalCode>]
+    pki.io ca new <name> --tags <tags> [--ca-expiry <days>] [--cert-expiry <days>] [--keytype <type>] [--dn-l <locality>] [--dn-st <state>] [--dn-o <org>] [--dn-ou <orgUnit>] [--dn-c <country>] [--dn-street <street>] [--dn-postal <postalCode>]
     pki.io ca list
     pki.io ca show <name> [--export <file>] [--private]
     pki.io ca update <name> [--cert <certFile>] [--key <keyFile>] [--tags <tags>] [--ca-expiry <days>] [--cert-expiry <days>] [--dn-l <locality>] [--dn-st <state>] [--dn-o <org>] [--dn-ou <orgUnit>] [--dn-c <country>] [--dn-street <street>] [--dn-postal <postalCode>]
@@ -407,6 +415,7 @@ Options:
     --tags <tags>              List of comma-separated tags
     --ca-expiry <days>         Expiry period for CA in days
     --cert-expiry <days>       Expiry period for certs in day
+    --keytype <type>           Key type to use (rsa or ec) [default: ec]
     --dn-l <locality>          Locality for DN scope
     --dn-st <state>            State/province for DN scope
     --dn-o <org>               Organization for DN scope
