@@ -20,6 +20,7 @@ func certNew(argv map[string]interface{}) (err error) {
 	expiry := ArgInt(argv["--expiry"], 365)
 
 	caName := ArgString(argv["--ca"], "")
+	keyType := ArgString(argv["--keytype"], "ec")
 
 	dnLocality := ArgString(argv["--dn-l"], "")
 	dnState := ArgString(argv["--dn-st"], "")
@@ -62,6 +63,14 @@ func certNew(argv map[string]interface{}) (err error) {
 
 	cert.Data.Body.Name = name
 	cert.Data.Body.Expiry = expiry
+
+	// TODO - better validation after refactor
+	if keyType == "rsa" || keyType == "ec" {
+		logger.Infof("Setting key type to %s", keyType)
+		cert.Data.Body.KeyType = keyType
+	} else {
+		checkUserFatal("Invalid key type given. Must be rsa or ec.")
+	}
 
 	var files []ExportFile
 	certFile := fmt.Sprintf("%s-cert.pem", cert.Data.Body.Name)
@@ -286,7 +295,7 @@ Manages certificates
 
 Usage: 
     pki.io cert [--help]
-    pki.io cert new <name> --tags <tags> [--standalone <file>] [--expiry <days>] [--ca <ca>] [--dn-l <locality>] [--dn-st <state>] [--dn-o <org>] [--dn-ou <orgUnit>] [--dn-c <country>] [--dn-street <street>] [--dn-postal <postalCode>]
+    pki.io cert new <name> --tags <tags> [--standalone <file>] [--expiry <days>] [--ca <ca>] [--keytype <type>] [--dn-l <locality>] [--dn-st <state>] [--dn-o <org>] [--dn-ou <orgUnit>] [--dn-c <country>] [--dn-street <street>] [--dn-postal <postalCode>]
     pki.io cert list
     pki.io cert show <name> [--export <file>] [--private]
     pki.io cert delete <name> --confirm-delete <reason>
@@ -297,6 +306,7 @@ Options:
     --standalone <file>        Certificate isn't tracked by the Org but is exported to <file>
     --expiry <days>            Expiry period in days [default: 365]
     --ca <ca>                  Name of CA
+    --keytype <type>           Key type to use (rsa or ec) [default: ec]
     --dn-l <locality>          Locality for DN scope
     --dn-st <state>            State/province for DN scope
     --dn-o <org>               Organization for DN scope
