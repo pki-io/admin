@@ -1,4 +1,6 @@
 export NODENAME="testnode"
+export TAGS="testtag"
+
 node_new() {
   $CMD node new "$NODENAME" --pairing-id "$PAIRING_ID" --pairing-key "$PAIRING_KEY"
 }
@@ -9,6 +11,10 @@ node_new_offline() {
 
 node_run() {
   $CMD node run --name "$NODENAME"
+}
+
+node_cert() {
+  $CMD node cert --name "$NODENAME" --tags "$TAGS"
 }
 
 node_delete() {
