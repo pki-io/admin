@@ -35,3 +35,17 @@ load "fixtures/pairing_key"
   [ "$status" -eq 0 ]
   cleanup
 }
+
+@test "getting started flow" {
+  init_init
+  init
+  ca_new
+  pairing_key_new
+  node_new
+  org_run
+  node_run
+  run node_cert
+  [ "$status" -eq 0 ]
+  cleanup
+}
+

@@ -208,6 +208,7 @@ Usage:
 
 
 Options:
+    --tags <tags>              List of comma-separated tags
     --pairing-id <id>          Pairing ID
     --pairing-key <key>        Pairing Key
     --name <name>              Node name
