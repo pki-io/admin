@@ -5,7 +5,7 @@
 
 ## Dependencies
 
-* [Go 1.4](http://golang.org/) or 1.3
+* [Go 1.5.1](http://golang.org/) or 1.4
 * [Git](http://git-scm.com/) 
 * [Bats](https://github.com/sstephenson/bats)
 * [fdm](https://github.com/pki-io/fdm) (just a bash script)
