@@ -7,7 +7,7 @@ before_install:
   - cd bats
   - mkdir /tmp/bats
   - ./install.sh /tmp/bats
-  - export PATH=$PATH/tmp/bats/bin
+  - export PATH=$PATH:/tmp/bats/bin
   - cd ..
   - mkdir /tmp/fdm
   - wget https://raw.githubusercontent.com/pki-io/fdm/master/fdm -O /tmp/fdm/fdm
