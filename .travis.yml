@@ -6,7 +6,7 @@ before_install:
   - git clone https://github.com/sstephenson/bats.git
   - cd bats
   - mkdir /tmp/bats
-  - sudo ./install.sh /tmp/bats
+  - ./install.sh /tmp/bats
   - export PATH=$PATH/tmp/bats/bin
   - cd ..
   - mkdir /tmp/fdm
