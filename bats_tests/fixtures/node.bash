@@ -8,11 +8,11 @@ node_new_offline() {
 }
 
 node_run() {
-  $CMD node run --name "$NODENAME"
+  $CMD node run "$NODENAME"
 }
 
 node_delete() {
-  $CMD node delete --name "$NODENAME" --confirm-delete "this is just a test"
+  $CMD node delete "$NODENAME" --confirm-delete "this is just a test"
 }
 
 node_list() {
@@ -24,5 +24,5 @@ node_check_exists() {
 }
 
 node_show() {
-  $CMD node show --name "$NODENAME"
+  $CMD node show "$NODENAME"
 }

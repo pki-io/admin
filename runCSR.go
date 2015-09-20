@@ -1,298 +1,185 @@
 package main
 
 import (
-	"crypto/x509/pkix"
-	"fmt"
-	"github.com/docopt/docopt-go"
-	"github.com/pki-io/core/document"
-	"github.com/pki-io/core/fs"
-	"github.com/pki-io/core/x509"
+	"github.com/jawher/mow.cli"
 )
 
-func csrNew(argv map[string]interface{}) (err error) {
-
-	name := ArgString(argv["<name>"], nil)
-	tags := ArgString(argv["--tags"], nil)
-
-	standaloneFile := ArgString(argv["--standalone"], "")
-	keyType := ArgString(argv["--keytype"], "ec")
-
-	dnLocality := ArgString(argv["--dn-l"], "")
-	dnState := ArgString(argv["--dn-st"], "")
-	dnOrg := ArgString(argv["--dn-o"], "")
-	dnOrgUnit := ArgString(argv["--dn-ou"], "")
-	dnCountry := ArgString(argv["--dn-c"], "")
-	dnStreet := ArgString(argv["--dn-street"], "")
-	dnPostal := ArgString(argv["--dn-postal"], "")
-
-	// TODO - This should really be in a certificate function
-	subject := pkix.Name{CommonName: name}
-
-	if dnLocality != "" {
-		subject.Locality = []string{dnLocality}
-	}
-	if dnState != "" {
-		subject.Province = []string{dnState}
-	}
-	if dnOrg != "" {
-		subject.Organization = []string{dnOrg}
-	}
-	if dnOrgUnit != "" {
-		subject.OrganizationalUnit = []string{dnOrgUnit}
-	}
-	if dnCountry != "" {
-		subject.Country = []string{dnCountry}
-	}
-	if dnStreet != "" {
-		subject.StreetAddress = []string{dnStreet}
-	}
-	if dnPostal != "" {
-		subject.PostalCode = []string{dnPostal}
-	}
-
-	app := NewAdminApp()
-	app.Load()
-
-	logger.Info("Creating new CSR")
-	csr, err := x509.NewCSR(nil)
-	checkAppFatal("Could not generate CSR: %s", err)
-
-	csr.Data.Body.Id = NewID()
-	csr.Data.Body.Name = name
-
-	// TODO - better validation after refactor
-	if keyType == "rsa" || keyType == "ec" {
-		logger.Infof("Setting key type to %s", keyType)
-		csr.Data.Body.KeyType = keyType
-	} else {
-		checkUserFatal("Invalid key type given. Must be rsa or ec.")
-	}
-
-	csr.Generate(&subject)
-
-	if standaloneFile == "" {
-		logger.Info("Saving CSR")
-		csrContainer, err := app.entities.org.EncryptThenSignString(csr.Dump(), nil)
-		checkAppFatal("Could not encrypt CSR: %s", err)
-
-		err = app.fs.api.Authenticate(app.entities.org.Data.Body.Id, "")
-		checkAppFatal("Could not authenticate to API as Org: %s", err)
-
-		err = app.fs.api.StorePrivate(csr.Data.Body.Id, csrContainer.Dump())
-		checkAppFatal("Could not save cert: %s", err)
-
-		logger.Info("Updating index")
-		app.LoadOrgIndex()
-		app.index.org.AddCSR(csr.Data.Body.Name, csr.Data.Body.Id)
-		app.index.org.AddCSRTags(csr.Data.Body.Id, ParseTags(tags))
-		app.SaveOrgIndex()
-	} else {
-		var files []ExportFile
-		csrFile := fmt.Sprintf("%s-csr.pem", csr.Data.Body.Name)
-		keyFile := fmt.Sprintf("%s-key.pem", csr.Data.Body.Name)
-		files = append(files, ExportFile{Name: csrFile, Mode: 0644, Content: []byte(csr.Data.Body.CSR)})
-		files = append(files, ExportFile{Name: keyFile, Mode: 0600, Content: []byte(csr.Data.Body.PrivateKey)})
-		logger.Infof("Export to '%s'", standaloneFile)
-		Export(files, standaloneFile)
-	}
-
-	return nil
+func csrCmd(cmd *cli.Cmd) {
+	cmd.Command("new", "Create a new CSR", csrNewCmd)
+	cmd.Command("list", "List CSRs", csrListCmd)
+	cmd.Command("show", "Show a CSR", csrShowCmd)
+	cmd.Command("sign", "Sign a CSR", csrSignCmd)
+	cmd.Command("update", "Update a CSR", csrUpdateCmd)
+	cmd.Command("delete", "Delete a CSR", csrDeleteCmd)
 }
 
-func csrList(argv map[string]interface{}) (err error) {
-	app := NewAdminApp()
-	app.Load()
-	app.LoadOrgIndex()
+func csrNewCmd(cmd *cli.Cmd) {
+	cmd.Spec = "NAME [OPTIONS]"
 
-	logger.Info("CSRs:")
-	logger.Flush()
-	for name, id := range app.index.org.GetCSRs() {
-		fmt.Printf("* %s %s\n", name, id)
-	}
-	return nil
-}
+	params := NewCSRParams()
+	params.name = cmd.StringArg("NAME", "", "name of CSR")
 
-func csrShow(argv map[string]interface{}) (err error) {
-	name := ArgString(argv["<name>"], nil)
-	exportFile := ArgString(argv["--export"], "")
-	private := ArgBool(argv["--private"], false)
+	params.tags = cmd.StringOpt("tags", "NAME", "comma separated list of tags")
+	params.standaloneFile = cmd.StringOpt("standalone", "", "CSR isn't managed by the org but is exported as a tar.gz")
+	params.csrFile = cmd.StringOpt("csr", "", "CSR PEM file")
+	params.keyFile = cmd.StringOpt("key", "", "key PEM file")
+	params.keyType = cmd.StringOpt("key-type", "ec", "Key type (ec or rsa)")
+	params.dnLocality = cmd.StringOpt("dn-l", "", "Locality for DN")
+	params.dnState = cmd.StringOpt("dn-st", "", "State/province for DN")
+	params.dnOrg = cmd.StringOpt("dn-o", "", "Organization for DN")
+	params.dnOrgUnit = cmd.StringOpt("dn-ou", "", "Organizational unit for DN")
+	params.dnCountry = cmd.StringOpt("dn-c", "", "Country for DN")
+	params.dnStreet = cmd.StringOpt("dn-street", "", "Street for DN")
+	params.dnPostal = cmd.StringOpt("dn-postal", "", "PostalCode for DN")
 
-	app := NewAdminApp()
-	app.Load()
-	app.LoadOrgIndex()
+	cmd.Action = func() {
+		initLogging(*logLevel, *logging)
+		defer logger.Close()
+		env := new(Environment)
+		env.logger = logger
 
-	csrSerial, err := app.index.org.GetCSR(name)
-	checkUserFatal("Could not find csr: %s%.0s\n", name, err)
-
-	csr := app.GetCSR(csrSerial)
-
-	if exportFile == "" {
-		// TODO - show CA name
-		fmt.Printf("Name: %s\n", csr.Data.Body.Name)
-		fmt.Printf("ID: %s\n", csr.Data.Body.Id)
-		fmt.Printf("Key type: %s\n", csr.Data.Body.KeyType)
-		fmt.Printf("Certficate:\n%s\n", csr.Data.Body.CSR)
-
-		if private {
-			fmt.Printf("Private key:\n%s\n", csr.Data.Body.PrivateKey)
-		}
-	} else {
-		var files []ExportFile
-		csrFile := fmt.Sprintf("%s-csr.pem", csr.Data.Body.Name)
-		keyFile := fmt.Sprintf("%s-key.pem", csr.Data.Body.Name)
-
-		files = append(files, ExportFile{Name: csrFile, Mode: 0644, Content: []byte(csr.Data.Body.CSR)})
-
-		if private {
-			files = append(files, ExportFile{Name: keyFile, Mode: 0600, Content: []byte(csr.Data.Body.PrivateKey)})
+		cont, err := NewCSRController(env)
+		if err != nil {
+			env.logger.Error(err)
+			env.Fatal()
 		}
 
-		logger.Infof("Export to '%s'", exportFile)
-		Export(files, exportFile)
+		if err := cont.New(params); err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
 	}
-
-	return nil
 }
 
-func csrDelete(argv map[string]interface{}) (err error) {
-	name := ArgString(argv["<name>"], nil)
-	reason := ArgString(argv["--confirm-delete"], nil)
+func csrListCmd(cmd *cli.Cmd) {
+	params := NewCSRParams()
 
-	app := NewAdminApp()
-	app.Load()
-	app.LoadOrgIndex()
-	logger.Infof("Deleting csr %s with reason: %s", name, reason)
+	cmd.Action = func() {
+		initLogging(*logLevel, *logging)
+		defer logger.Close()
+		env := new(Environment)
+		env.logger = logger
 
-	csrId, err := app.index.org.GetCSR(name)
-	checkUserFatal("csr %s does not exist%.0s", name, err)
+		cont, err := NewCSRController(env)
+		if err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
 
-	err = app.fs.api.Authenticate(app.entities.org.Data.Body.Id, "")
-	checkAppFatal("Could not authenticate to API as Org: %s", err)
-
-	err = app.fs.api.DeletePrivate(csrId)
-	checkAppFatal("Could not delete CSR: %s", err)
-
-	err = app.index.org.RemoveCSR(name)
-	checkAppFatal("Could not remove CSR: %s", err)
-	app.SaveOrgIndex()
-	return nil
+		if err := cont.List(params); err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+	}
 }
 
-func csrSign(argv map[string]interface{}) (err error) {
-	name := ArgString(argv["<name>"], nil)
-	csrFile := ArgString(argv["<csrFile>"], nil)
-	caName := ArgString(argv["--ca"], nil)
-	tags := ArgString(argv["--tags"], nil)
-	standaloneFile := ArgString(argv["--standalone"], "")
+func csrShowCmd(cmd *cli.Cmd) {
+	cmd.Spec = "NAME [OPTIONS]"
 
-	app := NewAdminApp()
-	app.Load()
-	app.LoadOrgIndex()
+	params := NewCSRParams()
+	params.name = cmd.StringArg("NAME", "", "name of CSR")
 
-	ok, err := fs.Exists(csrFile)
-	checkAppFatal("Could not check file existence for %s: %s", csrFile, err)
-	if !ok {
-		checkUserFatal("File does not exist: %s", csrFile)
+	params.export = cmd.StringOpt("export", "", "tar.gz export to file")
+	params.private = cmd.BoolOpt("private", false, "show/export private data")
+
+	cmd.Action = func() {
+		initLogging(*logLevel, *logging)
+		defer logger.Close()
+		env := new(Environment)
+		env.logger = logger
+
+		cont, err := NewCSRController(env)
+		if err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+
+		if err := cont.Show(params); err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
 	}
-	csrPem, err := fs.ReadFile(csrFile)
-
-	caId, err := app.index.org.GetCA(caName)
-	checkUserFatal("Couldn't find CA '%s'%.0s", caName, err)
-
-	// TODO - further validation on CSR
-	_, err = x509.PemDecodeX509CSR([]byte(csrPem))
-	checkUserFatal("Not a valid certificate request PEM for %s: %s", csrFile, err)
-
-	csr, err := x509.NewCSR(nil)
-	checkAppFatal("Couldn't create CSR: %s", err)
-
-	// Use a random ID as we don't control the serial
-	csr.Data.Body.Id = NewID()
-	csr.Data.Body.Name = name
-	csr.Data.Body.CSR = csrPem
-
-	caContainerJson, err := app.fs.api.GetPrivate(app.entities.org.Data.Body.Id, caId)
-	caContainer, err := document.NewContainer(caContainerJson)
-	checkAppFatal("Couldn't create container from json: %s", err)
-
-	caJson, err := app.entities.org.VerifyThenDecrypt(caContainer)
-	checkAppFatal("Couldn't verify and decrypt ca container: %s", err)
-
-	ca, err := x509.NewCA(caJson)
-	checkAppFatal("Couldn't create ca: %s", err)
-
-	logger.Info("Creating certificate")
-	cert, err := ca.Sign(csr)
-	checkAppFatal("Couldn't sign csr: %s", err)
-
-	if standaloneFile == "" {
-		logger.Info("Saving cert")
-		certContainer, err := app.entities.org.EncryptThenSignString(cert.Dump(), nil)
-		checkAppFatal("Could not encrypt CA: %s", err)
-
-		err = app.fs.api.Authenticate(app.entities.org.Data.Body.Id, "")
-		checkAppFatal("Could not authenticate to API as Org: %s", err)
-
-		err = app.fs.api.StorePrivate(cert.Data.Body.Id, certContainer.Dump())
-		checkAppFatal("Could not save cert: %s", err)
-
-		logger.Info("Updating index")
-		app.LoadOrgIndex()
-		app.index.org.AddCert(cert.Data.Body.Name, cert.Data.Body.Id)
-		app.index.org.AddCertTags(cert.Data.Body.Id, ParseTags(tags))
-		app.SaveOrgIndex()
-	} else {
-		var files []ExportFile
-		certFile := fmt.Sprintf("%s-cert.pem", cert.Data.Body.Name)
-		files = append(files, ExportFile{Name: certFile, Mode: 0644, Content: []byte(cert.Data.Body.Certificate)})
-		logger.Infof("Export to '%s'", standaloneFile)
-		Export(files, standaloneFile)
-	}
-
-	return nil
 }
 
-func runCSR(args []string) (err error) {
-	usage := `
-Manages Certificate Signing Requests
+func csrSignCmd(cmd *cli.Cmd) {
+	cmd.Spec = "NAME [OPTIONS]"
 
-Usage:
-    pki.io csr [--help]
-    pki.io csr new <name> --tags <tags> [--standalone <file>] [--keytype <type>] [--dn-l <locality>] [--dn-st <state>] [--dn-o <org>] [--dn-ou <orgUnit>] [--dn-c <country>] [--dn-street <street>] [--dn-postal <postalCode>]
-    pki.io csr list
-    pki.io csr show <name> [--export <file>] [--private]
-    pki.io csr delete <name> --confirm-delete <reason>
-    pki.io csr sign <name> <csrFile> --ca <ca> --tags <tags> [--standalone <file>]
+	params := NewCSRParams()
+	params.name = cmd.StringArg("NAME", "", "name of CSR")
 
-Options:
-    --tags <tags>              List of comma-separated tags
-    --standalone <file>        Certificate isn't tracked by the Org but is exported to <file>
-    --ca <ca>                  Name of CA
-    --keytype <type>           Key type to use (rsa or ec) [default: ec]
-    --dn-l <locality>          Locality for DN scope
-    --dn-st <state>            State/province for DN scope
-    --dn-o <org>               Organization for DN scope
-    --dn-ou <orgUnit>          Organizational unit for DN scope
-    --dn-c <country>           Country for DN scope
-    --dn-street <street>       Street for DN scope
-    --dn-postal <postalCode>   Postal code for DN scope
-    --confirm-delete <reason>  Reason for deleting node
-    --export <file>            Exports cert to <file>
-    --private                  Shows private data (e.g. keys)
-`
+	params.ca = cmd.StringOpt("ca", "", "name of signing CA")
+	params.tags = cmd.StringOpt("tags", "", "comma separated list of tags")
 
-	argv, _ := docopt.Parse(usage, args, true, "", false)
+	cmd.Action = func() {
+		initLogging(*logLevel, *logging)
+		defer logger.Close()
+		env := new(Environment)
+		env.logger = logger
 
-	if argv["new"].(bool) {
-		csrNew(argv)
-	} else if argv["list"].(bool) {
-		csrList(argv)
-	} else if argv["show"].(bool) {
-		csrShow(argv)
-	} else if argv["delete"].(bool) {
-		csrDelete(argv)
-	} else if argv["sign"].(bool) {
-		csrSign(argv)
+		cont, err := NewCSRController(env)
+		if err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+
+		if err := cont.Sign(params); err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
 	}
-	return nil
+}
+func csrUpdateCmd(cmd *cli.Cmd) {
+	cmd.Spec = "NAME [OPTIONS]"
+
+	params := NewCSRParams()
+	params.name = cmd.StringArg("NAME", "", "name of CSR")
+
+	params.csrFile = cmd.StringOpt("csr", "", "CSR PEM file")
+	params.keyFile = cmd.StringOpt("key", "", "key PEM file")
+	params.tags = cmd.StringOpt("tags", "", "comma separated list of tags")
+
+	cmd.Action = func() {
+		initLogging(*logLevel, *logging)
+		defer logger.Close()
+		env := new(Environment)
+		env.logger = logger
+
+		cont, err := NewCSRController(env)
+		if err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+
+		if err := cont.Update(params); err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+	}
+}
+
+func csrDeleteCmd(cmd *cli.Cmd) {
+	cmd.Spec = "NAME [OPTIONS]"
+
+	params := NewCSRParams()
+	params.name = cmd.StringArg("NAME", "", "name of CSR")
+
+	params.confirmDelete = cmd.StringOpt("confirm-delete", "", "reason for deleting CSR")
+
+	cmd.Action = func() {
+		initLogging(*logLevel, *logging)
+		defer logger.Close()
+		env := new(Environment)
+		env.logger = logger
+
+		cont, err := NewCSRController(env)
+		if err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+
+		if err := cont.Delete(params); err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+	}
 }

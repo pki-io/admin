@@ -1,239 +1,171 @@
-// ThreatSpec package main
 package main
 
 import (
-	"fmt"
-	"github.com/docopt/docopt-go"
+	"github.com/jawher/mow.cli"
 )
 
-// ThreatSpec TMv0.1 for nodeNew
-// Creates a new node for App:Node
-
-func nodeNew(argv map[string]interface{}) (err error) {
-	name := ArgString(argv["<name>"], nil)
-	pairingId := ArgString(argv["--pairing-id"], nil)
-	pairingKey := ArgString(argv["--pairing-key"], nil)
-
-	adminApp := NewAdminApp()
-	adminApp.Load()
-
-	nodeApp := NewNodeApp()
-	nodeApp.InitLocalFs()
-
-	nodeApp.InitApiFs()
-	nodeApp.InitHomeFs()
-
-	nodeApp.entities.org = adminApp.entities.org
-
-	nodeApp.CreateNodeEntity(name)
-
-	nodeApp.SecureSendPrivateToOrg(pairingId, pairingKey)
-
-	logger.Info("Switching to node context")
-	nodeApp.fs.api.Authenticate(nodeApp.entities.node.Data.Body.Id, "")
-
-	nodeApp.CreateNodeIndex()
-	nodeApp.CreateNodeConfig()
-	nodeApp.SaveNodeConfig()
-
-	logger.Info("Creating CSRs")
-	nodeApp.GenerateCSRs()
-
-	nodeApp.SaveNodeIndex()
-
-	return nil
+func nodeCmd(cmd *cli.Cmd) {
+	cmd.Command("new", "Create a new node", nodeNewCmd)
+	cmd.Command("run", "Run tasks for node", nodeRunCmd)
+	cmd.Command("cert", "Get certificates for node", nodeCertCmd)
+	cmd.Command("list", "List nodes", nodeListCmd)
+	cmd.Command("show", "Show a node", nodeShowCmd)
+	cmd.Command("delete", "Delete a node", nodeDeleteCmd)
 }
 
-func nodeRun(argv map[string]interface{}) (err error) {
-	name := ArgString(argv["--name"], nil)
+func nodeNewCmd(cmd *cli.Cmd) {
+	cmd.Spec = "NAME [OPTIONS]"
 
-	adminApp := NewAdminApp()
-	adminApp.Load()
+	params := NewNodeParams()
+	params.name = cmd.StringArg("NAME", "", "name of node")
 
-	nodeApp := NewNodeApp()
-	nodeApp.Load()
+	params.pairingId = cmd.StringOpt("pairing-id", "", "pairing id")
+	params.pairingKey = cmd.StringOpt("pairing-key", "", "pairing key")
 
-	nodeApp.entities.org = adminApp.entities.org
+	cmd.Action = func() {
+		initLogging(*logLevel, *logging)
+		defer logger.Close()
+		env := new(Environment)
+		env.logger = logger
 
-	adminApp.fs.api.Authenticate(adminApp.entities.org.Data.Body.Id, "")
+		cont, err := NewNodeController(env)
+		if err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
 
-	adminApp.LoadOrgIndex()
-
-	nodeApp.entities.node = adminApp.GetNode(name)
-	nodeApp.fs.api.Authenticate(nodeApp.entities.node.Data.Body.Id, "")
-
-	nodeApp.LoadNodeIndex()
-	nodeApp.ProcessCerts()
-	nodeApp.SaveNodeIndex()
-	return nil
-}
-
-func nodeShow(argv map[string]interface{}) (err error) {
-	name := ArgString(argv["--name"], nil)
-
-	adminApp := NewAdminApp()
-	adminApp.Load()
-
-	nodeApp := NewNodeApp()
-	nodeApp.Load()
-
-	nodeApp.entities.org = adminApp.entities.org
-
-	adminApp.fs.api.Authenticate(adminApp.entities.org.Data.Body.Id, "")
-
-	adminApp.LoadOrgIndex()
-
-	nodeApp.entities.node = adminApp.GetNode(name)
-	nodeApp.fs.api.Authenticate(nodeApp.entities.node.Data.Body.Id, "")
-
-	nodeApp.LoadNodeIndex()
-
-	logger.Infof("Node name: %s", nodeApp.entities.node.Data.Body.Name)
-	logger.Infof("Node ID: %s", nodeApp.entities.node.Data.Body.Id)
-	logger.Infof("Public Signing Key:\n%s", nodeApp.entities.node.Data.Body.PublicSigningKey)
-	logger.Infof("Public Encryption Key:\n%s", nodeApp.entities.node.Data.Body.PublicEncryptionKey)
-	logger.Infof("Certificate tags:\n%s", nodeApp.index.node.Data.Body.Tags.CertForward)
-
-	return nil
-}
-
-func nodeCert(argv map[string]interface{}) (err error) {
-	name := ArgString(argv["--name"], nil)
-	inTags := ArgString(argv["--tags"], nil)
-	exportFile := ArgString(argv["--export"], "")
-
-	adminApp := NewAdminApp()
-	adminApp.Load()
-
-	nodeApp := NewNodeApp()
-	nodeApp.Load()
-
-	nodeApp.entities.org = adminApp.entities.org
-
-	adminApp.fs.api.Authenticate(adminApp.entities.org.Data.Body.Id, "")
-
-	adminApp.LoadOrgIndex()
-
-	nodeApp.entities.node = adminApp.GetNode(name)
-	nodeApp.fs.api.Authenticate(nodeApp.entities.node.Data.Body.Id, "")
-
-	nodeApp.LoadNodeIndex()
-
-	certs := nodeApp.GetCertificates(inTags)
-
-	var files []ExportFile
-	for _, cert := range certs {
-		if exportFile == "" {
-			logger.Infof("Subject: %s", cert.Data.Body.Name)
-			logger.Infof("Certificate:\n%s", cert.Data.Body.Certificate)
-			logger.Infof("Private Key:\n%s", cert.Data.Body.PrivateKey)
-			logger.Infof("CA Certificate:\n%s", cert.Data.Body.CACertificate)
-		} else {
-			certFile := fmt.Sprintf("%s-cert.pem", cert.Data.Body.Name)
-			keyFile := fmt.Sprintf("%s-key.pem", cert.Data.Body.Name)
-			caFile := fmt.Sprintf("%s-cacert.pem", cert.Data.Body.Name)
-			files = append(files, ExportFile{Name: certFile, Mode: 0644, Content: []byte(cert.Data.Body.Certificate)})
-			files = append(files, ExportFile{Name: keyFile, Mode: 0600, Content: []byte(cert.Data.Body.PrivateKey)})
-			files = append(files, ExportFile{Name: caFile, Mode: 0644, Content: []byte(cert.Data.Body.CACertificate)})
+		if err := cont.New(params); err != nil {
+			env.logger.Error(err)
+			env.Fatal()
 		}
 	}
-
-	if len(files) > 0 {
-		logger.Info("Exporting")
-		Export(files, exportFile)
-	}
-
-	return nil
 }
 
-func nodeList(argv map[string]interface{}) (err error) {
-	adminApp := NewAdminApp()
-	adminApp.Load()
+func nodeRunCmd(cmd *cli.Cmd) {
+	cmd.Spec = "NAME [OPTIONS]"
 
-	adminApp.LoadOrgIndex()
-	logger.Info("Nodes:")
-	logger.Flush()
-	for name, id := range adminApp.index.org.GetNodes() {
-		fmt.Printf("* %s %s\n", name, id)
+	params := NewNodeParams()
+	params.name = cmd.StringArg("NAME", "", "name of node")
+
+	cmd.Action = func() {
+		initLogging(*logLevel, *logging)
+		defer logger.Close()
+		env := new(Environment)
+		env.logger = logger
+
+		cont, err := NewNodeController(env)
+		if err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+
+		if err := cont.Run(params); err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
 	}
-	return nil
 }
 
-func nodeDelete(argv map[string]interface{}) (err error) {
-	name := ArgString(argv["--name"], nil)
-	reason := ArgString(argv["--confirm-delete"], nil)
+func nodeCertCmd(cmd *cli.Cmd) {
+	cmd.Spec = "NAME [OPTIONS]"
 
-	adminApp := NewAdminApp()
-	adminApp.Load()
-	adminApp.fs.api.Authenticate(adminApp.entities.org.Data.Body.Id, "")
+	params := NewNodeParams()
+	params.name = cmd.StringArg("NAME", "", "name of node")
+	params.tags = cmd.StringOpt("tags", "NAME", "comma separated list of tags")
+	params.export = cmd.StringOpt("export", "", "tar.gz export to file")
+	params.private = cmd.BoolOpt("private", false, "show/export private data")
 
-	nodeApp := NewNodeApp()
-	nodeApp.Load()
+	cmd.Action = func() {
+		initLogging(*logLevel, *logging)
+		defer logger.Close()
+		env := new(Environment)
+		env.logger = logger
 
-	nodeApp.entities.org = adminApp.entities.org
+		cont, err := NewNodeController(env)
+		if err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
 
-	adminApp.LoadOrgIndex()
-	nodeApp.entities.node = adminApp.GetNode(name)
-	nodeApp.fs.api.Authenticate(nodeApp.entities.node.Data.Body.Id, "")
-	nodeApp.LoadNodeIndex()
-
-	logger.Infof("Deleting node %s with reason %s", name, reason)
-	logger.Info("Deleting node index")
-	err = nodeApp.fs.api.DeletePrivate(nodeApp.index.node.Data.Body.Id)
-	checkAppFatal("Could not delete node index: %s", err)
-
-	logger.Info("Removing node from config")
-	err = nodeApp.config.node.RemoveNode(name)
-	checkAppFatal("Could not remove node from config: %s", err)
-	nodeApp.SaveNodeConfig()
-
-	logger.Info("Removing node from org index")
-	adminApp.LoadOrgIndex()
-	err = adminApp.index.org.RemoveNode(name)
-	checkAppFatal("Could not remove node from org index", err)
-	adminApp.SaveOrgIndex()
-
-	return nil
+		if err := cont.Cert(params); err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+	}
 }
 
-func runNode(args []string) (err error) {
+func nodeListCmd(cmd *cli.Cmd) {
+	cmd.Spec = "[OPTIONS]"
 
-	usage := `
-Manages nodes.
+	params := NewNodeParams()
 
-Usage:
-    pki.io node [--help]
-    pki.io node new <name> --pairing-id <id> --pairing-key <key>
-    pki.io node run --name <name>
-    pki.io node show --name <name>
-    pki.io node cert --name <name> --tags <tags> [--export <file>]
-    pki.io node list
-    pki.io node delete --name <name> --confirm-delete <reason>
+	cmd.Action = func() {
+		initLogging(*logLevel, *logging)
+		defer logger.Close()
+		env := new(Environment)
+		env.logger = logger
 
+		cont, err := NewNodeController(env)
+		if err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
 
-Options:
-    --pairing-id <id>          Pairing ID
-    --pairing-key <key>        Pairing Key
-    --name <name>              Node name
-    --cert <cert>              Certificate ID
-    --export <file>            Export data to file or "-" for STDOUT
-    --confirm-delete <reason>  Reason for deleting node
-`
-
-	argv, _ := docopt.Parse(usage, args, true, "", false)
-
-	if argv["new"].(bool) {
-		nodeNew(argv)
-	} else if argv["run"].(bool) {
-		nodeRun(argv)
-	} else if argv["show"].(bool) {
-		nodeShow(argv)
-	} else if argv["cert"].(bool) {
-		nodeCert(argv)
-	} else if argv["list"].(bool) {
-		nodeList(argv)
-	} else if argv["delete"].(bool) {
-		nodeDelete(argv)
+		if err := cont.List(params); err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
 	}
-	return nil
+}
+
+func nodeShowCmd(cmd *cli.Cmd) {
+	cmd.Spec = "NAME [OPTIONS]"
+
+	params := NewNodeParams()
+	params.name = cmd.StringArg("NAME", "", "name of node")
+
+	cmd.Action = func() {
+		initLogging(*logLevel, *logging)
+		defer logger.Close()
+		env := new(Environment)
+		env.logger = logger
+
+		cont, err := NewNodeController(env)
+		if err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+
+		if err := cont.Show(params); err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+	}
+}
+
+func nodeDeleteCmd(cmd *cli.Cmd) {
+	cmd.Spec = "NAME [OPTIONS]"
+
+	params := NewNodeParams()
+	params.name = cmd.StringArg("NAME", "", "name of node")
+
+	params.confirmDelete = cmd.StringOpt("confirm-delete", "", "reason for deleting node")
+
+	cmd.Action = func() {
+		initLogging(*logLevel, *logging)
+		defer logger.Close()
+		env := new(Environment)
+		env.logger = logger
+
+		cont, err := NewNodeController(env)
+		if err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+
+		if err := cont.Delete(params); err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+	}
 }

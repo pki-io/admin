@@ -1,13 +1,27 @@
-vendor -f "github.com/pki-io/docopt.go" -r "github.com/docopt/docopt-go" -g "checkout 854c423c810880e30b9fecdabb12d54f4a92f9bb"
+##### CLI argument parsing #####
+
+#vendor -f "github.com/pki-io/docopt.go" -r "github.com/docopt/docopt-go" -g "checkout 854c423c810880e30b9fecdabb12d54f4a92f9bb"
+vendor -f "github.com/pki-io/mow.cli" -r "github.com/jawher/mow.cli" -g "checkout 99e76c7b8062ea7ae8c0aff76c392fa047619f1e"
+
+##### Logging #####
 vendor -f "github.com/pki-io/seelog" -r "github.com/cihub/seelog" -g "checkout c510775bb50d98213cfafca75a4bc5e3fddc8d8f"
+
+##### Configuration #####
 vendor -f "github.com/pki-io/toml" -r "github.com/BurntSushi/toml" -g "checkout 056c9bc7be7190eaa7715723883caffa5f8fa3e4"
+
+##### Filesystem stuff #####
 vendor -f "github.com/pki-io/go-homedir" -r "github.com/mitchellh/go-homedir" -g "checkout 1f6da4a72e57d4e7edd4a7295a585e0a3999a2d4"
+
+
+##### Elliptic curve crypto #####
 vendor -f "github.com/pki-io/ecies" -r "github.com/obscuren/ecies" -g "checkout 582e689ca8661237e08b02068435199ea8a55318"
 
+##### JSON #####
 vendor -f "github.com/pki-io/gojsonpointer" -r "github.com/xeipuuv/gojsonpointer" -g "checkout 636edb2500d21f2ed09ea96a00deb36bbd07cf70"
 vendor -f "github.com/pki-io/gojsonreference" -r "github.com/xeipuuv/gojsonreference" -g "checkout bc91f381155d8aab2993d3c1ac02ce5a7f7822ab"
 vendor -f "github.com/pki-io/gojsonschema" -r "github.com/xeipuuv/gojsonschema" -g "checkout eb966db2a6901073163758bd7473008c0d9a1167"
 
+##### Additional crypto #####
 vendor --clone -f "github.com/pki-io/crypto" -r "golang.org/x/crypto" -g "checkout 7d5b0be716b9d6d4269afdaae10032bb296d3cdf"
 vendor --build -f "github.com/pki-io/crypto" -r "golang.org/x/crypto" -p "pbkdf2"
 
