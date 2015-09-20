@@ -13,12 +13,12 @@ type CustomReceiver struct{}
 // The next const isn't required anymore but leaving here for now as we might need it when we try
 // to get config working again.
 const defaultLoggingConfig string = `
-<seelog minlevel="info" maxlevel="error">
+<seelog minlevel="%s" maxlevel="error">
     <outputs formatid="raw">
         <custom name="stderr"/>
     </outputs>
     <formats>
-        <format id="raw" format="%Msg%n"/>
+        <format id="raw" format="%%Msg%%n"/>
     </formats>
 </seelog>
 `
@@ -33,11 +33,17 @@ func checkLogFatal(format string, a ...interface{}) {
 }
 
 // Initialize logging from command arguments.
-func initLogging(configFile string) {
+func initLogging(level, configFile string) {
 	var err error
 	log.RegisterReceiver("stderr", &CustomReceiver{})
+
 	if configFile == "" {
-		logger, err = log.LoggerFromConfigAsString(defaultLoggingConfig)
+		// TODO - better validation?
+		if level != "error" && level != "warn" && level != "info" && level != "debug" && level != "trace" {
+			checkLogFatal("Invalid log level: %s", level)
+		}
+
+		logger, err = log.LoggerFromConfigAsString(fmt.Sprintf(defaultLoggingConfig, level))
 		checkLogFatal("Failed to load default logging configuration: %s", err)
 	} else {
 		logger, err = log.LoggerFromConfigAsFile(configFile)

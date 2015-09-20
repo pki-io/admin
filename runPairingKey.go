@@ -1,50 +1,114 @@
 package main
 
 import (
-	"fmt"
-	"github.com/docopt/docopt-go"
+	"github.com/jawher/mow.cli"
 )
 
-func pairingKeyNew(argv map[string]interface{}) (err error) {
-	inTags := ArgString(argv["--tags"], nil)
-
-	app := NewAdminApp()
-	app.Load()
-
-	logger.Info("Creating the key")
-
-	id := NewID()
-	key := NewID()
-
-	logger.Info("Saving key to index")
-	tags := ParseTags(inTags)
-
-	app.LoadOrgIndex()
-	// TODO -check error
-	app.index.org.AddPairingKey(id, key, tags)
-	app.SaveOrgIndex()
-
-	logger.Flush()
-	fmt.Printf("Pairing ID: %s\n", id)
-	fmt.Printf("Pairing key: %s\n", key)
-
-	return nil
+func pairingKeyCmd(cmd *cli.Cmd) {
+	cmd.Command("new", "Create a new pairing key", pairingKeyNewCmd)
+	cmd.Command("list", "List pairing keys", pairingKeyListCmd)
+	cmd.Command("show", "Show a pairing key", pairingKeyShowCmd)
+	cmd.Command("delete", "Delete a pairing key", pairingKeyDeleteCmd)
 }
 
-func runPairingKey(args []string) (err error) {
-	usage := `
-Usage:
-    pki.io pairing-key [--help]
-    pki.io pairing-key new --tags <tags>
+func pairingKeyNewCmd(cmd *cli.Cmd) {
+	cmd.Spec = "[OPTIONS]"
 
-Options:
-    --tags <tags>   Comma-separated list of tags
-`
+	params := NewPairingKeyParams()
+	params.tags = cmd.StringOpt("tags", "", "comma separated list of tags")
 
-	argv, _ := docopt.Parse(usage, args, true, "", false)
+	cmd.Action = func() {
+		initLogging(*logLevel, *logging)
+		defer logger.Close()
+		env := new(Environment)
+		env.logger = logger
 
-	if argv["new"].(bool) {
-		pairingKeyNew(argv)
+		cont, err := NewPairingKeyController(env)
+		if err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+
+		if err := cont.New(params); err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
 	}
-	return nil
+
+}
+
+func pairingKeyListCmd(cmd *cli.Cmd) {
+	params := NewPairingKeyParams()
+
+	cmd.Action = func() {
+		initLogging(*logLevel, *logging)
+		defer logger.Close()
+		env := new(Environment)
+		env.logger = logger
+
+		cont, err := NewPairingKeyController(env)
+		if err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+
+		if err := cont.List(params); err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+	}
+}
+
+func pairingKeyShowCmd(cmd *cli.Cmd) {
+	cmd.Spec = "ID [OPTIONS]"
+
+	params := NewPairingKeyParams()
+	params.id = cmd.StringArg("ID", "", "Public ID of pairing key")
+
+	params.private = cmd.BoolOpt("private", false, "show/export private data")
+
+	cmd.Action = func() {
+		initLogging(*logLevel, *logging)
+		defer logger.Close()
+		env := new(Environment)
+		env.logger = logger
+
+		cont, err := NewPairingKeyController(env)
+		if err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+
+		if err := cont.Show(params); err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+	}
+}
+
+func pairingKeyDeleteCmd(cmd *cli.Cmd) {
+	cmd.Spec = "ID [OPTIONS]"
+
+	params := NewPairingKeyParams()
+	params.id = cmd.StringArg("ID", "", "Public ID of pairing key")
+
+	params.confirmDelete = cmd.StringOpt("confirm-delete", "", "reason for deleting pairing key")
+
+	cmd.Action = func() {
+		initLogging(*logLevel, *logging)
+		defer logger.Close()
+		env := new(Environment)
+		env.logger = logger
+
+		cont, err := NewPairingKeyController(env)
+		if err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+
+		if err := cont.Delete(params); err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+	}
 }

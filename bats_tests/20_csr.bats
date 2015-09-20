@@ -96,11 +96,13 @@ load "fixtures/csr"
   init
   ca_new
   create_external_csr
+  csr_import
   run csr_sign
   [ "$status" -eq 0 ]
 }
 
 @test "csr sign standalone" {
+  skip
   init_init
   init
   ca_new

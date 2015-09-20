@@ -1,197 +1,199 @@
-// ThreatSpec package main
 package main
 
 import (
-	"fmt"
-	"github.com/docopt/docopt-go"
+	"github.com/jawher/mow.cli"
 )
 
-// ThreatSpec TMv0.1 for adminList
-// Does admin list display for App:Admin
+func adminCmd(cmd *cli.Cmd) {
+	cmd.Command("list", "List admins", adminListCmd)
+	cmd.Command("show", "Show an admin", adminShowCmd)
+	cmd.Command("invite", "Invite a new admin", adminInviteCmd)
+	cmd.Command("new", "Create a new admin", adminNewCmd)
+	cmd.Command("run", "Process admin tasks", adminRunCmd)
+	cmd.Command("complete", "Complete an admin invite", adminCompleteCmd)
+	cmd.Command("delete", "Delete an admin", adminDeleteCmd)
+}
 
-func adminList(argv map[string]interface{}) (err error) {
-	app := NewAdminApp()
-	app.Load()
-	app.LoadOrgIndex()
-	admins, err := app.index.org.GetAdmins()
-	checkAppFatal("Unable to get admins: %s", err)
+func adminListCmd(cmd *cli.Cmd) {
+	params := NewAdminParams()
 
-	logger.Info("Admins:")
-	logger.Flush()
-	for name, id := range admins {
-		fmt.Printf("* %s %s\n", name, id)
+	cmd.Action = func() {
+		initLogging(*logLevel, *logging)
+		defer logger.Close()
+		env := new(Environment)
+		env.logger = logger
+
+		cont, err := NewAdminController(env)
+		if err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+
+		if err := cont.List(params); err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+
 	}
-	return nil
 }
 
-// ThreatSpec TMv0.1 for adminShow
-// Does admin display for App:Admin
+func adminShowCmd(cmd *cli.Cmd) {
+	cmd.Spec = "NAME [OPTIONS]"
 
-func adminShow(argv map[string]interface{}) (err error) {
-	name := ArgString(argv["<name>"], nil)
+	params := NewAdminParams()
+	params.name = cmd.StringArg("NAME", "", "name of admin")
 
-	app := NewAdminApp()
-	app.Load()
-	app.LoadOrgIndex()
-	adminId, err := app.index.org.GetAdmin(name)
-	checkAppFatal("Unable to get admin id: %s", err)
+	cmd.Action = func() {
+		initLogging(*logLevel, *logging)
+		defer logger.Close()
+		env := new(Environment)
+		env.logger = logger
 
-	admin := app.GetAdminEntity(adminId)
+		cont, err := NewAdminController(env)
+		if err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
 
-	fmt.Printf("Name: %s\n", admin.Data.Body.Name)
-	fmt.Printf("ID: %s\n", admin.Data.Body.Id)
-	fmt.Printf("Key type: %s\n", admin.Data.Body.KeyType)
-	fmt.Printf("Public encryption key:\n%s\n", admin.Data.Body.PublicEncryptionKey)
-	fmt.Printf("Public signing key:\n%s\n", admin.Data.Body.PublicSigningKey)
-	return nil
-}
+		if err := cont.Show(params); err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
 
-// ThreatSpec TMv0.1 for adminInvite
-// Does admin invitation for App:Admin
-
-func adminInvite(argv map[string]interface{}) (err error) {
-	name := ArgString(argv["<name>"], nil)
-
-	app := NewAdminApp()
-	app.Load()
-
-	logger.Info("Creating the key")
-	id := NewID()
-	key := NewID()
-
-	logger.Info("Saving key to index")
-	app.LoadOrgIndex()
-	app.index.org.AddInviteKey(id, key, name)
-	app.SaveOrgIndex()
-
-	logger.Flush()
-	fmt.Printf("Invite ID: %s\n", id)
-	fmt.Printf("Invite key: %s\n", key)
-
-	return nil
-}
-
-// ThreatSpec TMv0.1 for adminNew
-// Does admin creation for App:Admin
-
-func adminNew(argv map[string]interface{}) (err error) {
-	name := ArgString(argv["<name>"], nil)
-	inviteId := ArgString(argv["--invite-id"], nil)
-	inviteKey := ArgString(argv["--invite-key"], nil)
-
-	app := NewAdminApp()
-
-	app.InitLocalFs()
-	app.LoadOrgConfig()
-	app.InitHomeFs()
-	app.InitApiFs()
-
-	app.CreateAdminEntity(name)
-
-	exists, err := app.AdminConfigExists()
-	checkAppFatal("Could not check admin config existence: %s", err)
-
-	if exists {
-		logger.Info("Existing admin config found")
-		app.LoadAdminConfig()
-	} else {
-		app.CreateAdminConfig()
 	}
-	err = app.config.admin.AddOrg(app.config.org.Data.Name, app.config.org.Data.Id, app.entities.admin.Data.Body.Id)
-	checkUserFatal("Cannot add org to admin config: %s", err)
-
-	app.SaveAdminEntity()
-	app.SaveAdminConfig()
-
-	app.SecureSendPublicToOrg(inviteId, inviteKey)
-	return nil
 }
 
-// ThreatSpec TMv0.1 for adminRun
-// Does all admin processing for App:Admin
+func adminInviteCmd(cmd *cli.Cmd) {
+	cmd.Spec = "NAME [OPTIONS]"
 
-func adminRun(argv map[string]interface{}) (err error) {
+	params := NewAdminParams()
+	params.name = cmd.StringArg("NAME", "", "name of admin")
 
-	app := NewAdminApp()
-	app.Load()
+	cmd.Action = func() {
+		initLogging(*logLevel, *logging)
+		defer logger.Close()
+		env := new(Environment)
+		env.logger = logger
 
-	app.LoadOrgIndex()
-	app.ProcessInvites()
-	app.SaveOrgIndex()
-	return nil
-}
+		cont, err := NewAdminController(env)
+		if err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
 
-func adminComplete(argv map[string]interface{}) (err error) {
-	//name := ArgString(argv["<name>"], nil)
-	inviteId := ArgString(argv["--invite-id"], nil)
-	inviteKey := ArgString(argv["--invite-key"], nil)
+		if err := cont.Invite(params); err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
 
-	app := NewAdminApp()
-
-	app.InitLocalFs()
-	app.LoadOrgConfig()
-	app.InitHomeFs()
-	app.LoadAdminConfig()
-	app.InitApiFs()
-	app.LoadAdminEntity()
-
-	app.CompleteInvite(inviteId, inviteKey)
-
-	return nil
-}
-
-func adminDelete(argv map[string]interface{}) (err error) {
-	name := ArgString(argv["<name>"], nil)
-	reason := ArgString(argv["--confirm-delete"], nil)
-
-	logger.Infof("Deleting admin %s: %s", name, reason)
-	app := NewAdminApp()
-	app.Load()
-
-	app.LoadOrgIndex()
-	err = app.index.org.RemoveAdmin(name)
-	checkAppFatal("Can't delete admin: %s", err)
-
-	app.SaveOrgIndex()
-	app.SendOrgEntity()
-	return nil
-}
-
-func runAdmin(args []string) (err error) {
-	usage := `
-Manages Admins
-
-Usage:
-    pki.io admin [--help]
-    pki.io admin list
-    pki.io admin show <name>
-    pki.io admin invite <name>
-    pki.io admin new <name> --invite-id <id> --invite-key <key>
-    pki.io admin run
-    pki.io admin complete <name> --invite-id <id> --invite-key <key>
-    pki.io admin delete <name> --confirm-delete <reason>
-Options:
-    --invite-id <id>                Invitation ID
-    --invite-key <key>              Invitation key
-    --confirm-delete <reason>       Reason for deleting admin
-`
-
-	argv, _ := docopt.Parse(usage, args, true, "", false)
-
-	if argv["invite"].(bool) {
-		adminInvite(argv)
-	} else if argv["list"].(bool) {
-		adminList(argv)
-	} else if argv["show"].(bool) {
-		adminShow(argv)
-	} else if argv["new"].(bool) {
-		adminNew(argv)
-	} else if argv["run"].(bool) {
-		adminRun(argv)
-	} else if argv["complete"].(bool) {
-		adminComplete(argv)
-	} else if argv["delete"].(bool) {
-		adminDelete(argv)
 	}
-	return nil
+}
+
+func adminNewCmd(cmd *cli.Cmd) {
+	cmd.Spec = "NAME [OPTIONS]"
+
+	params := NewAdminParams()
+	params.name = cmd.StringArg("NAME", "", "name of admin")
+
+	params.inviteId = cmd.StringOpt("invite-id", "", "invite id")
+	params.inviteKey = cmd.StringOpt("invite-key", "", "invite key")
+
+	cmd.Action = func() {
+		initLogging(*logLevel, *logging)
+		defer logger.Close()
+		env := new(Environment)
+		env.logger = logger
+
+		cont, err := NewAdminController(env)
+		if err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+
+		if err := cont.New(params); err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+
+	}
+}
+
+func adminRunCmd(cmd *cli.Cmd) {
+	params := NewAdminParams()
+
+	cmd.Action = func() {
+		initLogging(*logLevel, *logging)
+		defer logger.Close()
+		env := new(Environment)
+		env.logger = logger
+
+		cont, err := NewAdminController(env)
+		if err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+
+		if err := cont.Run(params); err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+
+	}
+}
+
+func adminCompleteCmd(cmd *cli.Cmd) {
+	cmd.Spec = "NAME [OPTIONS]"
+
+	params := NewAdminParams()
+	params.name = cmd.StringArg("NAME", "", "name of admin")
+
+	params.inviteId = cmd.StringOpt("invite-id", "", "invite id")
+	params.inviteKey = cmd.StringOpt("invite-key", "", "invite key")
+
+	cmd.Action = func() {
+		initLogging(*logLevel, *logging)
+		defer logger.Close()
+		env := new(Environment)
+		env.logger = logger
+
+		cont, err := NewAdminController(env)
+		if err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+
+		if err := cont.Complete(params); err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+
+	}
+}
+
+func adminDeleteCmd(cmd *cli.Cmd) {
+	cmd.Spec = "NAME [OPTIONS]"
+
+	params := NewAdminParams()
+	params.name = cmd.StringArg("NAME", "", "name of admin")
+
+	params.confirmDelete = cmd.StringOpt("confirm-delete", "", "reason for deleting admin")
+
+	cmd.Action = func() {
+		initLogging(*logLevel, *logging)
+		defer logger.Close()
+		env := new(Environment)
+		env.logger = logger
+
+		cont, err := NewAdminController(env)
+		if err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+
+		if err := cont.Delete(params); err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+
+	}
 }

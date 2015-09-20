@@ -57,9 +57,9 @@ cert_show_export_private() {
 }
 
 cert_import_public() {
-  $CMD cert import $CERT_NAME ${CERT_EXTERNAL_CERT_NAME}-cert.pem --tags $CERT_TAG
+  $CMD cert new $CERT_NAME --cert ${CERT_EXTERNAL_CERT_NAME}-cert.pem --tags $CERT_TAG
 }
 
 cert_import_private() {
-  $CMD cert import $CERT_NAME ${CERT_EXTERNAL_CERT_NAME}-cert.pem ${CERT_EXTERNAL_CERT_NAME}-key.pem --tags $CERT_TAG
+  $CMD cert new $CERT_NAME --cert ${CERT_EXTERNAL_CERT_NAME}-cert.pem --key ${CERT_EXTERNAL_CERT_NAME}-key.pem --tags $CERT_TAG
 }

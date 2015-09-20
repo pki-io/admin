@@ -12,6 +12,10 @@ csr_new() {
   $CMD csr new $CSR_NAME --tags $CSR_TAG
 }
 
+csr_import() {
+  $CMD csr new $CSR_NAME --tags $CSR_TAG --csr ${CSR_EXTERNAL_CSR_NAME}-csr.pem
+}
+
 csr_new_standalone() {
   $CMD csr new $CSR_NAME --tags $CSR_TAG --standalone $CSR_EXPORT_FILE
 }
@@ -53,7 +57,7 @@ csr_show_export_private() {
 }
 
 csr_sign() {
-  $CMD csr sign $CSR_NAME ${CSR_EXTERNAL_CSR_NAME}-csr.pem --ca $CA_NAME --tags $CSR_TAG
+  $CMD csr sign $CSR_NAME --ca $CA_NAME --tags $CSR_TAG
 }
 
 csr_sign_standalone() {

@@ -1,448 +1,172 @@
 package main
 
 import (
-	"fmt"
-	"github.com/docopt/docopt-go"
-	"github.com/pki-io/core/crypto"
-	"github.com/pki-io/core/fs"
-	"github.com/pki-io/core/x509"
-	"time"
+	"github.com/jawher/mow.cli"
 )
 
-func caNew(argv map[string]interface{}) (err error) {
-	name := ArgString(argv["<name>"], nil)
-	tags := ArgString(argv["--tags"], nil)
-
-	caExpiry := ArgInt(argv["--ca-expiry"], 365)
-	certExpiry := ArgInt(argv["--cert-expiry"], 90)
-	keyType := ArgString(argv["--keytype"], "ec")
-
-	dnLocality := ArgString(argv["--dn-l"], "")
-	dnState := ArgString(argv["--dn-st"], "")
-	dnOrg := ArgString(argv["--dn-o"], "")
-	dnOrgUnit := ArgString(argv["--dn-ou"], "")
-	dnCountry := ArgString(argv["--dn-c"], "")
-	dnStreet := ArgString(argv["--dn-street"], "")
-	dnPostal := ArgString(argv["--dn-postal"], "")
-
-	app := NewAdminApp()
-	app.Load()
-
-	ca, _ := x509.NewCA(nil)
-	ca.Data.Body.Name = name
-	ca.Data.Body.CAExpiry = caExpiry
-	ca.Data.Body.CertExpiry = certExpiry
-
-	// TODO - better validation after refactor
-	if keyType == "rsa" || keyType == "ec" {
-		ca.Data.Body.KeyType = keyType
-	} else {
-		checkUserFatal("Invalid key type given. Must be rsa or ec.")
-	}
-
-	if dnLocality != "" {
-		ca.Data.Body.DNScope.Locality = dnLocality
-	}
-	if dnState != "" {
-		ca.Data.Body.DNScope.Province = dnState
-	}
-	if dnOrg != "" {
-		ca.Data.Body.DNScope.Organization = dnOrg
-	}
-	if dnOrgUnit != "" {
-		ca.Data.Body.DNScope.OrganizationalUnit = dnOrgUnit
-	}
-	if dnCountry != "" {
-		ca.Data.Body.DNScope.Country = dnCountry
-	}
-	if dnStreet != "" {
-		ca.Data.Body.DNScope.StreetAddress = dnStreet
-	}
-	if dnPostal != "" {
-		ca.Data.Body.DNScope.PostalCode = dnPostal
-	}
-
-	ca.GenerateRoot()
-
-	logger.Info("Saving CA")
-	caContainer, err := app.entities.org.EncryptThenSignString(ca.Dump(), nil)
-	checkAppFatal("Could not encrypt CA: %s", err)
-
-	err = app.fs.api.Authenticate(app.entities.org.Data.Body.Id, "")
-	checkAppFatal("Could not authenticate to API as Org: %s", err)
-
-	err = app.fs.api.StorePrivate(ca.Data.Body.Id, caContainer.Dump())
-	checkAppFatal("Could not save CA: %s", err)
-
-	logger.Info("Updating index")
-	app.LoadOrgIndex()
-	app.index.org.AddCA(ca.Data.Body.Name, ca.Data.Body.Id)
-	app.index.org.AddCATags(ca.Data.Body.Id, ParseTags(tags))
-	app.SaveOrgIndex()
-
-	return nil
+func caCmd(cmd *cli.Cmd) {
+	cmd.Command("new", "Create a new CA", caNewCmd)
+	cmd.Command("list", "List CAs", caListCmd)
+	cmd.Command("show", "Show a CA", caShowCmd)
+	cmd.Command("update", "Update an existing CA", caUpdateCmd)
+	cmd.Command("delete", "Delete a CA", caDeleteCmd)
 }
 
-func caList(argv map[string]interface{}) (err error) {
-	app := NewAdminApp()
-	app.Load()
-	app.LoadOrgIndex()
+func caNewCmd(cmd *cli.Cmd) {
+	cmd.Spec = "NAME [OPTIONS]"
 
-	logger.Info("CAs:")
-	logger.Flush()
-	for name, id := range app.index.org.GetCAs() {
-		fmt.Printf("* %s %s\n", name, id)
-	}
-	return nil
-}
+	params := NewCAParams()
+	params.name = cmd.StringArg("NAME", "", "name of CA")
 
-func caShow(argv map[string]interface{}) (err error) {
-	name := ArgString(argv["<name>"], nil)
-	exportFile := ArgString(argv["--export"], "")
-	private := ArgBool(argv["--private"], false)
+	params.certFile = cmd.StringOpt("cert", "", "certificate PEM file")
+	params.keyFile = cmd.StringOpt("key", "", "key PEM file")
+	params.tags = cmd.StringOpt("tags", "NAME", "comma separated list of tags")
+	params.caExpiry = cmd.IntOpt("ca-expiry", 365, "CA expiry period in days")
+	params.certExpiry = cmd.IntOpt("cert-expiry", 90, "Certificate expiry period in days")
+	params.keyType = cmd.StringOpt("key-type", "ec", "Key type (ec or rsa)")
+	params.dnLocality = cmd.StringOpt("dn-l", "", "Locality for DN scope")
+	params.dnState = cmd.StringOpt("dn-st", "", "State/province for DN scope")
+	params.dnOrg = cmd.StringOpt("dn-o", "", "Organization for DN scope")
+	params.dnOrgUnit = cmd.StringOpt("dn-ou", "", "Organizational unit for DN scope")
+	params.dnCountry = cmd.StringOpt("dn-c", "", "Country for DN scope")
+	params.dnStreet = cmd.StringOpt("dn-street", "", "Street for DN scope")
+	params.dnPostal = cmd.StringOpt("dn-postal", "", "PostalCode for DN scope")
 
-	app := NewAdminApp()
-	app.Load()
-	app.LoadOrgIndex()
+	cmd.Action = func() {
+		initLogging(*logLevel, *logging)
+		defer logger.Close()
+		env := new(Environment)
+		env.logger = logger
 
-	// TODO - refactor
-	caSerial, err := app.index.org.GetCA(name)
-	checkUserFatal("Could not find CA: %s%.0s\n", name, err)
-
-	ca := app.GetCA(caSerial)
-
-	if exportFile == "" {
-		fmt.Printf("Name: %s\n", ca.Data.Body.Name)
-		fmt.Printf("ID: %s\n", ca.Data.Body.Id)
-		fmt.Printf("CA expiry period: %d\n", ca.Data.Body.CAExpiry)
-		fmt.Printf("Cert expiry period: %d\n", ca.Data.Body.CertExpiry)
-		fmt.Printf("Key type: %s\n", ca.Data.Body.KeyType)
-		fmt.Printf("DN country: %s\n", ca.Data.Body.DNScope.Country)
-		fmt.Printf("DN organization: %s\n", ca.Data.Body.DNScope.Organization)
-		fmt.Printf("DN organizational unit: %s\n", ca.Data.Body.DNScope.OrganizationalUnit)
-		fmt.Printf("DN locality: %s\n", ca.Data.Body.DNScope.Locality)
-		fmt.Printf("DN province: %s\n", ca.Data.Body.DNScope.Province)
-		fmt.Printf("DN street address: %s\n", ca.Data.Body.DNScope.StreetAddress)
-		fmt.Printf("DN postal code: %s\n", ca.Data.Body.DNScope.PostalCode)
-		fmt.Printf("Certficate:\n%s\n", ca.Data.Body.Certificate)
-
-		if private {
-			fmt.Printf("Private key:\n%s\n", ca.Data.Body.PrivateKey)
-		}
-	} else {
-		var files []ExportFile
-		certFile := fmt.Sprintf("%s-cert.pem", ca.Data.Body.Name)
-		keyFile := fmt.Sprintf("%s-key.pem", ca.Data.Body.Name)
-
-		files = append(files, ExportFile{Name: certFile, Mode: 0644, Content: []byte(ca.Data.Body.Certificate)})
-
-		if private {
-			files = append(files, ExportFile{Name: keyFile, Mode: 0600, Content: []byte(ca.Data.Body.PrivateKey)})
+		cont, err := NewCAController(env)
+		if err != nil {
+			env.logger.Error(err)
+			env.Fatal()
 		}
 
-		logger.Infof("Export to '%s'", exportFile)
-		Export(files, exportFile)
-
-	}
-
-	return nil
-}
-
-func caUpdate(argv map[string]interface{}) (err error) {
-	name := ArgString(argv["<name>"], nil)
-
-	certFile := ArgString(argv["--cert"], "")
-	keyFile := ArgString(argv["--key"], "")
-	tags := ArgString(argv["--tags"], "")
-	caExpiry := ArgInt(argv["--ca-expiry"], 0)
-	certExpiry := ArgInt(argv["--cert-expiry"], 0)
-	dnLocality := ArgString(argv["--dn-l"], "")
-	dnState := ArgString(argv["--dn-st"], "")
-	dnOrg := ArgString(argv["--dn-o"], "")
-	dnOrgUnit := ArgString(argv["--dn-ou"], "")
-	dnCountry := ArgString(argv["--dn-c"], "")
-	dnStreet := ArgString(argv["--dn-street"], "")
-	dnPostal := ArgString(argv["--dn-postal"], "")
-
-	app := NewAdminApp()
-	app.Load()
-	app.LoadOrgIndex()
-
-	// TODO - refactor
-	caSerial, err := app.index.org.GetCA(name)
-	checkUserFatal("Could not find CA: %s%.0s\n", name, err)
-
-	ca := app.GetCA(caSerial)
-
-	if certFile != "" {
-		ok, err := fs.Exists(certFile)
-		checkAppFatal("Could not check file existence for %s: %s", certFile, err)
-		if !ok {
-			checkUserFatal("File does not exist: %s", certFile)
+		if err := cont.New(params); err != nil {
+			env.logger.Error(err)
+			env.Fatal()
 		}
-		certPem, err := fs.ReadFile(certFile)
 
-		_, err = x509.PemDecodeX509Certificate([]byte(certPem))
-		checkUserFatal("Not a valid certificate PEM for %s: %s", certFile, err)
-		// TODO - consider converting cert back to pem to use for consistency
-
-		logger.Info("Setting CA certificate PEM")
-		ca.Data.Body.Certificate = certPem
 	}
+}
 
-	if keyFile != "" {
-		ok, err := fs.Exists(keyFile)
-		checkAppFatal("Could not check file existence for %s: %s", keyFile, err)
-		if !ok {
-			checkUserFatal("File does not exist: %s", keyFile)
+func caListCmd(cmd *cli.Cmd) {
+	params := NewCAParams()
+
+	cmd.Action = func() {
+
+		initLogging(*logLevel, *logging)
+		defer logger.Close()
+		env := new(Environment)
+		env.logger = logger
+
+		cont, err := NewCAController(env)
+		if err != nil {
+			env.logger.Error(err)
+			env.Fatal()
 		}
-		keyPem, err := fs.ReadFile(keyFile)
 
-		key, err := crypto.PemDecodePrivate([]byte(keyPem))
-		checkUserFatal("Not a valid private key PEM for %s: %s", keyFile, err)
-		// TODO - consider converting key back to pem to use for consistency
-
-		keyType, err := crypto.GetKeyType(key)
-		checkUserFatal("Unknow private key file for %s: %s", keyFile, err)
-
-		ca.Data.Body.KeyType = string(keyType)
-		logger.Info("Setting CA key PEM")
-		ca.Data.Body.PrivateKey = keyPem
-	}
-
-	if caExpiry != 0 {
-		logger.Info("Setting CA expiry")
-		ca.Data.Body.CAExpiry = caExpiry
-	}
-
-	if certExpiry != 0 {
-		logger.Info("Setting certificate expiry")
-		ca.Data.Body.CertExpiry = certExpiry
-	}
-
-	if dnLocality != "" {
-		logger.Info("Setting locality DN scope")
-		ca.Data.Body.DNScope.Locality = dnLocality
-	}
-	if dnState != "" {
-		logger.Info("Setting province DN scope")
-		ca.Data.Body.DNScope.Province = dnState
-	}
-	if dnOrg != "" {
-		logger.Info("Setting organisation DN scope")
-		ca.Data.Body.DNScope.Organization = dnOrg
-	}
-	if dnOrgUnit != "" {
-		logger.Info("Setting organisational unit DN scope")
-		ca.Data.Body.DNScope.OrganizationalUnit = dnOrgUnit
-	}
-	if dnCountry != "" {
-		logger.Info("Setting country DN scope")
-		ca.Data.Body.DNScope.Country = dnCountry
-	}
-	if dnStreet != "" {
-		logger.Info("Setting street address DN scope")
-		ca.Data.Body.DNScope.StreetAddress = dnStreet
-	}
-	if dnPostal != "" {
-		logger.Info("Setting postal code DN scope")
-		ca.Data.Body.DNScope.PostalCode = dnPostal
-	}
-
-	if tags != "" {
-		logger.Info("Setting tags")
-		app.index.org.ClearCATags(caSerial)
-		app.index.org.AddCATags(caSerial, ParseTags(tags))
-		app.SaveOrgIndex()
-	}
-
-	logger.Info("Saving CA")
-	caContainer, err := app.entities.org.EncryptThenSignString(ca.Dump(), nil)
-	checkAppFatal("Could not encrypt CA: %s", err)
-
-	err = app.fs.api.Authenticate(app.entities.org.Data.Body.Id, "")
-	checkAppFatal("Could not authenticate to API as Org: %s", err)
-
-	err = app.fs.api.StorePrivate(ca.Data.Body.Id, caContainer.Dump())
-	checkAppFatal("Could not save CA: %s", err)
-
-	return nil
-}
-
-func caDelete(argv map[string]interface{}) (err error) {
-	name := ArgString(argv["<name>"], nil)
-	reason := ArgString(argv["--confirm-delete"], nil)
-
-	app := NewAdminApp()
-	app.Load()
-	app.LoadOrgIndex()
-	logger.Infof("Deleting CA %s with reason: %s", name, reason)
-	logger.Info("Note: This does not revoke existing certificates signed by the CA")
-
-	caId, err := app.index.org.GetCA(name)
-	checkUserFatal("CA %s does not exist%.0s", name, err)
-
-	err = app.fs.api.Authenticate(app.entities.org.Data.Body.Id, "")
-	checkAppFatal("Could not authenticate to API as Org: %s", err)
-
-	err = app.fs.api.DeletePrivate(caId)
-	checkAppFatal("Could not delete CA: %s", err)
-
-	err = app.index.org.RemoveCA(name)
-	checkAppFatal("Could not remove CA: %s", err)
-	app.SaveOrgIndex()
-
-	return nil
-}
-
-func caImport(argv map[string]interface{}) (err error) {
-	name := ArgString(argv["<name>"], nil)
-	tags := ArgString(argv["--tags"], nil)
-
-	certFile := ArgString(argv["<certFile>"], nil)
-	keyFile := ArgString(argv["<privateKeyFile>"], "")
-
-	certExpiry := ArgInt(argv["--cert-expiry"], 90)
-
-	dnLocality := ArgString(argv["--dn-l"], "")
-	dnState := ArgString(argv["--dn-st"], "")
-	dnOrg := ArgString(argv["--dn-o"], "")
-	dnOrgUnit := ArgString(argv["--dn-ou"], "")
-	dnCountry := ArgString(argv["--dn-c"], "")
-	dnStreet := ArgString(argv["--dn-street"], "")
-	dnPostal := ArgString(argv["--dn-postal"], "")
-
-	logger.Infof("Importing CA %s as %s", certFile, name)
-	app := NewAdminApp()
-	app.Load()
-
-	ca, _ := x509.NewCA(nil)
-	ca.Data.Body.Name = name
-
-	if dnLocality != "" {
-		ca.Data.Body.DNScope.Locality = dnLocality
-	}
-	if dnState != "" {
-		ca.Data.Body.DNScope.Province = dnState
-	}
-	if dnOrg != "" {
-		ca.Data.Body.DNScope.Organization = dnOrg
-	}
-	if dnOrgUnit != "" {
-		ca.Data.Body.DNScope.OrganizationalUnit = dnOrgUnit
-	}
-	if dnCountry != "" {
-		ca.Data.Body.DNScope.Country = dnCountry
-	}
-	if dnStreet != "" {
-		ca.Data.Body.DNScope.StreetAddress = dnStreet
-	}
-	if dnPostal != "" {
-		ca.Data.Body.DNScope.PostalCode = dnPostal
-	}
-
-	ok, err := fs.Exists(certFile)
-	checkAppFatal("Could not check file existence for %s: %s", certFile, err)
-	if !ok {
-		checkUserFatal("File does not exist: %s", certFile)
-	}
-	certPem, err := fs.ReadFile(certFile)
-
-	cert, err := x509.PemDecodeX509Certificate([]byte(certPem))
-	checkUserFatal("Not a valid certificate PEM for %s: %s", certFile, err)
-	// TODO - consider converting cert back to pem to use for consistency
-
-	// We generate a random ID instead of using the serial number because we
-	// don't control the serial
-	ca.Data.Body.Id = NewID()
-	ca.Data.Body.Certificate = certPem
-	ca.Data.Body.CertExpiry = certExpiry
-	caExpiry := int(cert.NotAfter.Sub(cert.NotBefore) / (time.Hour * 24))
-	ca.Data.Body.CAExpiry = caExpiry
-
-	if keyFile != "" {
-		ok, err = fs.Exists(keyFile)
-		checkAppFatal("Could not check file existence for %s: %s", keyFile, err)
-		if !ok {
-			checkUserFatal("File does not exist: %s", keyFile)
+		if err := cont.List(params); err != nil {
+			env.logger.Error(err)
+			env.Fatal()
 		}
-		keyPem, err := fs.ReadFile(keyFile)
-
-		key, err := crypto.PemDecodePrivate([]byte(keyPem))
-		checkUserFatal("Not a valid private key PEM for %s: %s", keyFile, err)
-		// TODO - consider converting key back to pem to use for consistency
-
-		keyType, err := crypto.GetKeyType(key)
-		checkUserFatal("Unknow private key file for %s: %s", keyFile, err)
-
-		ca.Data.Body.KeyType = string(keyType)
-		ca.Data.Body.PrivateKey = keyPem
 	}
-
-	logger.Info("Saving CA")
-	caContainer, err := app.entities.org.EncryptThenSignString(ca.Dump(), nil)
-	checkAppFatal("Could not encrypt CA: %s", err)
-
-	err = app.fs.api.Authenticate(app.entities.org.Data.Body.Id, "")
-	checkAppFatal("Could not authenticate to API as Org: %s", err)
-
-	err = app.fs.api.StorePrivate(ca.Data.Body.Id, caContainer.Dump())
-	checkAppFatal("Could not save CA: %s", err)
-
-	logger.Info("Updating index")
-	app.LoadOrgIndex()
-	app.index.org.AddCA(ca.Data.Body.Name, ca.Data.Body.Id)
-	app.index.org.AddCATags(ca.Data.Body.Id, ParseTags(tags))
-	app.SaveOrgIndex()
-
-	return nil
 }
 
-func runCA(args []string) (err error) {
-	usage := `
-Manages Certificate Authorities
+func caShowCmd(cmd *cli.Cmd) {
+	cmd.Spec = "NAME [OPTIONS]"
 
-Usage: 
-    pki.io ca [--help]
-    pki.io ca new <name> --tags <tags> [--ca-expiry <days>] [--cert-expiry <days>] [--keytype <type>] [--dn-l <locality>] [--dn-st <state>] [--dn-o <org>] [--dn-ou <orgUnit>] [--dn-c <country>] [--dn-street <street>] [--dn-postal <postalCode>]
-    pki.io ca list
-    pki.io ca show <name> [--export <file>] [--private]
-    pki.io ca update <name> [--cert <certFile>] [--key <keyFile>] [--tags <tags>] [--ca-expiry <days>] [--cert-expiry <days>] [--dn-l <locality>] [--dn-st <state>] [--dn-o <org>] [--dn-ou <orgUnit>] [--dn-c <country>] [--dn-street <street>] [--dn-postal <postalCode>]
-    pki.io ca delete <name> --confirm-delete <reason>
-    pki.io ca import <name> <certFile> [<privateKeyFile>] --tags <tags> [--ca-expiry <days>] [--cert-expiry <days>] [--dn-l <locality>] [--dn-st <state>] [--dn-o <org>] [--dn-ou <orgUnit>] [--dn-c <country>] [--dn-street <street>] [--dn-postal <postalCode>]
+	params := NewCAParams()
+	params.name = cmd.StringArg("NAME", "", "name of CA")
 
-Options:
-    --tags <tags>              List of comma-separated tags
-    --ca-expiry <days>         Expiry period for CA in days
-    --cert-expiry <days>       Expiry period for certs in day
-    --keytype <type>           Key type to use (rsa or ec) [default: ec]
-    --dn-l <locality>          Locality for DN scope
-    --dn-st <state>            State/province for DN scope
-    --dn-o <org>               Organization for DN scope
-    --dn-ou <orgUnit>          Organizational unit for DN scope
-    --dn-c <country>           Country for DN scope
-    --dn-street <street>       Street for DN scope
-    --dn-postal <postalCode>   Postal code for DN scope
-    --confirm-delete <reason>  Reason for deleting node
-    --export <file>            Exports cert to <file>
-    --private                  Show private data (e.g. keys)
-    --cert <certFile>          CA certificate file
-    --key <keyFile>            CA key file
-`
-	argv, _ := docopt.Parse(usage, args, true, "", false)
+	params.export = cmd.StringOpt("export", "", "tar.gz export to file")
+	params.private = cmd.BoolOpt("private", false, "show/export private data")
 
-	if argv["new"].(bool) {
-		caNew(argv)
-	} else if argv["list"].(bool) {
-		caList(argv)
-	} else if argv["show"].(bool) {
-		caShow(argv)
-	} else if argv["update"].(bool) {
-		caUpdate(argv)
-	} else if argv["delete"].(bool) {
-		caDelete(argv)
-	} else if argv["import"].(bool) {
-		caImport(argv)
+	cmd.Action = func() {
+		initLogging(*logLevel, *logging)
+		defer logger.Close()
+		env := new(Environment)
+		env.logger = logger
+
+		cont, err := NewCAController(env)
+		if err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+
+		if err := cont.Show(params); err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+
 	}
-	return nil
+
+}
+
+func caUpdateCmd(cmd *cli.Cmd) {
+	cmd.Spec = "NAME [OPTIONS]"
+
+	params := NewCAParams()
+	params.name = cmd.StringArg("NAME", "", "name of CA")
+
+	params.certFile = cmd.StringOpt("cert", "", "certificate PEM file")
+	params.keyFile = cmd.StringOpt("key", "", "key PEM file")
+	params.tags = cmd.StringOpt("tags", "", "comma separated list of tags")
+	params.caExpiry = cmd.IntOpt("ca-expiry", 0, "CA expiry period in days")
+	params.certExpiry = cmd.IntOpt("cert-expiry", 0, "Certificate expiry period in days")
+	params.dnLocality = cmd.StringOpt("dn-l", "", "Locality for DN scope")
+	params.dnState = cmd.StringOpt("dn-st", "", "State/province for DN scope")
+	params.dnOrg = cmd.StringOpt("dn-o", "", "Organization for DN scope")
+	params.dnOrgUnit = cmd.StringOpt("dn-ou", "", "Organizational unit for DN scope")
+	params.dnCountry = cmd.StringOpt("dn-c", "", "Country for DN scope")
+	params.dnStreet = cmd.StringOpt("dn-street", "", "Street for DN scope")
+	params.dnPostal = cmd.StringOpt("dn-postal", "", "PostalCode for DN scope")
+
+	cmd.Action = func() {
+		initLogging(*logLevel, *logging)
+		defer logger.Close()
+		env := new(Environment)
+		env.logger = logger
+
+		cont, err := NewCAController(env)
+		if err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+
+		if err := cont.Update(params); err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+
+	}
+}
+
+func caDeleteCmd(cmd *cli.Cmd) {
+	cmd.Spec = "NAME [OPTIONS]"
+
+	params := NewCAParams()
+	params.name = cmd.StringArg("NAME", "", "name of CA")
+
+	params.confirmDelete = cmd.StringOpt("confirm-delete", "", "reason for deleting CA")
+
+	cmd.Action = func() {
+		initLogging(*logLevel, *logging)
+		defer logger.Close()
+		env := new(Environment)
+		env.logger = logger
+
+		cont, err := NewCAController(env)
+		if err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+
+		if err := cont.Delete(params); err != nil {
+			env.logger.Error(err)
+			env.Fatal()
+		}
+	}
 }
