@@ -1,11 +1,13 @@
 language: go
 go:
+  - 1.5.1
   - 1.4
-  - 1.3
 before_install:
   - git clone https://github.com/sstephenson/bats.git
   - cd bats
-  - sudo ./install.sh /usr/local
+  - mkdir /tmp/bats
+  - ./install.sh /tmp/bats
+  - export PATH=$PATH:/tmp/bats/bin
   - cd ..
   - mkdir /tmp/fdm
   - wget https://raw.githubusercontent.com/pki-io/fdm/master/fdm -O /tmp/fdm/fdm
