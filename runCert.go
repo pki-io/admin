@@ -1,7 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"github.com/jawher/mow.cli"
+	"github.com/olekukonko/tablewriter"
+	"os"
 )
 
 func certCmd(cmd *cli.Cmd) {
@@ -41,13 +44,26 @@ func certNewCmd(cmd *cli.Cmd) {
 
 		cont, err := NewCertController(env)
 		if err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
-		if err := cont.New(params); err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+		cert, err := cont.New(params)
+		if err != nil {
+			env.Fatal(err)
+		}
+
+		if cert != nil {
+			table := tablewriter.NewWriter(os.Stdout)
+			table.SetAlignment(tablewriter.ALIGN_LEFT)
+
+			certData := [][]string{
+				[]string{"Id", cert.Id()},
+				[]string{"Name", cert.Name()},
+			}
+
+			table.AppendBulk(certData)
+			env.logger.Flush()
+			table.Render()
 		}
 	}
 }
@@ -63,14 +79,23 @@ func certListCmd(cmd *cli.Cmd) {
 
 		cont, err := NewCertController(env)
 		if err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
-		if err := cont.List(params); err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+		certs, err := cont.List(params)
+		if err != nil {
+			env.Fatal(err)
 		}
+
+		table := tablewriter.NewWriter(os.Stdout)
+		table.SetAlignment(tablewriter.ALIGN_LEFT)
+		table.SetHeader([]string{"Name", "Id"})
+		for _, cert := range certs {
+			table.Append([]string{cert.Name(), cert.Id()})
+		}
+
+		env.logger.Flush()
+		table.Render()
 	}
 }
 
@@ -91,13 +116,35 @@ func certShowCmd(cmd *cli.Cmd) {
 
 		cont, err := NewCertController(env)
 		if err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
-		if err := cont.Show(params); err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+		cert, err := cont.Show(params)
+		if err != nil {
+			env.Fatal(err)
+		}
+
+		if cert != nil {
+
+			table := tablewriter.NewWriter(os.Stdout)
+			table.SetAlignment(tablewriter.ALIGN_LEFT)
+
+			certData := [][]string{
+				[]string{"ID", cert.Id()},
+				[]string{"Name", cert.Name()},
+				[]string{"Key type", cert.Data.Body.KeyType},
+			}
+
+			table.AppendBulk(certData)
+			env.logger.Flush()
+			table.Render()
+
+			fmt.Println("")
+			fmt.Printf("Certificate:\n%s\n", cert.Data.Body.Certificate)
+
+			if *params.private {
+				fmt.Printf("Private key:\n%s\n", cert.Data.Body.PrivateKey)
+			}
 		}
 	}
 }
@@ -120,13 +167,11 @@ func certUpdateCmd(cmd *cli.Cmd) {
 
 		cont, err := NewCertController(env)
 		if err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
 		if err := cont.Update(params); err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 	}
 }
@@ -147,13 +192,11 @@ func certDeleteCmd(cmd *cli.Cmd) {
 
 		cont, err := NewCertController(env)
 		if err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
 		if err := cont.Delete(params); err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 	}
 }

@@ -7,8 +7,8 @@ admin_list() {
 admin_invite() {
   output=$($CMD admin invite "$ADMINNAME")
   e="$?"
-  export INVITE_ID=$(echo "$output" | awk '/Invite ID/ { print $3 }')
-  export INVITE_KEY=$(echo "$output" | awk '/Invite key/ { print $3 }')
+  export INVITE_ID=$(echo "$output" | awk '/Id/ { print $4 }')
+  export INVITE_KEY=$(echo "$output" | awk '/Key/ { print $4 }')
   return "$e"
 }
 

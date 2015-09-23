@@ -356,56 +356,53 @@ func (cont *NodeController) NewCSR() error {
 	return nil
 }
 
-func (cont *NodeController) New(params *NodeParams) error {
+func (cont *NodeController) New(params *NodeParams) (*node.Node, error) {
 	var err error
-	cont.env.logger.Info("Creating new node")
 
 	cont.env.logger.Debug("Validating parameters")
 
 	if err := params.ValidateName(true); err != nil {
-		return err
+		return nil, err
 	}
 
-	cont.env.logger.Debug("Loading admin environment")
-
 	if err := cont.env.LoadAdminEnv(); err != nil {
-		return err
+		return nil, err
 	}
 
 	cont.node, err = cont.CreateNode(*params.name)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := cont.SecureSendPrivateToOrg(*params.pairingId, *params.pairingKey); err != nil {
-		return err
+		return nil, err
 	}
 
 	index, err := cont.CreateIndex()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := cont.LoadConfig(); err != nil {
-		return err
+		return nil, err
 	}
 
 	cont.env.logger.Debug("Adding node to config")
 	cont.config.AddNode(cont.node.Data.Body.Name, cont.node.Data.Body.Id, index.Data.Body.Id)
 
 	if err := cont.SaveConfig(); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := cont.CreateCSRs(); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := cont.SaveIndex(index); err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return cont.node, nil
 }
 
 func (cont *NodeController) Run(params *NodeParams) error {
@@ -416,8 +413,6 @@ func (cont *NodeController) Run(params *NodeParams) error {
 	if err := params.ValidateName(true); err != nil {
 		return err
 	}
-
-	cont.env.logger.Debug("Loading admin environment")
 
 	if err := cont.env.LoadAdminEnv(); err != nil {
 		return err
@@ -440,58 +435,48 @@ func (cont *NodeController) Cert(params *NodeParams) error {
 	return fmt.Errorf("Not implemented")
 }
 
-func (cont *NodeController) List(params *NodeParams) error {
-
-	cont.env.logger.Debug("Loading admin environment")
+func (cont *NodeController) List(params *NodeParams) ([]*node.Node, error) {
 
 	if err := cont.env.LoadAdminEnv(); err != nil {
-		return err
+		return nil, err
 	}
 
 	index, err := cont.env.controllers.org.GetIndex()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	cont.env.logger.Info("Listing nodes:")
-	cont.env.logger.Flush()
-
-	for name, id := range index.GetNodes() {
-		fmt.Printf("* %s %s\n", name, id)
+	nodes := make([]*node.Node, 0)
+	for name, _ := range index.GetNodes() {
+		node, err := cont.GetNode(name)
+		if err != nil {
+			return nil, err
+		}
+		nodes = append(nodes, node)
 	}
 
-	return nil
+	return nodes, nil
 }
 
-func (cont *NodeController) Show(params *NodeParams) error {
+func (cont *NodeController) Show(params *NodeParams) (*node.Node, error) {
 	var err error
 
 	cont.env.logger.Debug("Validating parameters")
 
 	if err := params.ValidateName(true); err != nil {
-		return err
+		return nil, err
 	}
 
-	cont.env.logger.Debug("Loading admin environment")
-
 	if err := cont.env.LoadAdminEnv(); err != nil {
-		return err
+		return nil, err
 	}
 
 	cont.node, err = cont.GetNode(*params.name)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	cont.env.logger.Info("Showing node:")
-	cont.env.logger.Flush()
-
-	fmt.Printf("Node name: %s\n", cont.node.Data.Body.Name)
-	fmt.Printf("Node ID: %s\n", cont.node.Data.Body.Id)
-	fmt.Printf("Public Signing Key:\n%s\n", cont.node.Data.Body.PublicSigningKey)
-	fmt.Printf("Public Encryption Key:\n%s\n", cont.node.Data.Body.PublicEncryptionKey)
-
-	return nil
+	return cont.node, nil
 }
 
 func (cont *NodeController) Delete(params *NodeParams) error {

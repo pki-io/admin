@@ -1,7 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"github.com/jawher/mow.cli"
+	"github.com/olekukonko/tablewriter"
+	"os"
+	"strconv"
 )
 
 func caCmd(cmd *cli.Cmd) {
@@ -40,13 +44,27 @@ func caNewCmd(cmd *cli.Cmd) {
 
 		cont, err := NewCAController(env)
 		if err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
-		if err := cont.New(params); err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+		ca, err := cont.New(params)
+		if err != nil {
+			env.Fatal(err)
+		}
+		env.logger.Info("Created")
+
+		if ca != nil {
+			table := tablewriter.NewWriter(os.Stdout)
+			table.SetAlignment(tablewriter.ALIGN_LEFT)
+
+			caData := [][]string{
+				[]string{"Id", ca.Id()},
+				[]string{"Name", ca.Name()},
+			}
+
+			table.AppendBulk(caData)
+			env.logger.Flush()
+			table.Render()
 		}
 
 	}
@@ -64,14 +82,23 @@ func caListCmd(cmd *cli.Cmd) {
 
 		cont, err := NewCAController(env)
 		if err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
-		if err := cont.List(params); err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+		cas, err := cont.List(params)
+		if err != nil {
+			env.Fatal(err)
 		}
+
+		table := tablewriter.NewWriter(os.Stdout)
+		table.SetAlignment(tablewriter.ALIGN_LEFT)
+		table.SetHeader([]string{"Name", "Id"})
+		for _, ca := range cas {
+			table.Append([]string{ca.Name(), ca.Id()})
+		}
+
+		env.logger.Flush()
+		table.Render()
 	}
 }
 
@@ -92,17 +119,45 @@ func caShowCmd(cmd *cli.Cmd) {
 
 		cont, err := NewCAController(env)
 		if err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
-		if err := cont.Show(params); err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+		ca, err := cont.Show(params)
+		if err != nil {
+			env.Fatal(err)
 		}
 
+		if ca != nil {
+			table := tablewriter.NewWriter(os.Stdout)
+			table.SetAlignment(tablewriter.ALIGN_LEFT)
+
+			caData := [][]string{
+				[]string{"ID", ca.Id()},
+				[]string{"Name", ca.Name()},
+				[]string{"Key type", ca.Data.Body.KeyType},
+				[]string{"CA expiry period (days)", strconv.Itoa(ca.Data.Body.CAExpiry)},
+				[]string{"Cert expiry period (days)", strconv.Itoa(ca.Data.Body.CertExpiry)},
+				[]string{"Country DN scope", ca.Data.Body.DNScope.Country},
+				[]string{"Organization DN scope", ca.Data.Body.DNScope.Organization},
+				[]string{"Organizational unit DN scope", ca.Data.Body.DNScope.OrganizationalUnit},
+				[]string{"Locality DN scope", ca.Data.Body.DNScope.Locality},
+				[]string{"Province DN scope", ca.Data.Body.DNScope.Province},
+				[]string{"Street address DN scope", ca.Data.Body.DNScope.StreetAddress},
+				[]string{"Postal code DN scope", ca.Data.Body.DNScope.PostalCode},
+			}
+
+			table.AppendBulk(caData)
+			env.logger.Flush()
+			table.Render()
+
+			fmt.Println("")
+			fmt.Printf("Certificate:\n%s\n", ca.Data.Body.Certificate)
+
+			if *params.private {
+				fmt.Printf("Private key:\n%s\n", ca.Data.Body.PrivateKey)
+			}
+		}
 	}
-
 }
 
 func caUpdateCmd(cmd *cli.Cmd) {
@@ -132,14 +187,14 @@ func caUpdateCmd(cmd *cli.Cmd) {
 
 		cont, err := NewCAController(env)
 		if err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
+		env.logger.Info("Updating CA")
 		if err := cont.Update(params); err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
+		env.logger.Info("Complete")
 
 	}
 }
@@ -160,13 +215,13 @@ func caDeleteCmd(cmd *cli.Cmd) {
 
 		cont, err := NewCAController(env)
 		if err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
+		env.logger.Info("Deleting CA")
 		if err := cont.Delete(params); err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
+		env.logger.Info("Complete")
 	}
 }

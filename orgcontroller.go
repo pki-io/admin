@@ -53,6 +53,8 @@ func NewOrgController(env *Environment) (*OrgController, error) {
 }
 
 func (cont *OrgController) LoadConfig() error {
+	cont.env.logger.Debug("Loading org config")
+
 	var err error
 	if cont.config == nil {
 		cont.config, err = config.NewOrg()
@@ -82,6 +84,7 @@ func (cont *OrgController) LoadConfig() error {
 }
 
 func (cont *OrgController) SaveConfig() error {
+	cont.env.logger.Debug("Saving org config")
 
 	cfgString, err := cont.config.Dump()
 	if err != nil {
@@ -96,6 +99,8 @@ func (cont *OrgController) SaveConfig() error {
 }
 
 func (cont *OrgController) CreateOrg(name string) error {
+	cont.env.logger.Debug("Creating org")
+
 	var err error
 	cont.org, err = entity.New(nil)
 	if err != nil {
@@ -113,7 +118,8 @@ func (cont *OrgController) CreateOrg(name string) error {
 }
 
 func (cont *OrgController) GetOrgAdmins() ([]*entity.Entity, error) {
-	cont.env.logger.Debug("Getting org index")
+	cont.env.logger.Debug("Getting org admins")
+
 	index, err := cont.GetIndex()
 	if err != nil {
 		return nil, err
@@ -128,7 +134,6 @@ func (cont *OrgController) GetOrgAdmins() ([]*entity.Entity, error) {
 	cont.env.logger.Debug("Loading admin entities")
 	adminEntities := make([]*entity.Entity, 0, 0)
 	for _, id := range adminIds {
-		cont.env.logger.Debug("Loading admin %s", id)
 		admin, err := cont.env.controllers.admin.GetAdmin(id)
 		if err != nil {
 			return nil, err
@@ -140,6 +145,8 @@ func (cont *OrgController) GetOrgAdmins() ([]*entity.Entity, error) {
 }
 
 func (cont *OrgController) LoadPublicOrg() error {
+	cont.env.logger.Debug("Loading public org")
+
 	orgId := cont.config.Data.Id
 
 	cont.env.logger.Debugf("Reading org %s", orgId)
@@ -157,6 +164,8 @@ func (cont *OrgController) LoadPublicOrg() error {
 }
 
 func (cont *OrgController) SavePublicOrg() error {
+	cont.env.logger.Debug("Saving public org")
+
 	if err := cont.env.fs.home.Write(cont.org.Data.Body.Id, cont.org.DumpPublic()); err != nil {
 		return err
 	}
@@ -165,7 +174,8 @@ func (cont *OrgController) SavePublicOrg() error {
 }
 
 func (cont *OrgController) SavePrivateOrg() error {
-	cont.env.logger.Debug("Getting org admins")
+	cont.env.logger.Debug("Saving private org")
+
 	admins, err := cont.GetOrgAdmins()
 	if err != nil {
 		return err
@@ -186,6 +196,8 @@ func (cont *OrgController) SavePrivateOrg() error {
 }
 
 func (cont *OrgController) LoadPrivateOrg() error {
+	cont.env.logger.Debug("Loading private org")
+
 	orgId := cont.config.Data.Id
 
 	cont.env.logger.Debugf("Loading private org '%s'", orgId)
@@ -222,6 +234,8 @@ func (cont *OrgController) LoadPrivateOrg() error {
 }
 
 func (cont *OrgController) CreateIndex() (*index.OrgIndex, error) {
+	cont.env.logger.Debug("Creating new org index")
+
 	index, err := index.NewOrg(nil)
 	if err != nil {
 		return nil, err
@@ -234,9 +248,9 @@ func (cont *OrgController) CreateIndex() (*index.OrgIndex, error) {
 }
 
 func (cont *OrgController) GetIndex() (*index.OrgIndex, error) {
+	cont.env.logger.Debug("Getting org index")
 
 	orgIndexId := cont.config.Data.Index
-	cont.env.logger.Debugf("Getting index '%s'", orgIndexId)
 	indexJson, err := cont.env.api.GetPrivate(cont.org.Data.Body.Id, orgIndexId)
 	if err != nil {
 		return nil, err
@@ -270,6 +284,7 @@ func (cont *OrgController) GetIndex() (*index.OrgIndex, error) {
 }
 
 func (cont *OrgController) SaveIndex(index *index.OrgIndex) error {
+	cont.env.logger.Debug("Saving org index")
 
 	encryptedIndexContainer, err := cont.org.EncryptThenSignString(index.Dump(), nil)
 	if err != nil {
@@ -285,6 +300,8 @@ func (cont *OrgController) SaveIndex(index *index.OrgIndex) error {
 }
 
 func (cont *OrgController) GetCA(id string) (*x509.CA, error) {
+	cont.env.logger.Debug("Getting CA")
+
 	org := cont.env.controllers.org.org
 	caContainerJson, err := cont.env.api.GetPrivate(org.Data.Body.Id, id)
 	if err != nil {
@@ -310,7 +327,7 @@ func (cont *OrgController) GetCA(id string) (*x509.CA, error) {
 }
 
 func (cont *OrgController) SignCSR(node *node.Node, caId, tag string) error {
-	cont.env.logger.Debug("Getting CSR for node")
+	cont.env.logger.Debug("Signing CSR for node")
 
 	csrContainerJson, err := cont.env.api.PopOutgoing(node.Data.Body.Id, "csrs")
 	if err != nil {
@@ -371,6 +388,8 @@ func (cont *OrgController) SignCSR(node *node.Node, caId, tag string) error {
 }
 
 func (cont *OrgController) RegisterNextNode() error {
+	cont.env.logger.Debug("Registering next node")
+
 	org := cont.env.controllers.org.org
 
 	regJson, err := cont.env.api.PopIncoming(org.Data.Body.Id, "registration")
@@ -634,65 +653,51 @@ func (cont *OrgController) Init(params *OrgParams) error {
 	return nil
 }
 
-func (cont *OrgController) List(params *OrgParams) error {
+func (cont *OrgController) List(params *OrgParams) ([]*entity.Entity, error) {
 
 	var err error
 	cont.env.logger.Debug("Loading home filesystem")
 	if err := cont.env.LoadHomeFs(); err != nil {
-		return err
+		return nil, err
 	}
 
 	if cont.env.controllers.admin == nil {
 		cont.env.controllers.admin, err = NewAdminController(cont.env)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	cont.env.logger.Debug("Loading admin config")
 
 	if err := cont.env.controllers.admin.LoadConfig(); err != nil {
-		return err
+		return nil, err
 	}
 
-	cont.env.logger.Info("Listing all organisations")
-
-	cont.env.logger.Flush()
+	orgs := make([]*entity.Entity, 0)
 	for _, org := range cont.env.controllers.admin.config.GetOrgs() {
 		fmt.Printf("* %s %s\n", org.Name, org.Id)
+		o, err := entity.New(nil)
+		if err != nil {
+			return nil, err
+		}
+
+		o.Data.Body.Id = org.Id
+		o.Data.Body.Name = org.Name
+		orgs = append(orgs, o)
 	}
 
-	return nil
+	return orgs, nil
 }
 
-func (cont *OrgController) ShowEnv(params *OrgParams) error {
-	cont.env.logger.Info("Showing current organisation")
-
-	body := cont.org.Data.Body
-
-	cont.env.logger.Flush()
-
-	fmt.Printf("Name: %s\n", body.Name)
-	fmt.Printf("ID: %s\n", body.Id)
-	fmt.Printf("KeyType: %s\n", body.KeyType)
-	fmt.Printf("Public signing key:\n%s\n", body.PublicSigningKey)
-	fmt.Printf("Public encryption key:\n%s\n", body.PublicEncryptionKey)
-
-	if *params.private {
-		fmt.Printf("Private signing key:\n%s\n", body.PrivateSigningKey)
-		fmt.Printf("Private encryption key:\n%s\n", body.PrivateEncryptionKey)
-	}
-	return nil
-}
-
-func (cont *OrgController) Show(params *OrgParams) error {
+func (cont *OrgController) Show(params *OrgParams) (*entity.Entity, error) {
 	cont.env.logger.Debug("Loading admin environment")
 
 	if err := cont.env.LoadAdminEnv(); err != nil {
-		return err
+		return nil, err
 	}
 
-	return cont.env.controllers.org.ShowEnv(params)
+	return cont.env.controllers.org.org, nil
 
 }
 

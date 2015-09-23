@@ -172,19 +172,19 @@ func (cont *CSRController) AddCSRToOrgIndex(csr *x509.CSR, tags string) error {
 	return nil
 }
 
-func (cont *CSRController) New(params *CSRParams) error {
+func (cont *CSRController) New(params *CSRParams) (*x509.CSR, error) {
 	cont.env.logger.Info("Creating new CSR")
 
 	cont.env.logger.Debug("Validating parameters")
 
 	if err := params.ValidateName(true); err != nil {
-		return err
+		return nil, err
 	}
 
 	cont.env.logger.Debug("Loading admin environment")
 
 	if err := cont.env.LoadAdminEnv(); err != nil {
-		return err
+		return nil, err
 	}
 
 	// TODO - This should really be in a CSR function
@@ -216,7 +216,7 @@ func (cont *CSRController) New(params *CSRParams) error {
 
 	csr, err := x509.NewCSR(nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	csr.Data.Body.Id = NewID()
@@ -231,29 +231,29 @@ func (cont *CSRController) New(params *CSRParams) error {
 		csr.Generate(&subject)
 	} else {
 		if *params.csrFile == "" {
-			return fmt.Errorf("CSR PEM file must be provided if importing")
+			return nil, fmt.Errorf("CSR PEM file must be provided if importing")
 		}
 
 		cont.env.logger.Debug("Importing CSR")
 
 		ok, err := fs.Exists(*params.csrFile)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		if !ok {
 			cont.env.logger.Warnf("CSR file '%s' does not exist", *params.csrFile)
-			return nil
+			return nil, nil
 		}
 
 		csrPem, err := fs.ReadFile(*params.csrFile)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		_, err = x509.PemDecodeX509CSR([]byte(csrPem))
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		csr.Data.Body.CSR = csrPem
@@ -261,27 +261,27 @@ func (cont *CSRController) New(params *CSRParams) error {
 		if *params.keyFile != "" {
 			ok, err := fs.Exists(*params.keyFile)
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			if !ok {
 				cont.env.logger.Warnf("Key file '%s' does not exist", *params.keyFile)
-				return nil
+				return nil, nil
 			}
 
 			keyPem, err := fs.ReadFile(*params.keyFile)
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			key, err := crypto.PemDecodePrivate([]byte(keyPem))
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			keyType, err := crypto.GetKeyType(key)
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			csr.Data.Body.KeyType = string(keyType)
@@ -296,7 +296,7 @@ func (cont *CSRController) New(params *CSRParams) error {
 		cont.env.logger.Debug("Saving CSR")
 		err = cont.SaveCSR(csr)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		cont.env.logger.Debug("Adding csr to org")
@@ -309,54 +309,60 @@ func (cont *CSRController) New(params *CSRParams) error {
 
 		err = cont.AddCSRToOrgIndex(csr, tags)
 		if err != nil {
-			return err
+			return nil, err
 		}
+
+		return csr, nil
 	} else {
 		cont.env.logger.Infof("Exporting to '%s'", *params.standaloneFile)
 		Export(files, *params.standaloneFile)
 	}
 
-	return nil
+	return nil, nil
 }
 
-func (cont *CSRController) List(params *CSRParams) error {
+func (cont *CSRController) List(params *CSRParams) ([]*x509.CSR, error) {
 	cont.env.logger.Info("Listing CSRs")
 
 	cont.env.logger.Debug("Loading admin environment")
 
 	if err := cont.env.LoadAdminEnv(); err != nil {
-		return err
+		return nil, err
 	}
 
 	cont.env.logger.Debug("Getting org index")
 
 	index, err := cont.env.controllers.org.GetIndex()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	cont.env.logger.Flush()
-	for name, id := range index.GetCSRs() {
-		fmt.Printf("* %s %s\n", name, id)
+	csrs := make([]*x509.CSR, 0)
+	for _, id := range index.GetCSRs() {
+		csr, err := cont.GetCSR(id)
+		if err != nil {
+			return nil, err
+		}
+		csrs = append(csrs, csr)
 	}
 
-	return nil
+	return csrs, nil
 }
 
-func (cont *CSRController) Show(params *CSRParams) error {
+func (cont *CSRController) Show(params *CSRParams) (*x509.CSR, error) {
 	cont.env.logger.Info("Showing CSR")
 
 	cont.env.logger.Debug("Validating parameters")
 	if err := params.ValidateName(true); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := params.ValidateExport(false); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := params.ValidatePrivate(false); err != nil {
-		return err
+		return nil, err
 	}
 
 	cont.env.logger.Infof("Showing CSR '%s'", *params.name)
@@ -364,36 +370,28 @@ func (cont *CSRController) Show(params *CSRParams) error {
 	cont.env.logger.Debug("Loading admin environment")
 
 	if err := cont.env.LoadAdminEnv(); err != nil {
-		return err
+		return nil, err
 	}
 
 	cont.env.logger.Debug("Getting org index")
 
 	index, err := cont.env.controllers.org.GetIndex()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	csrId, err := index.GetCSR(*params.name)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	csr, err := cont.GetCSR(csrId)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if *params.export == "" {
-		cont.env.logger.Flush()
-		fmt.Printf("Name: %s\n", csr.Data.Body.Name)
-		fmt.Printf("ID: %s\n", csr.Data.Body.Id)
-		fmt.Printf("Key type: %s\n", csr.Data.Body.KeyType)
-		fmt.Printf("CSR:\n%s\n", csr.Data.Body.CSR)
-
-		if *params.private {
-			fmt.Printf("Private key:\n%s\n", csr.Data.Body.PrivateKey)
-		}
+		return csr, nil
 	} else {
 		var files []ExportFile
 		csrFile := fmt.Sprintf("%s-csr.pem", csr.Data.Body.Name)
@@ -409,50 +407,50 @@ func (cont *CSRController) Show(params *CSRParams) error {
 		Export(files, *params.export)
 	}
 
-	return nil
+	return nil, nil
 }
 
-func (cont *CSRController) Sign(params *CSRParams) error {
+func (cont *CSRController) Sign(params *CSRParams) (*x509.Certificate, error) {
 
 	cont.env.logger.Debug("Validating parameters")
 	if err := params.ValidateName(true); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := cont.env.LoadAdminEnv(); err != nil {
-		return err
+		return nil, err
 	}
 
 	cont.env.logger.Debug("Getting org index")
 
 	index, err := cont.env.controllers.org.GetIndex()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	csrId, err := index.GetCSR(*params.name)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	csr, err := cont.GetCSR(csrId)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	caId, err := index.GetCA(*params.ca)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	caCont, err := NewCAController(cont.env)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	ca, err := caCont.GetCA(caId)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	cert, err := ca.Sign(csr)
@@ -460,22 +458,23 @@ func (cont *CSRController) Sign(params *CSRParams) error {
 	org := cont.env.controllers.org.org
 	certContainer, err := org.EncryptThenSignString(cert.Dump(), nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := cont.env.api.SendPrivate(org.Data.Body.Id, cert.Data.Body.Id, certContainer.Dump()); err != nil {
-		return err
+		return nil, err
 	}
 
 	index.AddCert(cert.Data.Body.Name, cert.Data.Body.Id)
 	index.AddCertTags(cert.Data.Body.Id, ParseTags(*params.tags))
 
 	if err := cont.env.controllers.org.SaveIndex(index); err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return cert, nil
 }
+
 func (cont *CSRController) Update(params *CSRParams) error {
 	cont.env.logger.Info("Updating CSR")
 

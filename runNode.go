@@ -1,7 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"github.com/jawher/mow.cli"
+	"github.com/olekukonko/tablewriter"
+	"os"
 )
 
 func nodeCmd(cmd *cli.Cmd) {
@@ -30,13 +33,23 @@ func nodeNewCmd(cmd *cli.Cmd) {
 
 		cont, err := NewNodeController(env)
 		if err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
-		if err := cont.New(params); err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+		node, err := cont.New(params)
+		if err != nil {
+			env.Fatal(err)
+		}
+		env.logger.Info("Created")
+
+		if node != nil {
+			table := tablewriter.NewWriter(os.Stdout)
+			table.SetAlignment(tablewriter.ALIGN_LEFT)
+			table.SetHeader([]string{"Name", "Id"})
+
+			table.Append([]string{node.Name(), node.Id()})
+			env.logger.Flush()
+			table.Render()
 		}
 	}
 }
@@ -55,14 +68,14 @@ func nodeRunCmd(cmd *cli.Cmd) {
 
 		cont, err := NewNodeController(env)
 		if err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
+		env.logger.Info("Running node tasks")
 		if err := cont.Run(params); err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
+		env.logger.Info("Done")
 	}
 }
 
@@ -83,13 +96,11 @@ func nodeCertCmd(cmd *cli.Cmd) {
 
 		cont, err := NewNodeController(env)
 		if err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
 		if err := cont.Cert(params); err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 	}
 }
@@ -107,14 +118,24 @@ func nodeListCmd(cmd *cli.Cmd) {
 
 		cont, err := NewNodeController(env)
 		if err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
-		if err := cont.List(params); err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+		nodes, err := cont.List(params)
+		if err != nil {
+			env.Fatal(err)
 		}
+
+		table := tablewriter.NewWriter(os.Stdout)
+		table.SetAlignment(tablewriter.ALIGN_LEFT)
+		table.SetHeader([]string{"Name", "Id"})
+
+		for _, node := range nodes {
+			table.Append([]string{node.Name(), node.Id()})
+		}
+
+		env.logger.Flush()
+		table.Render()
 	}
 }
 
@@ -132,13 +153,33 @@ func nodeShowCmd(cmd *cli.Cmd) {
 
 		cont, err := NewNodeController(env)
 		if err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
-		if err := cont.Show(params); err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+		env.logger.Info("Showing node")
+		node, err := cont.Show(params)
+		if err != nil {
+			env.Fatal(err)
+		}
+		env.logger.Info("Done")
+
+		if node != nil {
+			table := tablewriter.NewWriter(os.Stdout)
+			table.SetAlignment(tablewriter.ALIGN_LEFT)
+
+			nodeData := [][]string{
+				[]string{"ID", node.Id()},
+				[]string{"Name", node.Name()},
+				[]string{"Key type", node.Data.Body.KeyType},
+			}
+
+			table.AppendBulk(nodeData)
+			env.logger.Flush()
+			table.Render()
+
+			fmt.Println("")
+			fmt.Printf("Public signing key:\n%s\n", node.Data.Body.PublicSigningKey)
+			fmt.Printf("Public encryption key:\n%s\n", node.Data.Body.PublicEncryptionKey)
 		}
 	}
 }
@@ -159,13 +200,11 @@ func nodeDeleteCmd(cmd *cli.Cmd) {
 
 		cont, err := NewNodeController(env)
 		if err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
 		if err := cont.Delete(params); err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 	}
 }

@@ -1,7 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"github.com/jawher/mow.cli"
+	"github.com/olekukonko/tablewriter"
+	"os"
 )
 
 func adminCmd(cmd *cli.Cmd) {
@@ -25,15 +28,24 @@ func adminListCmd(cmd *cli.Cmd) {
 
 		cont, err := NewAdminController(env)
 		if err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
-		if err := cont.List(params); err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+		admins, err := cont.List(params)
+		if err != nil {
+			env.Fatal(err)
 		}
 
+		table := tablewriter.NewWriter(os.Stdout)
+		table.SetAlignment(tablewriter.ALIGN_LEFT)
+		table.SetHeader([]string{"Name", "Id"})
+
+		for _, admin := range admins {
+			table.Append([]string{admin.Name(), admin.Id()})
+		}
+
+		env.logger.Flush()
+		table.Render()
 	}
 }
 
@@ -51,13 +63,31 @@ func adminShowCmd(cmd *cli.Cmd) {
 
 		cont, err := NewAdminController(env)
 		if err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
-		if err := cont.Show(params); err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+		admin, err := cont.Show(params)
+		if err != nil {
+			env.Fatal(err)
+		}
+
+		if admin != nil {
+
+			table := tablewriter.NewWriter(os.Stdout)
+			table.SetAlignment(tablewriter.ALIGN_LEFT)
+
+			adminData := [][]string{
+				[]string{"Name", admin.Name()},
+				[]string{"ID", admin.Id()},
+			}
+
+			table.AppendBulk(adminData)
+			env.logger.Flush()
+			table.Render()
+
+			fmt.Println("")
+			fmt.Printf("Public signing key:\n%s\n", admin.Data.Body.PublicSigningKey)
+			fmt.Printf("Public encryption key:\n%s\n", admin.Data.Body.PublicEncryptionKey)
 		}
 
 	}
@@ -77,13 +107,26 @@ func adminInviteCmd(cmd *cli.Cmd) {
 
 		cont, err := NewAdminController(env)
 		if err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
-		if err := cont.Invite(params); err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+		keyPair, err := cont.Invite(params)
+		if err != nil {
+			env.Fatal(err)
+		}
+
+		if len(keyPair) > 0 {
+			table := tablewriter.NewWriter(os.Stdout)
+			table.SetAlignment(tablewriter.ALIGN_LEFT)
+
+			adminData := [][]string{
+				[]string{"Id", keyPair[0]},
+				[]string{"Key", keyPair[1]},
+			}
+
+			table.AppendBulk(adminData)
+			env.logger.Flush()
+			table.Render()
 		}
 
 	}
@@ -106,13 +149,11 @@ func adminNewCmd(cmd *cli.Cmd) {
 
 		cont, err := NewAdminController(env)
 		if err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
 		if err := cont.New(params); err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
 	}
@@ -129,13 +170,11 @@ func adminRunCmd(cmd *cli.Cmd) {
 
 		cont, err := NewAdminController(env)
 		if err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
 		if err := cont.Run(params); err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
 	}
@@ -158,13 +197,11 @@ func adminCompleteCmd(cmd *cli.Cmd) {
 
 		cont, err := NewAdminController(env)
 		if err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
 		if err := cont.Complete(params); err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
 	}
@@ -186,13 +223,11 @@ func adminDeleteCmd(cmd *cli.Cmd) {
 
 		cont, err := NewAdminController(env)
 		if err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
 		if err := cont.Delete(params); err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
 	}

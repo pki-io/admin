@@ -312,35 +312,26 @@ func (cont *AdminController) ProcessInvites() error {
 	return nil
 }
 
-func (cont *AdminController) ShowEnv(params *AdminParams) error {
+func (cont *AdminController) ShowEnv(params *AdminParams) (*entity.Entity, error) {
 	index, err := cont.env.controllers.org.GetIndex()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	adminId, err := index.GetAdmin(*params.name)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	admin, err := cont.GetAdmin(adminId)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	cont.env.logger.Info("Showing admin:")
-	cont.env.logger.Flush()
-
-	fmt.Printf("Name: %s\n", admin.Data.Body.Name)
-	fmt.Printf("ID: %s\n", admin.Data.Body.Id)
-	fmt.Printf("Key type: %s\n", admin.Data.Body.KeyType)
-	fmt.Printf("Public encryption key:\n%s\n", admin.Data.Body.PublicEncryptionKey)
-	fmt.Printf("Public signing key:\n%s\n", admin.Data.Body.PublicSigningKey)
-
-	return nil
+	return admin, nil
 }
 
-func (cont *AdminController) InviteEnv(params *AdminParams) error {
+func (cont *AdminController) InviteEnv(params *AdminParams) ([2]string, error) {
 
 	cont.env.logger.Debug("Creating new admin key")
 	id := NewID()
@@ -349,22 +340,16 @@ func (cont *AdminController) InviteEnv(params *AdminParams) error {
 	cont.env.logger.Debug("Saving key to index")
 	index, err := cont.env.controllers.org.GetIndex()
 	if err != nil {
-		return err
+		return [2]string{}, err
 	}
 
 	index.AddInviteKey(id, key, *params.name)
 
 	if err := cont.env.controllers.org.SaveIndex(index); err != nil {
-		return err
+		return [2]string{}, err
 	}
 
-	cont.env.logger.Info("Creating invite")
-	cont.env.logger.Flush()
-
-	fmt.Printf("Invite ID: %s\n", id)
-	fmt.Printf("Invite key: %s\n", key)
-
-	return nil
+	return [2]string{id, key}, nil
 }
 
 func (cont *AdminController) RunEnv(params *AdminParams) error {
@@ -376,61 +361,60 @@ func (cont *AdminController) RunEnv(params *AdminParams) error {
 	return nil
 }
 
-func (cont *AdminController) List(params *AdminParams) error {
-	cont.env.logger.Debug("Loading admin environment")
+func (cont *AdminController) List(params *AdminParams) ([]*entity.Entity, error) {
 
 	if err := cont.env.LoadAdminEnv(); err != nil {
-		return err
+		return nil, err
 	}
 
 	index, err := cont.env.controllers.org.GetIndex()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	admins, err := index.GetAdmins()
+	adminList, err := index.GetAdmins()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	cont.env.logger.Info("Listing admins:")
-	cont.env.logger.Flush()
-
-	for name, id := range admins {
-		fmt.Printf("* %s %s\n", name, id)
+	admins := make([]*entity.Entity, 0)
+	for _, id := range adminList {
+		admin, err := cont.GetAdmin(id)
+		if err != nil {
+			return nil, err
+		}
+		admins = append(admins, admin)
 	}
 
-	return nil
+	return admins, nil
 }
 
-func (cont *AdminController) Show(params *AdminParams) error {
+func (cont *AdminController) Show(params *AdminParams) (*entity.Entity, error) {
 	cont.env.logger.Debug("Validating parameters")
 
 	if err := params.ValidateName(true); err != nil {
-		return err
+		return nil, err
 	}
 
-	cont.env.logger.Debug("Loading admin environment")
-
 	if err := cont.env.LoadAdminEnv(); err != nil {
-		return err
+		return nil, err
 	}
 
 	return cont.env.controllers.admin.ShowEnv(params)
 }
 
-func (cont *AdminController) Invite(params *AdminParams) error {
+func (cont *AdminController) Invite(params *AdminParams) ([2]string, error) {
 
 	cont.env.logger.Debug("Validating parameters")
 
 	if err := params.ValidateName(true); err != nil {
-		return err
+		return [2]string{}, err
 	}
 
 	cont.env.logger.Debug("Loading admin environment")
 
 	if err := cont.env.LoadAdminEnv(); err != nil {
-		return err
+		return [2]string{}, err
 	}
 
 	return cont.env.controllers.admin.InviteEnv(params)
