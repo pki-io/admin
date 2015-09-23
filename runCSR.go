@@ -1,7 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"github.com/jawher/mow.cli"
+	"github.com/olekukonko/tablewriter"
+	"os"
 )
 
 func csrCmd(cmd *cli.Cmd) {
@@ -40,13 +43,29 @@ func csrNewCmd(cmd *cli.Cmd) {
 
 		cont, err := NewCSRController(env)
 		if err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
-		if err := cont.New(params); err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+		csr, err := cont.New(params)
+		if err != nil {
+			env.Fatal(err)
+		}
+
+		if csr != nil {
+			table := tablewriter.NewWriter(os.Stdout)
+			table.SetAlignment(tablewriter.ALIGN_LEFT)
+
+			csrData := [][]string{
+				[]string{"Id", csr.Id()},
+				[]string{"Name", csr.Name()},
+			}
+
+			table.AppendBulk(csrData)
+			env.logger.Flush()
+			table.Render()
+
+			fmt.Println("")
+			fmt.Printf("CSR:\n%s\n", csr.Data.Body.CSR)
 		}
 	}
 }
@@ -62,14 +81,23 @@ func csrListCmd(cmd *cli.Cmd) {
 
 		cont, err := NewCSRController(env)
 		if err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
-		if err := cont.List(params); err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+		csrs, err := cont.List(params)
+		if err != nil {
+			env.Fatal(err)
 		}
+
+		table := tablewriter.NewWriter(os.Stdout)
+		table.SetAlignment(tablewriter.ALIGN_LEFT)
+		table.SetHeader([]string{"Name", "Id"})
+		for _, csr := range csrs {
+			table.Append([]string{csr.Name(), csr.Id()})
+		}
+
+		env.logger.Flush()
+		table.Render()
 	}
 }
 
@@ -90,13 +118,33 @@ func csrShowCmd(cmd *cli.Cmd) {
 
 		cont, err := NewCSRController(env)
 		if err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
-		if err := cont.Show(params); err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+		csr, err := cont.Show(params)
+		if err != nil {
+			env.Fatal(err)
+		}
+
+		if csr != nil {
+			table := tablewriter.NewWriter(os.Stdout)
+			table.SetAlignment(tablewriter.ALIGN_LEFT)
+
+			csrData := [][]string{
+				[]string{"Id", csr.Id()},
+				[]string{"Name", csr.Name()},
+				[]string{"Key type", csr.Data.Body.KeyType},
+			}
+
+			table.AppendBulk(csrData)
+
+			env.logger.Flush()
+			table.Render()
+
+			fmt.Printf("CSR:\n%s\n", csr.Data.Body.CSR)
+			if *params.private {
+				fmt.Printf("Private key:\n%s\n", csr.Data.Body.PrivateKey)
+			}
 		}
 	}
 }
@@ -118,16 +166,34 @@ func csrSignCmd(cmd *cli.Cmd) {
 
 		cont, err := NewCSRController(env)
 		if err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
-		if err := cont.Sign(params); err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+		cert, err := cont.Sign(params)
+		if err != nil {
+			env.Fatal(err)
+		}
+
+		if cert != nil {
+			table := tablewriter.NewWriter(os.Stdout)
+			table.SetAlignment(tablewriter.ALIGN_LEFT)
+
+			certData := [][]string{
+				[]string{"Id", cert.Id()},
+				[]string{"Name", cert.Name()},
+				[]string{"Key type", cert.Data.Body.KeyType},
+			}
+
+			table.AppendBulk(certData)
+
+			env.logger.Flush()
+			table.Render()
+
+			fmt.Printf("Certificate:\n%s\n", cert.Data.Body.Certificate)
 		}
 	}
 }
+
 func csrUpdateCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
 
@@ -146,13 +212,11 @@ func csrUpdateCmd(cmd *cli.Cmd) {
 
 		cont, err := NewCSRController(env)
 		if err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
 		if err := cont.Update(params); err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 	}
 }
@@ -173,13 +237,11 @@ func csrDeleteCmd(cmd *cli.Cmd) {
 
 		cont, err := NewCSRController(env)
 		if err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
 		if err := cont.Delete(params); err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 	}
 }

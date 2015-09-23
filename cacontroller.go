@@ -186,38 +186,34 @@ func (cont *CAController) RemoveCAFromOrgIndex(name string) error {
 	return nil
 }
 
-func (cont *CAController) New(params *CAParams) error {
-
-	cont.env.logger.Info("Creating new ca")
+func (cont *CAController) New(params *CAParams) (*x509.CA, error) {
 
 	cont.env.logger.Debug("Validating parameters")
 
 	if err := params.ValidateName(true); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := params.ValidateCAExpiry(true); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := params.ValidateCertExpiry(true); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := params.ValidateKeyType(true); err != nil {
-		return err
+		return nil, err
 	}
 
-	cont.env.logger.Debug("Loading admin environment")
-
 	if err := cont.env.LoadAdminEnv(); err != nil {
-		return err
+		return nil, err
 	}
 
 	cont.env.logger.Debug("Creating CA struct")
 	ca, err := x509.NewCA(nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	ca.Data.Body.Name = *params.name
@@ -237,27 +233,27 @@ func (cont *CAController) New(params *CAParams) error {
 		ca.GenerateRoot()
 	} else {
 		if *params.certFile == "" {
-			return fmt.Errorf("certificate PEM file must be provided if importing")
+			return nil, fmt.Errorf("certificate PEM file must be provided if importing")
 		}
 
 		ok, err := fs.Exists(*params.certFile)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		if !ok {
 			cont.env.logger.Warnf("Certificate file '%s' does not exist", *params.certFile)
-			return nil
+			return nil, nil
 		}
 
 		certPem, err := fs.ReadFile(*params.certFile)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		cert, err := x509.PemDecodeX509Certificate([]byte(certPem))
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		ca.Data.Body.Id = NewID()
@@ -269,7 +265,7 @@ func (cont *CAController) New(params *CAParams) error {
 		if *params.keyFile != "" {
 			ok, err = fs.Exists(*params.keyFile)
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			if !ok {
@@ -278,17 +274,17 @@ func (cont *CAController) New(params *CAParams) error {
 
 			keyPem, err := fs.ReadFile(*params.keyFile)
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			key, err := crypto.PemDecodePrivate([]byte(keyPem))
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			keyType, err := crypto.GetKeyType(key)
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			ca.Data.Body.KeyType = string(keyType)
@@ -299,101 +295,83 @@ func (cont *CAController) New(params *CAParams) error {
 	cont.env.logger.Debug("Saving CA")
 	err = cont.SaveCA(ca)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	cont.env.logger.Debug("Adding CA to org")
 	err = cont.AddCAToOrgIndex(ca, *params.tags)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return ca, nil
 }
 
-func (cont *CAController) List(params *CAParams) error {
-	cont.env.logger.Info("Listing CAs")
-
-	cont.env.logger.Debug("Loading admin environment")
+func (cont *CAController) List(params *CAParams) ([]*x509.CA, error) {
 
 	if err := cont.env.LoadAdminEnv(); err != nil {
-		return err
+		return nil, err
 	}
 
 	cont.env.logger.Debug("Getting org index")
 
 	index, err := cont.env.controllers.org.GetIndex()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	cont.env.logger.Flush()
-	for name, id := range index.GetCAs() {
-		fmt.Printf("* %s %s\n", name, id)
+	cas := make([]*x509.CA, 0)
+	for _, id := range index.GetCAs() {
+		ca, err := cont.GetCA(id)
+		if err != nil {
+			return nil, err
+		}
+		cas = append(cas, ca)
 	}
 
-	return nil
+	return cas, nil
 }
 
-func (cont *CAController) Show(params *CAParams) error {
+func (cont *CAController) Show(params *CAParams) (*x509.CA, error) {
 	cont.env.logger.Debug("Validating parameters")
 
 	if err := params.ValidateName(true); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := params.ValidateExport(false); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := params.ValidatePrivate(false); err != nil {
-		return err
+		return nil, err
 	}
 
 	cont.env.logger.Infof("Showing CA '%s'", *params.name)
 
-	cont.env.logger.Debug("Loading admin environment")
-
 	if err := cont.env.LoadAdminEnv(); err != nil {
-		return err
+		return nil, err
 	}
 
 	cont.env.logger.Debug("Getting org index")
 
 	index, err := cont.env.controllers.org.GetIndex()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	caId, err := index.GetCA(*params.name)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	ca, err := cont.GetCA(caId)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if *params.export == "" {
-		cont.env.logger.Flush()
-		fmt.Printf("Name: %s\n", ca.Data.Body.Name)
-		fmt.Printf("ID: %s\n", ca.Data.Body.Id)
-		fmt.Printf("CA expiry period: %d\n", ca.Data.Body.CAExpiry)
-		fmt.Printf("Cert expiry period: %d\n", ca.Data.Body.CertExpiry)
-		fmt.Printf("Key type: %s\n", ca.Data.Body.KeyType)
-		fmt.Printf("DN country: %s\n", ca.Data.Body.DNScope.Country)
-		fmt.Printf("DN organization: %s\n", ca.Data.Body.DNScope.Organization)
-		fmt.Printf("DN organizational unit: %s\n", ca.Data.Body.DNScope.OrganizationalUnit)
-		fmt.Printf("DN locality: %s\n", ca.Data.Body.DNScope.Locality)
-		fmt.Printf("DN province: %s\n", ca.Data.Body.DNScope.Province)
-		fmt.Printf("DN street address: %s\n", ca.Data.Body.DNScope.StreetAddress)
-		fmt.Printf("DN postal code: %s\n", ca.Data.Body.DNScope.PostalCode)
-		fmt.Printf("Certficate:\n%s\n", ca.Data.Body.Certificate)
-
-		if *params.private {
-			fmt.Printf("Private key:\n%s\n", ca.Data.Body.PrivateKey)
-		}
+		return ca, nil
 	} else {
 		var files []ExportFile
 		certFile := fmt.Sprintf("%s-cert.pem", ca.Data.Body.Name)
@@ -409,7 +387,7 @@ func (cont *CAController) Show(params *CAParams) error {
 		Export(files, *params.export)
 	}
 
-	return nil
+	return nil, nil
 }
 
 func (cont *CAController) Update(params *CAParams) error {
@@ -421,8 +399,6 @@ func (cont *CAController) Update(params *CAParams) error {
 	}
 
 	cont.env.logger.Infof("Updating CA '%s'", *params.name)
-
-	cont.env.logger.Debug("Loading admin environment")
 
 	if err := cont.env.LoadAdminEnv(); err != nil {
 		return err
@@ -570,8 +546,6 @@ func (cont *CAController) Delete(params *CAParams) error {
 	}
 
 	cont.env.logger.Infof("Deleting CA '%s' with reason '%s'", *params.name, *params.confirmDelete)
-
-	cont.env.logger.Debug("Loading admin environment")
 
 	if err := cont.env.LoadAdminEnv(); err != nil {
 		return err

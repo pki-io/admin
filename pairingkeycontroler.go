@@ -63,20 +63,20 @@ func (cont *PairingKeyController) AddPairingKeyToOrgIndex(id, key, tags string) 
 
 }
 
-func (cont *PairingKeyController) New(params *PairingKeyParams) error {
+func (cont *PairingKeyController) New(params *PairingKeyParams) (string, string, error) {
 
 	cont.env.logger.Info("Creating new pairing key")
 
 	cont.env.logger.Debug("Validating parameters")
 
 	if err := params.ValidateTags(true); err != nil {
-		return err
+		return "", "", err
 	}
 
 	cont.env.logger.Debug("Loading admin environment")
 
 	if err := cont.env.LoadAdminEnv(); err != nil {
-		return err
+		return "", "", err
 	}
 
 	id, key := cont.GeneratePairingKey()
@@ -85,46 +85,43 @@ func (cont *PairingKeyController) New(params *PairingKeyParams) error {
 
 	err := cont.AddPairingKeyToOrgIndex(id, key, *params.tags)
 	if err != nil {
-		return err
+		return "", "", err
 	}
 
-	cont.env.logger.Flush()
-	fmt.Printf("Pairing ID: %s\n", id)
-	fmt.Printf("Pairing key: %s\n", key)
-
-	return nil
+	return id, key, nil
 }
 
-func (cont *PairingKeyController) List(params *PairingKeyParams) error {
+func (cont *PairingKeyController) List(params *PairingKeyParams) ([][]string, error) {
+	keys := [][]string{}
 	cont.env.logger.Info("Listing pairing keys")
 
 	cont.env.logger.Debug("Loading admin environment")
 
 	if err := cont.env.LoadAdminEnv(); err != nil {
-		return err
+		return keys, err
 	}
 
 	cont.env.logger.Debug("Getting org index")
 
 	index, err := cont.env.controllers.org.GetIndex()
 	if err != nil {
-		return err
+		return keys, err
 	}
 
 	cont.env.logger.Flush()
 	for id, pk := range index.GetPairingKeys() {
-		fmt.Printf("* %s %s\n", id, strings.Join(pk.Tags[:], ","))
+		keys = append(keys, []string{id, strings.Join(pk.Tags[:], ",")})
 	}
 
-	return nil
+	return keys, nil
 }
 
-func (cont *PairingKeyController) Show(params *PairingKeyParams) error {
+func (cont *PairingKeyController) Show(params *PairingKeyParams) (string, string, string, error) {
 
 	cont.env.logger.Debug("Validating parameters")
 
 	if err := params.ValidateID(true); err != nil {
-		return err
+		return "", "", "", err
 	}
 
 	cont.env.logger.Info("Showing pairing key")
@@ -132,29 +129,22 @@ func (cont *PairingKeyController) Show(params *PairingKeyParams) error {
 	cont.env.logger.Debug("Loading admin environment")
 
 	if err := cont.env.LoadAdminEnv(); err != nil {
-		return err
+		return "", "", "", err
 	}
 
 	cont.env.logger.Debug("Getting org index")
 
 	index, err := cont.env.controllers.org.GetIndex()
 	if err != nil {
-		return err
+		return "", "", "", err
 	}
 
-	cont.env.logger.Flush()
 	pk, err := index.GetPairingKey(*params.id)
 	if err != nil {
-		return err
+		return "", "", "", err
 	}
 
-	fmt.Printf("ID: %s\n", *params.id)
-	if *params.private {
-		fmt.Printf("Key: %s\n", pk.Key)
-	}
-	fmt.Printf("Tags: %s\n", strings.Join(pk.Tags[:], ","))
-
-	return nil
+	return *params.id, pk.Key, strings.Join(pk.Tags[:], ","), nil
 }
 
 func (cont *PairingKeyController) Delete(params *PairingKeyParams) error {

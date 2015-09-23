@@ -3,6 +3,9 @@
 #vendor -f "github.com/pki-io/docopt.go" -r "github.com/docopt/docopt-go" -g "checkout 854c423c810880e30b9fecdabb12d54f4a92f9bb"
 vendor -f "github.com/pki-io/mow.cli" -r "github.com/jawher/mow.cli" -g "checkout 99e76c7b8062ea7ae8c0aff76c392fa047619f1e"
 
+##### ASCII tables #####
+vendor -f "github.com/pki-io/tablewriter" -r "github.com/olekukonko/tablewriter" -g "checkout b9346ac189c55dd419f85c7ad2cd56f810bf19d6"
+
 ##### Logging #####
 vendor -f "github.com/pki-io/seelog" -r "github.com/cihub/seelog" -g "checkout c510775bb50d98213cfafca75a4bc5e3fddc8d8f"
 

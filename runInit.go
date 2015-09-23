@@ -20,13 +20,11 @@ func initCmd(cmd *cli.Cmd) {
 
 		cont, err := NewOrgController(env)
 		if err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
 		if err := cont.Init(params); err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 	}
 }

@@ -1,7 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"github.com/jawher/mow.cli"
+	"github.com/olekukonko/tablewriter"
+	"os"
 )
 
 func orgCmd(cmd *cli.Cmd) {
@@ -24,14 +27,24 @@ func orgListCmd(cmd *cli.Cmd) {
 
 		cont, err := NewOrgController(env)
 		if err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
-		if err := cont.List(params); err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+		orgs, err := cont.List(params)
+		if err != nil {
+			env.Fatal(err)
 		}
+
+		table := tablewriter.NewWriter(os.Stdout)
+		table.SetAlignment(tablewriter.ALIGN_LEFT)
+		table.SetHeader([]string{"Name", "Id"})
+
+		for _, org := range orgs {
+			table.Append([]string{org.Name(), org.Id()})
+		}
+
+		env.logger.Flush()
+		table.Render()
 	}
 }
 
@@ -49,13 +62,31 @@ func orgShowCmd(cmd *cli.Cmd) {
 
 		cont, err := NewOrgController(env)
 		if err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
-		if err := cont.Show(params); err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+		org, err := cont.Show(params)
+		if err != nil {
+			env.Fatal(err)
+		}
+
+		if org != nil {
+			table := tablewriter.NewWriter(os.Stdout)
+			table.SetAlignment(tablewriter.ALIGN_LEFT)
+
+			orgData := [][]string{
+				[]string{"ID", org.Id()},
+				[]string{"Name", org.Name()},
+				[]string{"Key type", org.Data.Body.KeyType},
+			}
+
+			table.AppendBulk(orgData)
+			env.logger.Flush()
+			table.Render()
+
+			fmt.Println("")
+			fmt.Printf("Public signing key:\n%s\n", org.Data.Body.PublicSigningKey)
+			fmt.Printf("Public encryption key:\n%s\n", org.Data.Body.PublicEncryptionKey)
 		}
 	}
 }
@@ -73,13 +104,11 @@ func orgRunCmd(cmd *cli.Cmd) {
 
 		cont, err := NewOrgController(env)
 		if err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
 		if err := cont.Run(params); err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 	}
 }
@@ -99,13 +128,11 @@ func orgDeleteCmd(cmd *cli.Cmd) {
 
 		cont, err := NewOrgController(env)
 		if err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 
 		if err := cont.Delete(params); err != nil {
-			env.logger.Error(err)
-			env.Fatal()
+			env.Fatal(err)
 		}
 	}
 }
