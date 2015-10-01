@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/jawher/mow.cli"
-	"github.com/olekukonko/tablewriter"
-	"os"
 )
 
 func adminCmd(cmd *cli.Cmd) {
@@ -23,29 +21,28 @@ func adminListCmd(cmd *cli.Cmd) {
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
 		defer logger.Close()
-		env := new(Environment)
-		env.logger = logger
 
-		cont, err := NewAdminController(env)
+		app := NewAdminApp()
+		logger.Info("listing admins")
+
+		cont, err := NewAdminController(app.env)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		admins, err := cont.List(params)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
-		table := tablewriter.NewWriter(os.Stdout)
-		table.SetAlignment(tablewriter.ALIGN_LEFT)
+		table := app.NewTable()
 		table.SetHeader([]string{"Name", "Id"})
 
 		for _, admin := range admins {
 			table.Append([]string{admin.Name(), admin.Id()})
 		}
 
-		env.logger.Flush()
-		table.Render()
+		app.RenderTable(table)
 	}
 }
 
@@ -58,23 +55,23 @@ func adminShowCmd(cmd *cli.Cmd) {
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
 		defer logger.Close()
-		env := new(Environment)
-		env.logger = logger
 
-		cont, err := NewAdminController(env)
+		app := NewAdminApp()
+		logger.Info("showing admin")
+
+		cont, err := NewAdminController(app.env)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		admin, err := cont.Show(params)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		if admin != nil {
 
-			table := tablewriter.NewWriter(os.Stdout)
-			table.SetAlignment(tablewriter.ALIGN_LEFT)
+			table := app.NewTable()
 
 			adminData := [][]string{
 				[]string{"Name", admin.Name()},
@@ -82,8 +79,8 @@ func adminShowCmd(cmd *cli.Cmd) {
 			}
 
 			table.AppendBulk(adminData)
-			env.logger.Flush()
-			table.Render()
+
+			app.RenderTable(table)
 
 			fmt.Println("")
 			fmt.Printf("Public signing key:\n%s\n", admin.Data.Body.PublicSigningKey)
@@ -102,22 +99,22 @@ func adminInviteCmd(cmd *cli.Cmd) {
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
 		defer logger.Close()
-		env := new(Environment)
-		env.logger = logger
 
-		cont, err := NewAdminController(env)
+		app := NewAdminApp()
+		logger.Info("creating admin invite")
+
+		cont, err := NewAdminController(app.env)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		keyPair, err := cont.Invite(params)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		if len(keyPair) > 0 {
-			table := tablewriter.NewWriter(os.Stdout)
-			table.SetAlignment(tablewriter.ALIGN_LEFT)
+			table := app.NewTable()
 
 			adminData := [][]string{
 				[]string{"Id", keyPair[0]},
@@ -125,8 +122,8 @@ func adminInviteCmd(cmd *cli.Cmd) {
 			}
 
 			table.AppendBulk(adminData)
-			env.logger.Flush()
-			table.Render()
+
+			app.RenderTable(table)
 		}
 
 	}
@@ -144,16 +141,17 @@ func adminNewCmd(cmd *cli.Cmd) {
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
 		defer logger.Close()
-		env := new(Environment)
-		env.logger = logger
 
-		cont, err := NewAdminController(env)
+		app := NewAdminApp()
+		logger.Info("creating new admin")
+
+		cont, err := NewAdminController(app.env)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		if err := cont.New(params); err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 	}
@@ -165,16 +163,17 @@ func adminRunCmd(cmd *cli.Cmd) {
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
 		defer logger.Close()
-		env := new(Environment)
-		env.logger = logger
 
-		cont, err := NewAdminController(env)
+		app := NewAdminApp()
+		logger.Info("running admin tasks")
+
+		cont, err := NewAdminController(app.env)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		if err := cont.Run(params); err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 	}
@@ -192,16 +191,17 @@ func adminCompleteCmd(cmd *cli.Cmd) {
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
 		defer logger.Close()
-		env := new(Environment)
-		env.logger = logger
 
-		cont, err := NewAdminController(env)
+		app := NewAdminApp()
+		logger.Info("completing new admin")
+
+		cont, err := NewAdminController(app.env)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		if err := cont.Complete(params); err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 	}
@@ -218,16 +218,17 @@ func adminDeleteCmd(cmd *cli.Cmd) {
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
 		defer logger.Close()
-		env := new(Environment)
-		env.logger = logger
 
-		cont, err := NewAdminController(env)
+		app := NewAdminApp()
+		logger.Info("deleting admin")
+
+		cont, err := NewAdminController(app.env)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		if err := cont.Delete(params); err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 	}

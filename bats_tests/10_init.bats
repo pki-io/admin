@@ -24,6 +24,6 @@ load "fixtures/basics"
   mv "${PKIIO_LOCAL_DIR}/${ORG}" "${PKIIO_LOCAL_DIR}/{$ORG2}"
   run init
   [ "$status" -eq 0 ]
-  [[ "$output" =~ "Org already exists" ]]
+  [[ "$output" =~ "org already exists" ]]
   cleanup
 }

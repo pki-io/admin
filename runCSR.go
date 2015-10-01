@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/jawher/mow.cli"
-	"github.com/olekukonko/tablewriter"
-	"os"
 )
 
 func csrCmd(cmd *cli.Cmd) {
@@ -38,32 +36,30 @@ func csrNewCmd(cmd *cli.Cmd) {
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
 		defer logger.Close()
-		env := new(Environment)
-		env.logger = logger
 
-		cont, err := NewCSRController(env)
+		app := NewAdminApp()
+		logger.Info("creating new CSR")
+
+		cont, err := NewCSRController(app.env)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		csr, err := cont.New(params)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		if csr != nil {
-			table := tablewriter.NewWriter(os.Stdout)
-			table.SetAlignment(tablewriter.ALIGN_LEFT)
+			table := app.NewTable()
 
 			csrData := [][]string{
 				[]string{"Id", csr.Id()},
 				[]string{"Name", csr.Name()},
 			}
-
 			table.AppendBulk(csrData)
-			env.logger.Flush()
-			table.Render()
 
+			app.RenderTable(table)
 			fmt.Println("")
 			fmt.Printf("CSR:\n%s\n", csr.Data.Body.CSR)
 		}
@@ -76,28 +72,28 @@ func csrListCmd(cmd *cli.Cmd) {
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
 		defer logger.Close()
-		env := new(Environment)
-		env.logger = logger
 
-		cont, err := NewCSRController(env)
+		app := NewAdminApp()
+		logger.Info("listing CSRs")
+
+		cont, err := NewCSRController(app.env)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		csrs, err := cont.List(params)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
-		table := tablewriter.NewWriter(os.Stdout)
-		table.SetAlignment(tablewriter.ALIGN_LEFT)
+		table := app.NewTable()
 		table.SetHeader([]string{"Name", "Id"})
+
 		for _, csr := range csrs {
 			table.Append([]string{csr.Name(), csr.Id()})
 		}
 
-		env.logger.Flush()
-		table.Render()
+		app.RenderTable(table)
 	}
 }
 
@@ -113,22 +109,22 @@ func csrShowCmd(cmd *cli.Cmd) {
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
 		defer logger.Close()
-		env := new(Environment)
-		env.logger = logger
 
-		cont, err := NewCSRController(env)
+		app := NewAdminApp()
+		logger.Info("showing CSR")
+
+		cont, err := NewCSRController(app.env)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		csr, err := cont.Show(params)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		if csr != nil {
-			table := tablewriter.NewWriter(os.Stdout)
-			table.SetAlignment(tablewriter.ALIGN_LEFT)
+			table := app.NewTable()
 
 			csrData := [][]string{
 				[]string{"Id", csr.Id()},
@@ -138,8 +134,7 @@ func csrShowCmd(cmd *cli.Cmd) {
 
 			table.AppendBulk(csrData)
 
-			env.logger.Flush()
-			table.Render()
+			app.RenderTable(table)
 
 			fmt.Printf("CSR:\n%s\n", csr.Data.Body.CSR)
 			if *params.private {
@@ -161,22 +156,22 @@ func csrSignCmd(cmd *cli.Cmd) {
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
 		defer logger.Close()
-		env := new(Environment)
-		env.logger = logger
 
-		cont, err := NewCSRController(env)
+		app := NewAdminApp()
+		logger.Info("signing CSR")
+
+		cont, err := NewCSRController(app.env)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		cert, err := cont.Sign(params)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		if cert != nil {
-			table := tablewriter.NewWriter(os.Stdout)
-			table.SetAlignment(tablewriter.ALIGN_LEFT)
+			table := app.NewTable()
 
 			certData := [][]string{
 				[]string{"Id", cert.Id()},
@@ -186,9 +181,7 @@ func csrSignCmd(cmd *cli.Cmd) {
 
 			table.AppendBulk(certData)
 
-			env.logger.Flush()
-			table.Render()
-
+			app.RenderTable(table)
 			fmt.Printf("Certificate:\n%s\n", cert.Data.Body.Certificate)
 		}
 	}
@@ -207,16 +200,17 @@ func csrUpdateCmd(cmd *cli.Cmd) {
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
 		defer logger.Close()
-		env := new(Environment)
-		env.logger = logger
 
-		cont, err := NewCSRController(env)
+		app := NewAdminApp()
+		logger.Info("updating CSR")
+
+		cont, err := NewCSRController(app.env)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		if err := cont.Update(params); err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 	}
 }
@@ -232,16 +226,17 @@ func csrDeleteCmd(cmd *cli.Cmd) {
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
 		defer logger.Close()
-		env := new(Environment)
-		env.logger = logger
 
-		cont, err := NewCSRController(env)
+		app := NewAdminApp()
+		logger.Info("deleting CSR")
+
+		cont, err := NewCSRController(app.env)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		if err := cont.Delete(params); err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 	}
 }

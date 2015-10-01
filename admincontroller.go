@@ -23,6 +23,7 @@ func NewAdminParams() *AdminParams {
 }
 
 func (params *AdminParams) ValidateName(required bool) error {
+	logger.Debugf("validating 'name' paramater: %s", *params.name)
 	if required && *params.name == "" {
 		return fmt.Errorf("name cannot be empty")
 	}
@@ -46,6 +47,7 @@ func NewAdminController(env *Environment) (*AdminController, error) {
 }
 
 func (cont *AdminController) LoadConfig() error {
+	logger.Debug("loading admin config")
 	var err error
 	if cont.config == nil {
 		cont.config, err = config.NewAdmin()
@@ -54,44 +56,53 @@ func (cont *AdminController) LoadConfig() error {
 		}
 	}
 
+	logger.Debugf("checking file '%s' exists", AdminConfigFile)
 	exists, err := cont.env.fs.home.Exists(AdminConfigFile)
 	if err != nil {
 		return err
 	}
 
 	if exists {
+		logger.Debug("reading config file")
 		adminConfig, err := cont.env.fs.home.Read(AdminConfigFile)
 		if err != nil {
 			return err
 		}
 
+		logger.Debug("loading config")
 		err = cont.config.Load(adminConfig)
 		if err != nil {
 			return err
 		}
 	}
 
+	logger.Trace("returning nil error")
 	return nil
 }
 
 func (cont *AdminController) SaveConfig() error {
+	logger.Debug("saving admin config")
 	cfgString, err := cont.config.Dump()
 	if err != nil {
 		return err
 	}
 
+	logger.Debugf("writing config to file '%s", AdminConfigFile)
 	if err := cont.env.fs.home.Write(AdminConfigFile, cfgString); err != nil {
 		return err
 	}
 
+	logger.Trace("returning nil error")
 	return nil
 }
 
 func (cont *AdminController) CreateAdmin(name string) error {
-
+	logger.Debug("creating new admin")
 	var err error
 
 	// TODO validate name
+
+	logger.Debug("creating new entity")
 	cont.admin, err = entity.New(nil)
 	if err != nil {
 		return err
@@ -99,15 +110,19 @@ func (cont *AdminController) CreateAdmin(name string) error {
 
 	cont.admin.Data.Body.Id = NewID()
 	cont.admin.Data.Body.Name = name
+
+	logger.Debug("generating keys")
 	err = cont.admin.GenerateKeys()
 	if err != nil {
 		return err
 	}
 
+	logger.Trace("returning nil error")
 	return nil
 }
 
 func (cont *AdminController) LoadAdmin() error {
+	logger.Debug("loading admin")
 	orgName := cont.env.controllers.org.config.Data.Name
 
 	adminOrgConfig, err := cont.config.GetOrg(orgName)
@@ -117,34 +132,44 @@ func (cont *AdminController) LoadAdmin() error {
 
 	adminId := adminOrgConfig.AdminId
 
+	logger.Debugf("reading file for admin id '%s'", adminId)
 	adminEntity, err := cont.env.fs.home.Read(adminId)
 	if err != nil {
 		return err
 	}
 
+	logger.Debug("creating entity")
 	cont.admin, err = entity.New(adminEntity)
 	if err != nil {
 		return err
 	}
 
+	logger.Trace("returning nil error")
 	return nil
 }
 
 func (cont *AdminController) GetAdmin(id string) (*entity.Entity, error) {
+	logger.Debug("getting admin")
+	logger.Tracef("received id '%s'", id)
+
 	adminJson, err := cont.env.api.GetPublic(id, id)
 	if err != nil {
 		return nil, err
 	}
 
+	logger.Debug("creating entity")
 	admin, err := entity.New(adminJson)
 	if err != nil {
 		return nil, err
 	}
 
+	logger.Trace("returning admin")
 	return admin, nil
 }
 
 func (cont *AdminController) GetAdmins() ([]*entity.Entity, error) {
+	logger.Debug("getting admins")
+
 	index, err := cont.env.controllers.org.GetIndex()
 	if err != nil {
 		return nil, err
@@ -165,100 +190,113 @@ func (cont *AdminController) GetAdmins() ([]*entity.Entity, error) {
 		admins = append(admins, admin)
 	}
 
+	logger.Trace("returning admin list")
 	return admins, nil
 }
 
 func (cont *AdminController) SaveAdmin() error {
+	logger.Debug("saving admin")
 	id := cont.admin.Data.Body.Id
 
-	// Save private admin to home
+	logger.Debugf("saving private admin '%s' to home", id)
 	if err := cont.env.fs.home.Write(id, cont.admin.Dump()); err != nil {
 		return err
 	}
 
 	// Send a public admin
+	logger.Debugf("sending public admin '%s'", id)
 	if err := cont.env.api.SendPublic(id, id, cont.admin.DumpPublic()); err != nil {
 		return err
 	}
 
+	logger.Trace("returning nil error")
 	return nil
 }
 
 func (cont *AdminController) SendOrgEntity() error {
+	logger.Debug("sending org")
+
 	org := cont.env.controllers.org.org
-	orgId := org.Data.Body.Id
 
 	admins, err := cont.GetAdmins()
 	if err != nil {
 		return err
 	}
 
+	logger.Debug("encrypting private org for admins")
 	container, err := org.EncryptThenSignString(org.Dump(), admins)
 	if err != nil {
 		return err
 	}
 
-	if err := cont.env.api.SendPrivate(orgId, orgId, container.Dump()); err != nil {
+	logger.Debugf("sending private org '%s'", org.Id())
+	if err := cont.env.api.SendPrivate(org.Id(), org.Id(), container.Dump()); err != nil {
 		return err
 	}
 
+	logger.Trace("returning nil error")
 	return nil
 }
 
 func (cont *AdminController) SecureSendPublicToOrg(id, key string) error {
+	logger.Debugf("secure sending public admin to org")
+	logger.Tracef("received id '%s' and key [NOT LOGGED]", id)
 
-	cont.env.logger.Debug("Encrypting admin for org")
+	orgId := cont.env.controllers.org.config.Data.Id
+
+	logger.Debug("encrypting public admin invite for org")
 	container, err := cont.admin.EncryptThenAuthenticateString(cont.admin.DumpPublic(), id, key)
 	if err != nil {
 		return err
 	}
-	orgId := cont.env.controllers.org.config.Data.Id
+
+	logger.Debugf("pushing admin invite to org '%s'", orgId)
 	if err := cont.env.api.PushIncoming(orgId, "invite", container.Dump()); err != nil {
 		return err
 	}
 
+	logger.Trace("returning nil error")
 	return nil
 }
 
 func (cont *AdminController) ProcessNextInvite() error {
 
 	org := cont.env.controllers.org.org
-	orgId := org.Data.Body.Id
 
 	index, err := cont.env.controllers.org.GetIndex()
 	if err != nil {
 		return err
 	}
 
-	inviteJson, err := cont.env.api.PopIncoming(orgId, "invite")
+	inviteJson, err := cont.env.api.PopIncoming(org.Id(), "invite")
 	if err != nil {
 		return err
 	}
 
 	container, err := document.NewContainer(inviteJson)
 	if err != nil {
-		cont.env.api.PushIncoming(orgId, "invite", inviteJson)
+		cont.env.api.PushIncoming(org.Id(), "invite", inviteJson)
 		return err
 	}
 
 	inviteId := container.Data.Options.SignatureInputs["key-id"]
-	cont.env.logger.Debugf("Reading invite key: %s", inviteId)
+	logger.Debugf("Reading invite key: %s", inviteId)
 	inviteKey, err := index.GetInviteKey(inviteId)
 	if err != nil {
-		cont.env.api.PushIncoming(orgId, "invite", inviteJson)
+		cont.env.api.PushIncoming(org.Id(), "invite", inviteJson)
 		return err
 	}
 
-	cont.env.logger.Debug("Verifying and decrypting admin invite")
+	logger.Debug("Verifying and decrypting admin invite")
 	adminJson, err := org.VerifyAuthenticationThenDecrypt(container, inviteKey.Key)
 	if err != nil {
-		cont.env.api.PushIncoming(orgId, "invite", inviteJson)
+		cont.env.api.PushIncoming(org.Id(), "invite", inviteJson)
 		return err
 	}
 
 	admin, err := entity.New(adminJson)
 	if err != nil {
-		cont.env.api.PushIncoming(orgId, "invite", inviteJson)
+		cont.env.api.PushIncoming(org.Id(), "invite", inviteJson)
 		return err
 	}
 
@@ -289,16 +327,17 @@ func (cont *AdminController) ProcessNextInvite() error {
 }
 
 func (cont *AdminController) ProcessInvites() error {
-	cont.env.logger.Debug("Processing invites")
+	logger.Debug("Processing invites")
 
-	orgId := cont.env.controllers.org.org.Data.Body.Id
+	org := cont.env.controllers.org.org
+
 	for {
-		size, err := cont.env.api.IncomingSize(orgId, "invite")
+		size, err := cont.env.api.IncomingSize(org.Id(), "invite")
 		if err != nil {
 			return err
 		}
 
-		cont.env.logger.Debugf("Found %d invites to process", size)
+		logger.Debugf("Found %d invites to process", size)
 
 		if size > 0 {
 			if err := cont.ProcessNextInvite(); err != nil {
@@ -333,11 +372,11 @@ func (cont *AdminController) ShowEnv(params *AdminParams) (*entity.Entity, error
 
 func (cont *AdminController) InviteEnv(params *AdminParams) ([2]string, error) {
 
-	cont.env.logger.Debug("Creating new admin key")
+	logger.Debug("Creating new admin key")
 	id := NewID()
 	key := NewID()
 
-	cont.env.logger.Debug("Saving key to index")
+	logger.Debug("Saving key to index")
 	index, err := cont.env.controllers.org.GetIndex()
 	if err != nil {
 		return [2]string{}, err
@@ -362,6 +401,7 @@ func (cont *AdminController) RunEnv(params *AdminParams) error {
 }
 
 func (cont *AdminController) List(params *AdminParams) ([]*entity.Entity, error) {
+	logger.Tracef("received params: %s", params)
 
 	if err := cont.env.LoadAdminEnv(); err != nil {
 		return nil, err
@@ -390,7 +430,8 @@ func (cont *AdminController) List(params *AdminParams) ([]*entity.Entity, error)
 }
 
 func (cont *AdminController) Show(params *AdminParams) (*entity.Entity, error) {
-	cont.env.logger.Debug("Validating parameters")
+	logger.Tracef("received params: %s", params)
+	logger.Debug("Validating parameters")
 
 	if err := params.ValidateName(true); err != nil {
 		return nil, err
@@ -404,14 +445,15 @@ func (cont *AdminController) Show(params *AdminParams) (*entity.Entity, error) {
 }
 
 func (cont *AdminController) Invite(params *AdminParams) ([2]string, error) {
+	logger.Tracef("received params: %s", params)
 
-	cont.env.logger.Debug("Validating parameters")
+	logger.Debug("Validating parameters")
 
 	if err := params.ValidateName(true); err != nil {
 		return [2]string{}, err
 	}
 
-	cont.env.logger.Debug("Loading admin environment")
+	logger.Debug("Loading admin environment")
 
 	if err := cont.env.LoadAdminEnv(); err != nil {
 		return [2]string{}, err
@@ -421,43 +463,44 @@ func (cont *AdminController) Invite(params *AdminParams) ([2]string, error) {
 }
 
 func (cont *AdminController) New(params *AdminParams) error {
+	logger.Tracef("received params: %s", params)
 
 	var err error
 
-	cont.env.logger.Debug("Validating parameters")
+	logger.Debug("Validating parameters")
 
 	if err := params.ValidateName(true); err != nil {
 		return err
 	}
 
-	cont.env.logger.Debug("Loading local filesystem")
+	logger.Debug("Loading local filesystem")
 	if err := cont.env.LoadLocalFs(); err != nil {
 		return err
 	}
 
-	cont.env.logger.Debug("Loading home filesystem")
+	logger.Debug("Loading home filesystem")
 	if err := cont.env.LoadHomeFs(); err != nil {
 		return err
 	}
 
-	cont.env.logger.Debug("Loading API")
+	logger.Debug("Loading API")
 	if err := cont.env.LoadAPI(); err != nil {
 		return err
 	}
 
-	cont.env.logger.Debug("Initializing org controller")
+	logger.Debug("Initializing org controller")
 	if cont.env.controllers.org == nil {
 		if cont.env.controllers.org, err = NewOrgController(cont.env); err != nil {
 			return err
 		}
 	}
 
-	cont.env.logger.Debug("Loading org config")
+	logger.Debug("Loading org config")
 	if err := cont.env.controllers.org.LoadConfig(); err != nil {
 		return err
 	}
 
-	cont.env.logger.Debug("Creating admin entity")
+	logger.Debug("Creating admin entity")
 	cont.admin, err = entity.New(nil)
 	if err != nil {
 		return nil
@@ -466,7 +509,7 @@ func (cont *AdminController) New(params *AdminParams) error {
 	cont.admin.Data.Body.Id = NewID()
 	cont.admin.Data.Body.Name = *params.name
 
-	cont.env.logger.Debug("Generating admin keys")
+	logger.Debug("Generating admin keys")
 	if err := cont.admin.GenerateKeys(); err != nil {
 		return err
 	}
@@ -482,7 +525,7 @@ func (cont *AdminController) New(params *AdminParams) error {
 	orgId := cont.env.controllers.org.config.Data.Id
 	orgName := cont.env.controllers.org.config.Data.Name
 
-	if err := cont.config.AddOrg(orgName, orgId, cont.admin.Data.Body.Id); err != nil {
+	if err := cont.config.AddOrg(orgName, orgId, cont.admin.Id()); err != nil {
 		return err
 	}
 
@@ -498,6 +541,7 @@ func (cont *AdminController) New(params *AdminParams) error {
 }
 
 func (cont *AdminController) Run(params *AdminParams) error {
+	logger.Tracef("received params: %s", params)
 
 	if err := cont.env.LoadAdminEnv(); err != nil {
 		return err
@@ -509,32 +553,29 @@ func (cont *AdminController) Run(params *AdminParams) error {
 func (cont *AdminController) Complete(params *AdminParams) error {
 
 	var err error
+	logger.Tracef("received params: %s", params)
 
-	cont.env.logger.Debug("Validating parameters")
+	logger.Debug("validating parameters")
 
-	cont.env.logger.Debug("Loading local filesystem")
 	if err := cont.env.LoadLocalFs(); err != nil {
 		return err
 	}
 
-	cont.env.logger.Debug("Loading home filesystem")
 	if err := cont.env.LoadHomeFs(); err != nil {
 		return err
 	}
 
-	cont.env.logger.Debug("Loading API")
 	if err := cont.env.LoadAPI(); err != nil {
 		return err
 	}
 
-	cont.env.logger.Debug("Initializing org controller")
+	logger.Debug("Initializing org controller")
 	if cont.env.controllers.org == nil {
 		if cont.env.controllers.org, err = NewOrgController(cont.env); err != nil {
 			return err
 		}
 	}
 
-	cont.env.logger.Debug("Loading org config")
 	if err := cont.env.controllers.org.LoadConfig(); err != nil {
 		return err
 	}
@@ -567,7 +608,7 @@ func (cont *AdminController) Complete(params *AdminParams) error {
 		return err
 	}
 
-	cont.env.logger.Debug("Saving public org to home")
+	logger.Debug("Saving public org to home")
 	if err := cont.env.fs.home.Write(org.Data.Body.Id, org.DumpPublic()); err != nil {
 		return err
 	}
@@ -576,7 +617,7 @@ func (cont *AdminController) Complete(params *AdminParams) error {
 }
 
 func (cont *AdminController) Delete(params *AdminParams) error {
-	cont.env.logger.Debug("Loading admin environment")
+	logger.Tracef("received params: %s", params)
 
 	if err := cont.env.LoadAdminEnv(); err != nil {
 		return err

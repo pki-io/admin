@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/jawher/mow.cli"
-	"github.com/olekukonko/tablewriter"
-	"os"
 )
 
 func orgCmd(cmd *cli.Cmd) {
@@ -22,29 +20,28 @@ func orgListCmd(cmd *cli.Cmd) {
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
 		defer logger.Close()
-		env := new(Environment)
-		env.logger = logger
 
-		cont, err := NewOrgController(env)
+		app := NewAdminApp()
+		logger.Info("listing organisations")
+
+		cont, err := NewOrgController(app.env)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		orgs, err := cont.List(params)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
-		table := tablewriter.NewWriter(os.Stdout)
-		table.SetAlignment(tablewriter.ALIGN_LEFT)
+		table := app.NewTable()
 		table.SetHeader([]string{"Name", "Id"})
 
 		for _, org := range orgs {
 			table.Append([]string{org.Name(), org.Id()})
 		}
 
-		env.logger.Flush()
-		table.Render()
+		app.RenderTable(table)
 	}
 }
 
@@ -57,33 +54,31 @@ func orgShowCmd(cmd *cli.Cmd) {
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
 		defer logger.Close()
-		env := new(Environment)
-		env.logger = logger
 
-		cont, err := NewOrgController(env)
+		app := NewAdminApp()
+		logger.Info("showing organisation")
+
+		cont, err := NewOrgController(app.env)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		org, err := cont.Show(params)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		if org != nil {
-			table := tablewriter.NewWriter(os.Stdout)
-			table.SetAlignment(tablewriter.ALIGN_LEFT)
+			table := app.NewTable()
 
 			orgData := [][]string{
 				[]string{"ID", org.Id()},
 				[]string{"Name", org.Name()},
 				[]string{"Key type", org.Data.Body.KeyType},
 			}
-
 			table.AppendBulk(orgData)
-			env.logger.Flush()
-			table.Render()
 
+			app.RenderTable(table)
 			fmt.Println("")
 			fmt.Printf("Public signing key:\n%s\n", org.Data.Body.PublicSigningKey)
 			fmt.Printf("Public encryption key:\n%s\n", org.Data.Body.PublicEncryptionKey)
@@ -99,16 +94,17 @@ func orgRunCmd(cmd *cli.Cmd) {
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
 		defer logger.Close()
-		env := new(Environment)
-		env.logger = logger
 
-		cont, err := NewOrgController(env)
+		app := NewAdminApp()
+		logger.Info("running organisation tasks")
+
+		cont, err := NewOrgController(app.env)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		if err := cont.Run(params); err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 	}
 }
@@ -123,16 +119,17 @@ func orgDeleteCmd(cmd *cli.Cmd) {
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
 		defer logger.Close()
-		env := new(Environment)
-		env.logger = logger
 
-		cont, err := NewOrgController(env)
+		app := NewAdminApp()
+		logger.Info("deleting organisation")
+
+		cont, err := NewOrgController(app.env)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		if err := cont.Delete(params); err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 	}
 }

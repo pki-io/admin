@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/jawher/mow.cli"
-	"github.com/olekukonko/tablewriter"
-	"os"
 )
 
 func certCmd(cmd *cli.Cmd) {
@@ -39,31 +37,30 @@ func certNewCmd(cmd *cli.Cmd) {
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
 		defer logger.Close()
-		env := new(Environment)
-		env.logger = logger
 
-		cont, err := NewCertController(env)
+		app := NewAdminApp()
+		logger.Info("creating new certificate")
+
+		cont, err := NewCertController(app.env)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		cert, err := cont.New(params)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		if cert != nil {
-			table := tablewriter.NewWriter(os.Stdout)
-			table.SetAlignment(tablewriter.ALIGN_LEFT)
+			table := app.NewTable()
 
 			certData := [][]string{
 				[]string{"Id", cert.Id()},
 				[]string{"Name", cert.Name()},
 			}
-
 			table.AppendBulk(certData)
-			env.logger.Flush()
-			table.Render()
+
+			app.RenderTable(table)
 		}
 	}
 }
@@ -74,28 +71,28 @@ func certListCmd(cmd *cli.Cmd) {
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
 		defer logger.Close()
-		env := new(Environment)
-		env.logger = logger
 
-		cont, err := NewCertController(env)
+		app := NewAdminApp()
+		logger.Info("listing certificates")
+
+		cont, err := NewCertController(app.env)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		certs, err := cont.List(params)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
-		table := tablewriter.NewWriter(os.Stdout)
-		table.SetAlignment(tablewriter.ALIGN_LEFT)
+		table := app.NewTable()
 		table.SetHeader([]string{"Name", "Id"})
+
 		for _, cert := range certs {
 			table.Append([]string{cert.Name(), cert.Id()})
 		}
 
-		env.logger.Flush()
-		table.Render()
+		app.RenderTable(table)
 	}
 }
 
@@ -111,23 +108,23 @@ func certShowCmd(cmd *cli.Cmd) {
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
 		defer logger.Close()
-		env := new(Environment)
-		env.logger = logger
 
-		cont, err := NewCertController(env)
+		app := NewAdminApp()
+		logger.Info("showing certificate")
+
+		cont, err := NewCertController(app.env)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		cert, err := cont.Show(params)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		if cert != nil {
 
-			table := tablewriter.NewWriter(os.Stdout)
-			table.SetAlignment(tablewriter.ALIGN_LEFT)
+			table := app.NewTable()
 
 			certData := [][]string{
 				[]string{"ID", cert.Id()},
@@ -136,9 +133,8 @@ func certShowCmd(cmd *cli.Cmd) {
 			}
 
 			table.AppendBulk(certData)
-			env.logger.Flush()
-			table.Render()
 
+			app.RenderTable(table)
 			fmt.Println("")
 			fmt.Printf("Certificate:\n%s\n", cert.Data.Body.Certificate)
 
@@ -162,16 +158,17 @@ func certUpdateCmd(cmd *cli.Cmd) {
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
 		defer logger.Close()
-		env := new(Environment)
-		env.logger = logger
 
-		cont, err := NewCertController(env)
+		app := NewAdminApp()
+		logger.Info("updating certificate")
+
+		cont, err := NewCertController(app.env)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		if err := cont.Update(params); err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 	}
 }
@@ -187,16 +184,17 @@ func certDeleteCmd(cmd *cli.Cmd) {
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
 		defer logger.Close()
-		env := new(Environment)
-		env.logger = logger
 
-		cont, err := NewCertController(env)
+		app := NewAdminApp()
+		logger.Info("deleting certificate")
+
+		cont, err := NewCertController(app.env)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		if err := cont.Delete(params); err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 	}
 }

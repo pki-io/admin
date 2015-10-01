@@ -2,8 +2,6 @@ package main
 
 import (
 	"github.com/jawher/mow.cli"
-	"github.com/olekukonko/tablewriter"
-	"os"
 )
 
 func pairingKeyCmd(cmd *cli.Cmd) {
@@ -22,30 +20,30 @@ func pairingKeyNewCmd(cmd *cli.Cmd) {
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
 		defer logger.Close()
-		env := new(Environment)
-		env.logger = logger
 
-		cont, err := NewPairingKeyController(env)
+		app := NewAdminApp()
+		logger.Info("creating new pairing key")
+
+		cont, err := NewPairingKeyController(app.env)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		id, key, err := cont.New(params)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		if id != "" && key != "" {
-			table := tablewriter.NewWriter(os.Stdout)
-			table.SetAlignment(tablewriter.ALIGN_LEFT)
+			table := app.NewTable()
+
 			keyData := [][]string{
 				[]string{"Id", id},
 				[]string{"Key", key},
 			}
-
 			table.AppendBulk(keyData)
-			env.logger.Flush()
-			table.Render()
+
+			app.RenderTable(table)
 		}
 	}
 
@@ -57,28 +55,28 @@ func pairingKeyListCmd(cmd *cli.Cmd) {
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
 		defer logger.Close()
-		env := new(Environment)
-		env.logger = logger
 
-		cont, err := NewPairingKeyController(env)
+		app := NewAdminApp()
+		logger.Info("listing pairing keys")
+
+		cont, err := NewPairingKeyController(app.env)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		keys, err := cont.List(params)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
-		table := tablewriter.NewWriter(os.Stdout)
-		table.SetAlignment(tablewriter.ALIGN_LEFT)
+		table := app.NewTable()
 		table.SetHeader([]string{"Id", "Tags"})
+
 		for _, key := range keys {
 			table.Append([]string{key[0], key[1]})
 		}
 
-		env.logger.Flush()
-		table.Render()
+		app.RenderTable(table)
 	}
 }
 
@@ -93,22 +91,22 @@ func pairingKeyShowCmd(cmd *cli.Cmd) {
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
 		defer logger.Close()
-		env := new(Environment)
-		env.logger = logger
 
-		cont, err := NewPairingKeyController(env)
+		app := NewAdminApp()
+		logger.Info("showing pairing key")
+
+		cont, err := NewPairingKeyController(app.env)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		id, key, tags, err := cont.Show(params)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		if id != "" && key != "" && tags != "" {
-			table := tablewriter.NewWriter(os.Stdout)
-			table.SetAlignment(tablewriter.ALIGN_LEFT)
+			table := app.NewTable()
 
 			table.Append([]string{"Id", id})
 			if *params.private {
@@ -116,8 +114,7 @@ func pairingKeyShowCmd(cmd *cli.Cmd) {
 			}
 			table.Append([]string{"Tags", tags})
 
-			env.logger.Flush()
-			table.Render()
+			app.RenderTable(table)
 		}
 	}
 }
@@ -133,16 +130,17 @@ func pairingKeyDeleteCmd(cmd *cli.Cmd) {
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
 		defer logger.Close()
-		env := new(Environment)
-		env.logger = logger
 
-		cont, err := NewPairingKeyController(env)
+		app := NewAdminApp()
+		logger.Info("deleting pairing key")
+
+		cont, err := NewPairingKeyController(app.env)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		if err := cont.Delete(params); err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 	}
 }

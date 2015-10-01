@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/jawher/mow.cli"
-	"github.com/olekukonko/tablewriter"
-	"os"
 	"strconv"
 )
 
@@ -39,23 +37,22 @@ func caNewCmd(cmd *cli.Cmd) {
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
 		defer logger.Close()
-		env := new(Environment)
-		env.logger = logger
 
-		cont, err := NewCAController(env)
+		app := NewAdminApp()
+		logger.Info("creating new CA")
+
+		cont, err := NewCAController(app.env)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		ca, err := cont.New(params)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
-		env.logger.Info("Created")
 
 		if ca != nil {
-			table := tablewriter.NewWriter(os.Stdout)
-			table.SetAlignment(tablewriter.ALIGN_LEFT)
+			table := app.NewTable()
 
 			caData := [][]string{
 				[]string{"Id", ca.Id()},
@@ -63,8 +60,8 @@ func caNewCmd(cmd *cli.Cmd) {
 			}
 
 			table.AppendBulk(caData)
-			env.logger.Flush()
-			table.Render()
+
+			app.RenderTable(table)
 		}
 
 	}
@@ -74,31 +71,30 @@ func caListCmd(cmd *cli.Cmd) {
 	params := NewCAParams()
 
 	cmd.Action = func() {
-
 		initLogging(*logLevel, *logging)
 		defer logger.Close()
-		env := new(Environment)
-		env.logger = logger
 
-		cont, err := NewCAController(env)
+		app := NewAdminApp()
+		logger.Info("listing CAs")
+
+		cont, err := NewCAController(app.env)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		cas, err := cont.List(params)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
-		table := tablewriter.NewWriter(os.Stdout)
-		table.SetAlignment(tablewriter.ALIGN_LEFT)
+		table := app.NewTable()
 		table.SetHeader([]string{"Name", "Id"})
+
 		for _, ca := range cas {
 			table.Append([]string{ca.Name(), ca.Id()})
 		}
 
-		env.logger.Flush()
-		table.Render()
+		app.RenderTable(table)
 	}
 }
 
@@ -114,22 +110,22 @@ func caShowCmd(cmd *cli.Cmd) {
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
 		defer logger.Close()
-		env := new(Environment)
-		env.logger = logger
 
-		cont, err := NewCAController(env)
+		app := NewAdminApp()
+		logger.Info("showing CA")
+
+		cont, err := NewCAController(app.env)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		ca, err := cont.Show(params)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		if ca != nil {
-			table := tablewriter.NewWriter(os.Stdout)
-			table.SetAlignment(tablewriter.ALIGN_LEFT)
+			table := app.NewTable()
 
 			caData := [][]string{
 				[]string{"ID", ca.Id()},
@@ -145,10 +141,9 @@ func caShowCmd(cmd *cli.Cmd) {
 				[]string{"Street address DN scope", ca.Data.Body.DNScope.StreetAddress},
 				[]string{"Postal code DN scope", ca.Data.Body.DNScope.PostalCode},
 			}
-
 			table.AppendBulk(caData)
-			env.logger.Flush()
-			table.Render()
+
+			app.RenderTable(table)
 
 			fmt.Println("")
 			fmt.Printf("Certificate:\n%s\n", ca.Data.Body.Certificate)
@@ -182,20 +177,18 @@ func caUpdateCmd(cmd *cli.Cmd) {
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
 		defer logger.Close()
-		env := new(Environment)
-		env.logger = logger
 
-		cont, err := NewCAController(env)
+		app := NewAdminApp()
+		logger.Info("updating CA")
+
+		cont, err := NewCAController(app.env)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
-		env.logger.Info("Updating CA")
 		if err := cont.Update(params); err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
-		env.logger.Info("Complete")
-
 	}
 }
 
@@ -210,18 +203,17 @@ func caDeleteCmd(cmd *cli.Cmd) {
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
 		defer logger.Close()
-		env := new(Environment)
-		env.logger = logger
 
-		cont, err := NewCAController(env)
+		app := NewAdminApp()
+		logger.Info("deleting CA")
+
+		cont, err := NewCAController(app.env)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
-		env.logger.Info("Deleting CA")
 		if err := cont.Delete(params); err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
-		env.logger.Info("Complete")
 	}
 }
