@@ -242,7 +242,7 @@ func (cont *AdminController) SecureSendPublicToOrg(id, key string) error {
 	logger.Debugf("secure sending public admin to org")
 	logger.Tracef("received id '%s' and key [NOT LOGGED]", id)
 
-	org := cont.env.controllers.org.org
+	orgId := cont.env.controllers.org.config.Data.Id
 
 	logger.Debug("encrypting public admin invite for org")
 	container, err := cont.admin.EncryptThenAuthenticateString(cont.admin.DumpPublic(), id, key)
@@ -250,8 +250,8 @@ func (cont *AdminController) SecureSendPublicToOrg(id, key string) error {
 		return err
 	}
 
-	logger.Debugf("pushing admin invite to org '%s'", org.Id())
-	if err := cont.env.api.PushIncoming(org.Id(), "invite", container.Dump()); err != nil {
+	logger.Debugf("pushing admin invite to org '%s'", orgId)
+	if err := cont.env.api.PushIncoming(orgId, "invite", container.Dump()); err != nil {
 		return err
 	}
 
@@ -522,9 +522,10 @@ func (cont *AdminController) New(params *AdminParams) error {
 		return err
 	}
 
-	org := cont.env.controllers.org.org
+	orgId := cont.env.controllers.org.config.Data.Id
+	orgName := cont.env.controllers.org.config.Data.Name
 
-	if err := cont.config.AddOrg(org.Name(), org.Id(), cont.admin.Data.Body.Id); err != nil {
+	if err := cont.config.AddOrg(orgName, orgId, cont.admin.Id()); err != nil {
 		return err
 	}
 
