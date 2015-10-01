@@ -38,13 +38,18 @@ func NewPairingKeyController(env *Environment) (*PairingKeyController, error) {
 }
 
 func (cont *PairingKeyController) GeneratePairingKey() (string, string) {
+	logger.Debug("generating pairing key")
 	id := NewID()
 	key := NewID()
 
+	logger.Trace("returning pairing key")
 	return id, key
 }
 
 func (cont *PairingKeyController) AddPairingKeyToOrgIndex(id, key, tags string) error {
+	logger.Debug("adding pairing key to org index")
+	logger.Tracef("received id '%s', key [NOT LOGGED], and tags '%s'", id, tags)
+
 	orgIndex, err := cont.env.controllers.org.GetIndex()
 	if err != nil {
 		return err
@@ -59,21 +64,17 @@ func (cont *PairingKeyController) AddPairingKeyToOrgIndex(id, key, tags string) 
 		return err
 	}
 
+	logger.Trace("returning nil error")
 	return nil
-
 }
 
 func (cont *PairingKeyController) New(params *PairingKeyParams) (string, string, error) {
-
-	cont.env.logger.Info("Creating new pairing key")
-
-	cont.env.logger.Debug("Validating parameters")
+	logger.Debug("creating new pairing key")
+	logger.Tracef("received params: %s", params)
 
 	if err := params.ValidateTags(true); err != nil {
 		return "", "", err
 	}
-
-	cont.env.logger.Debug("Loading admin environment")
 
 	if err := cont.env.LoadAdminEnv(); err != nil {
 		return "", "", err
@@ -81,58 +82,50 @@ func (cont *PairingKeyController) New(params *PairingKeyParams) (string, string,
 
 	id, key := cont.GeneratePairingKey()
 
-	cont.env.logger.Debug("Adding pairing key to org")
-
 	err := cont.AddPairingKeyToOrgIndex(id, key, *params.tags)
 	if err != nil {
 		return "", "", err
 	}
 
+	logger.Trace("returning pairing key")
 	return id, key, nil
 }
 
 func (cont *PairingKeyController) List(params *PairingKeyParams) ([][]string, error) {
-	keys := [][]string{}
-	cont.env.logger.Info("Listing pairing keys")
+	logger.Debug("listing pairing keys")
+	logger.Tracef("received params: %s", params)
 
-	cont.env.logger.Debug("Loading admin environment")
+	keys := [][]string{}
 
 	if err := cont.env.LoadAdminEnv(); err != nil {
 		return keys, err
 	}
-
-	cont.env.logger.Debug("Getting org index")
 
 	index, err := cont.env.controllers.org.GetIndex()
 	if err != nil {
 		return keys, err
 	}
 
-	cont.env.logger.Flush()
+	logger.Flush()
 	for id, pk := range index.GetPairingKeys() {
 		keys = append(keys, []string{id, strings.Join(pk.Tags[:], ",")})
 	}
 
+	logger.Trace("returning keys")
 	return keys, nil
 }
 
 func (cont *PairingKeyController) Show(params *PairingKeyParams) (string, string, string, error) {
-
-	cont.env.logger.Debug("Validating parameters")
+	logger.Debug("showing pairing key")
+	logger.Tracef("received params: %s", params)
 
 	if err := params.ValidateID(true); err != nil {
 		return "", "", "", err
 	}
 
-	cont.env.logger.Info("Showing pairing key")
-
-	cont.env.logger.Debug("Loading admin environment")
-
 	if err := cont.env.LoadAdminEnv(); err != nil {
 		return "", "", "", err
 	}
-
-	cont.env.logger.Debug("Getting org index")
 
 	index, err := cont.env.controllers.org.GetIndex()
 	if err != nil {
@@ -144,12 +137,13 @@ func (cont *PairingKeyController) Show(params *PairingKeyParams) (string, string
 		return "", "", "", err
 	}
 
+	logger.Trace("returning pairing key")
 	return *params.id, pk.Key, strings.Join(pk.Tags[:], ","), nil
 }
 
 func (cont *PairingKeyController) Delete(params *PairingKeyParams) error {
-
-	cont.env.logger.Debug("Validating parameters")
+	logger.Debug("deleting pairing key")
+	logger.Tracef("received params: %s", params)
 
 	if err := params.ValidateID(true); err != nil {
 		return err
@@ -159,15 +153,9 @@ func (cont *PairingKeyController) Delete(params *PairingKeyParams) error {
 		return err
 	}
 
-	cont.env.logger.Infof("Deleting pairing key '%s'", *params.id)
-
-	cont.env.logger.Debug("Loading admin environment")
-
 	if err := cont.env.LoadAdminEnv(); err != nil {
 		return err
 	}
-
-	cont.env.logger.Debug("Getting org index")
 
 	index, err := cont.env.controllers.org.GetIndex()
 	if err != nil {
@@ -183,5 +171,6 @@ func (cont *PairingKeyController) Delete(params *PairingKeyParams) error {
 		return err
 	}
 
+	logger.Trace("returning nil error")
 	return nil
 }

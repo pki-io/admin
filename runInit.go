@@ -15,16 +15,17 @@ func initCmd(cmd *cli.Cmd) {
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
 		defer logger.Close()
-		env := new(Environment)
-		env.logger = logger
 
-		cont, err := NewOrgController(env)
+		app := NewAdminApp()
+		logger.Info("initialising new org")
+
+		cont, err := NewOrgController(app.env)
 		if err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 
 		if err := cont.Init(params); err != nil {
-			env.Fatal(err)
+			app.Fatal(err)
 		}
 	}
 }
