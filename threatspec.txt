@@ -1,0 +1,8 @@
+fdm --exec callgraph *.go | threatspec.rb $(find -L . -type f -name '*.go')
+
+== Strategies
+   - breath vs depth
+   - front to back vs back to front
+
+hacks
+ * dynamic call flow

@@ -1,3 +1,4 @@
+// ThreatSpec package main
 package main
 
 import (
@@ -45,6 +46,9 @@ func NewAdminController(env *Environment) (*AdminController, error) {
 
 	return cont, nil
 }
+
+// ThreatSpec TMv0.1 for AdminController.LoadConfig
+// It loads admin config from filesystem for App:Admin
 
 func (cont *AdminController) LoadConfig() error {
 	logger.Debug("loading admin config")
