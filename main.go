@@ -11,6 +11,10 @@ var version *bool
 var logLevel *string
 var logging *string
 
+// ThreatSpec TMv0.1 for main
+// Does cli handling for App:CLI
+// Receives CLI input from User:CLI to App:CLI
+// Calls main.caCmd
 func main() {
 
 	cmd := cli.App("pki.io", "Scalable, open source X.509 certificate management")

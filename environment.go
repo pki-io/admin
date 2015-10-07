@@ -1,3 +1,4 @@
+// ThreatSpec package main
 package main
 
 import (
@@ -54,6 +55,9 @@ func (env *Environment) LoadAPI() error {
 	return nil
 }
 
+// ThreatSpec TMv0.1 for Environment.LoadPrivateOrg
+// It loads public org for App:Org
+
 func (env *Environment) LoadPublicOrg() error {
 	logger.Debug("loading public org")
 	var err error
@@ -99,6 +103,9 @@ func (env *Environment) LoadPublicOrg() error {
 	return nil
 }*/
 
+// ThreatSpec TMv0.1 for Environment.LoadPrivateOrg
+// It loads private org for App:Org
+
 func (env *Environment) LoadPrivateOrg() error {
 	logger.Debug("loading private org")
 
@@ -121,6 +128,9 @@ func (env *Environment) LoadPrivateOrg() error {
 	return nil
 }
 
+// ThreatSpec TMv0.1 for Environment.LoadAdmin
+// It loads admin config and entity for App:Admin
+
 func (env *Environment) LoadAdmin() error {
 	logger.Debug("loading admin")
 
@@ -142,6 +152,9 @@ func (env *Environment) LoadAdmin() error {
 
 	return nil
 }
+
+// ThreatSpec TMv0.1 for Environment.LoadAdminEnv
+// It loads admin environment for App:Admin
 
 func (env *Environment) LoadAdminEnv() error {
 	logger.Debug("loading admin environment")

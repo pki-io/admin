@@ -1,3 +1,4 @@
+// ThreatSpec package main
 package main
 
 import (
@@ -6,6 +7,10 @@ import (
 	"strconv"
 )
 
+// ThreatSpec TMv0.1 for caCmd
+// Does CA CLI handling for App:CLI
+// Calls main.caNewCmd main.caListCmd main.caShowCmd main.caUpdateCmd main.caDeleteCmd
+
 func caCmd(cmd *cli.Cmd) {
 	cmd.Command("new", "Create a new CA", caNewCmd)
 	cmd.Command("list", "List CAs", caListCmd)
@@ -13,6 +18,10 @@ func caCmd(cmd *cli.Cmd) {
 	cmd.Command("update", "Update an existing CA", caUpdateCmd)
 	cmd.Command("delete", "Delete a CA", caDeleteCmd)
 }
+
+// ThreatSpec TMv0.1 for caNewCmd
+// Does new CA CLI handling for App:CLI
+// Calls main.NewCAController main.CAController.New
 
 func caNewCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
@@ -67,6 +76,8 @@ func caNewCmd(cmd *cli.Cmd) {
 	}
 }
 
+// ThreatSpec TMv0.1 for caListCmd
+
 func caListCmd(cmd *cli.Cmd) {
 	params := NewCAParams()
 
@@ -97,6 +108,8 @@ func caListCmd(cmd *cli.Cmd) {
 		app.RenderTable(table)
 	}
 }
+
+// ThreatSpec TMv0.1 for caShowCmd
 
 func caShowCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
@@ -155,6 +168,8 @@ func caShowCmd(cmd *cli.Cmd) {
 	}
 }
 
+// ThreatSpec TMv0.1 for caUpdateCmd
+
 func caUpdateCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
 
@@ -191,6 +206,8 @@ func caUpdateCmd(cmd *cli.Cmd) {
 		}
 	}
 }
+
+// ThreatSpec TMv0.1 for caDeleteCmd
 
 func caDeleteCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"

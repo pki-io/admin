@@ -1,3 +1,4 @@
+// ThreatSpec package main
 package main
 
 import (
@@ -34,6 +35,9 @@ func NewCAParams() *CAParams {
 	return new(CAParams)
 }
 
+// ThreatSpec TMv0.1 for CAParams.ValidateName
+// Does name parameter validation for App:CAController
+
 func (params *CAParams) ValidateName(required bool) error {
 	logger.Tracef("validating name '%s'", *params.name)
 	if required && *params.name == "" {
@@ -62,6 +66,9 @@ func (params *CAParams) ValidateKeyFile(required bool) error       { return nil 
 type CAController struct {
 	env *Environment
 }
+
+// ThreatSpec TMv0.1 for NewCAController
+// Creates new CA controller for App:CAController
 
 func NewCAController(env *Environment) (*CAController, error) {
 	cont := new(CAController)
@@ -197,6 +204,9 @@ func (cont *CAController) RemoveCAFromOrgIndex(name string) error {
 	logger.Trace("returning nil error")
 	return nil
 }
+
+// ThreatSpec TMv0.1 for CAController.New
+// Creates new CA for App:CAController
 
 func (cont *CAController) New(params *CAParams) (*x509.CA, error) {
 	logger.Debug("creating new CA")
