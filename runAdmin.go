@@ -4,6 +4,7 @@ package main
 import (
 	"fmt"
 	"github.com/jawher/mow.cli"
+	"github.com/pki-io/controllers/admin"
 )
 
 func adminCmd(cmd *cli.Cmd) {
@@ -17,7 +18,7 @@ func adminCmd(cmd *cli.Cmd) {
 }
 
 func adminListCmd(cmd *cli.Cmd) {
-	params := NewAdminParams()
+	params := admin.NewParams()
 
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
@@ -26,7 +27,7 @@ func adminListCmd(cmd *cli.Cmd) {
 		app := NewAdminApp()
 		logger.Info("listing admins")
 
-		cont, err := NewAdminController(app.env)
+		cont, err := admin.New(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -50,7 +51,7 @@ func adminListCmd(cmd *cli.Cmd) {
 func adminShowCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
 
-	params := NewAdminParams()
+	params := admin.NewParams()
 	params.name = cmd.StringArg("NAME", "", "name of admin")
 
 	cmd.Action = func() {
@@ -60,7 +61,7 @@ func adminShowCmd(cmd *cli.Cmd) {
 		app := NewAdminApp()
 		logger.Info("showing admin")
 
-		cont, err := NewAdminController(app.env)
+		cont, err := admin.New(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -94,7 +95,7 @@ func adminShowCmd(cmd *cli.Cmd) {
 func adminInviteCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
 
-	params := NewAdminParams()
+	params := admin.NewParams()
 	params.name = cmd.StringArg("NAME", "", "name of admin")
 
 	cmd.Action = func() {
@@ -104,7 +105,7 @@ func adminInviteCmd(cmd *cli.Cmd) {
 		app := NewAdminApp()
 		logger.Info("creating admin invite")
 
-		cont, err := NewAdminController(app.env)
+		cont, err := admin.New(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -133,7 +134,7 @@ func adminInviteCmd(cmd *cli.Cmd) {
 func adminNewCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
 
-	params := NewAdminParams()
+	params := admin.NewParams()
 	params.name = cmd.StringArg("NAME", "", "name of admin")
 
 	params.inviteId = cmd.StringOpt("invite-id", "", "invite id")
@@ -146,7 +147,7 @@ func adminNewCmd(cmd *cli.Cmd) {
 		app := NewAdminApp()
 		logger.Info("creating new admin")
 
-		cont, err := NewAdminController(app.env)
+		cont, err := admin.New(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -159,7 +160,7 @@ func adminNewCmd(cmd *cli.Cmd) {
 }
 
 func adminRunCmd(cmd *cli.Cmd) {
-	params := NewAdminParams()
+	params := admin.NewParams()
 
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
@@ -168,7 +169,7 @@ func adminRunCmd(cmd *cli.Cmd) {
 		app := NewAdminApp()
 		logger.Info("running admin tasks")
 
-		cont, err := NewAdminController(app.env)
+		cont, err := admin.New(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -183,7 +184,7 @@ func adminRunCmd(cmd *cli.Cmd) {
 func adminCompleteCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
 
-	params := NewAdminParams()
+	params := admin.NewParams()
 	params.name = cmd.StringArg("NAME", "", "name of admin")
 
 	params.inviteId = cmd.StringOpt("invite-id", "", "invite id")
@@ -196,7 +197,7 @@ func adminCompleteCmd(cmd *cli.Cmd) {
 		app := NewAdminApp()
 		logger.Info("completing new admin")
 
-		cont, err := NewAdminController(app.env)
+		cont, err := admin.New(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -211,7 +212,7 @@ func adminCompleteCmd(cmd *cli.Cmd) {
 func adminDeleteCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
 
-	params := NewAdminParams()
+	params := admin.NewParams()
 	params.name = cmd.StringArg("NAME", "", "name of admin")
 
 	params.confirmDelete = cmd.StringOpt("confirm-delete", "", "reason for deleting admin")
@@ -223,7 +224,7 @@ func adminDeleteCmd(cmd *cli.Cmd) {
 		app := NewAdminApp()
 		logger.Info("deleting admin")
 
-		cont, err := NewAdminController(app.env)
+		cont, err := admin.New(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}

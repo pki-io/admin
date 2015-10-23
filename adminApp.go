@@ -4,17 +4,18 @@ package main
 import (
 	"fmt"
 	"github.com/olekukonko/tablewriter"
+	"github.com/pki-io/controllers/environment"
 	"os"
 )
 
 type AdminApp struct {
-	env *Environment
+	env *environment.Environment
 }
 
 func NewAdminApp() *AdminApp {
 	app := new(AdminApp)
 
-	app.env = new(Environment)
+	app.env = environment.New()
 
 	return app
 }

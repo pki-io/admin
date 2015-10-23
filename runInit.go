@@ -3,12 +3,13 @@ package main
 
 import (
 	"github.com/jawher/mow.cli"
+	"github.com/pki-io/controllers/org"
 )
 
 func initCmd(cmd *cli.Cmd) {
 	cmd.Spec = "ORG [OPTIONS]"
 
-	params := NewOrgParams()
+	params := org.NewParams()
 	params.org = cmd.StringArg("ORG", "", "name of organization")
 	params.admin = cmd.StringOpt("admin", "admin", "name of admin")
 
@@ -19,7 +20,7 @@ func initCmd(cmd *cli.Cmd) {
 		app := NewAdminApp()
 		logger.Info("initialising new org")
 
-		cont, err := NewOrgController(app.env)
+		cont, err := org.New(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}

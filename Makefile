@@ -1,4 +1,4 @@
-DIRS = config crypto document entity fs index node x509
+DIRS = admin ca certificate csr node org pairingkey
 
 default: get-deps build test
 
@@ -20,8 +20,8 @@ clean:
 
 dev: clean
 	FDM_ENV=DEV fdm --dev
-	mkdir -p _vendor/src/github.com/pki-io/core  && \
-	rm -rf _vendor/src/github.com/pki-io/core/* && \
+	mkdir -p _vendor/src/github.com/pki-io/controllers  && \
+	rm -rf _vendor/src/github.com/pki-io/controllers/* && \
 	for d in $(DIRS); do (cd _vendor/src/github.com/pki-io/core && ln -s ../../../../../../core/$$d .); done && \
 	rm -rf _vendor/pkg
 	fdm --dev

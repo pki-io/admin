@@ -3,6 +3,7 @@ package main
 
 import (
 	"github.com/jawher/mow.cli"
+	"github.com/pki-io/controllers/pairingkey"
 )
 
 func pairingKeyCmd(cmd *cli.Cmd) {
@@ -15,7 +16,7 @@ func pairingKeyCmd(cmd *cli.Cmd) {
 func pairingKeyNewCmd(cmd *cli.Cmd) {
 	cmd.Spec = "[OPTIONS]"
 
-	params := NewPairingKeyParams()
+	params := pairingkey.NewParams()
 	params.tags = cmd.StringOpt("tags", "", "comma separated list of tags")
 
 	cmd.Action = func() {
@@ -25,7 +26,7 @@ func pairingKeyNewCmd(cmd *cli.Cmd) {
 		app := NewAdminApp()
 		logger.Info("creating new pairing key")
 
-		cont, err := NewPairingKeyController(app.env)
+		cont, err := pairingkey.New(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -51,7 +52,7 @@ func pairingKeyNewCmd(cmd *cli.Cmd) {
 }
 
 func pairingKeyListCmd(cmd *cli.Cmd) {
-	params := NewPairingKeyParams()
+	params := pairingkey.NewParams()
 
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
@@ -60,7 +61,7 @@ func pairingKeyListCmd(cmd *cli.Cmd) {
 		app := NewAdminApp()
 		logger.Info("listing pairing keys")
 
-		cont, err := NewPairingKeyController(app.env)
+		cont, err := pairingkey.New(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -84,7 +85,7 @@ func pairingKeyListCmd(cmd *cli.Cmd) {
 func pairingKeyShowCmd(cmd *cli.Cmd) {
 	cmd.Spec = "ID [OPTIONS]"
 
-	params := NewPairingKeyParams()
+	params := pairingkey.NewParams()
 	params.id = cmd.StringArg("ID", "", "Public ID of pairing key")
 
 	params.private = cmd.BoolOpt("private", false, "show/export private data")
@@ -96,7 +97,7 @@ func pairingKeyShowCmd(cmd *cli.Cmd) {
 		app := NewAdminApp()
 		logger.Info("showing pairing key")
 
-		cont, err := NewPairingKeyController(app.env)
+		cont, err := pairingkey.New(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -123,7 +124,7 @@ func pairingKeyShowCmd(cmd *cli.Cmd) {
 func pairingKeyDeleteCmd(cmd *cli.Cmd) {
 	cmd.Spec = "ID [OPTIONS]"
 
-	params := NewPairingKeyParams()
+	params := pairingkey.NewParams()
 	params.id = cmd.StringArg("ID", "", "Public ID of pairing key")
 
 	params.confirmDelete = cmd.StringOpt("confirm-delete", "", "reason for deleting pairing key")
@@ -135,7 +136,7 @@ func pairingKeyDeleteCmd(cmd *cli.Cmd) {
 		app := NewAdminApp()
 		logger.Info("deleting pairing key")
 
-		cont, err := NewPairingKeyController(app.env)
+		cont, err := pairingkey.New(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}

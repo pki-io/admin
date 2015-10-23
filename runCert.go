@@ -4,6 +4,7 @@ package main
 import (
 	"fmt"
 	"github.com/jawher/mow.cli"
+	"github.com/pki-io/controllers/certificate"
 )
 
 func certCmd(cmd *cli.Cmd) {
@@ -17,7 +18,7 @@ func certCmd(cmd *cli.Cmd) {
 func certNewCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
 
-	params := NewCertParams()
+	params := certificate.NewParams()
 	params.name = cmd.StringArg("NAME", "", "name of certificate")
 
 	params.tags = cmd.StringOpt("tags", "NAME", "comma separated list of tags")
@@ -42,7 +43,7 @@ func certNewCmd(cmd *cli.Cmd) {
 		app := NewAdminApp()
 		logger.Info("creating new certificate")
 
-		cont, err := NewCertController(app.env)
+		cont, err := certificate.New(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -67,7 +68,7 @@ func certNewCmd(cmd *cli.Cmd) {
 }
 
 func certListCmd(cmd *cli.Cmd) {
-	params := NewCertParams()
+	params := certificate.NewParams()
 
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
@@ -76,7 +77,7 @@ func certListCmd(cmd *cli.Cmd) {
 		app := NewAdminApp()
 		logger.Info("listing certificates")
 
-		cont, err := NewCertController(app.env)
+		cont, err := certificate.New(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -100,7 +101,7 @@ func certListCmd(cmd *cli.Cmd) {
 func certShowCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
 
-	params := NewCertParams()
+	params := certificate.NewParams()
 	params.name = cmd.StringArg("NAME", "", "name of certificate")
 
 	params.export = cmd.StringOpt("export", "", "tar.gz export to file")
@@ -113,7 +114,7 @@ func certShowCmd(cmd *cli.Cmd) {
 		app := NewAdminApp()
 		logger.Info("showing certificate")
 
-		cont, err := NewCertController(app.env)
+		cont, err := certificate.New(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -149,7 +150,7 @@ func certShowCmd(cmd *cli.Cmd) {
 func certUpdateCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
 
-	params := NewCertParams()
+	params := certificate.NewParams()
 	params.name = cmd.StringArg("NAME", "", "name of certificate")
 
 	params.certFile = cmd.StringOpt("cert", "", "certificate PEM file")
@@ -163,7 +164,7 @@ func certUpdateCmd(cmd *cli.Cmd) {
 		app := NewAdminApp()
 		logger.Info("updating certificate")
 
-		cont, err := NewCertController(app.env)
+		cont, err := certificate.New(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -177,7 +178,7 @@ func certUpdateCmd(cmd *cli.Cmd) {
 func certDeleteCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
 
-	params := NewCertParams()
+	params := certificate.NewParams()
 	params.name = cmd.StringArg("NAME", "", "name of certificate")
 
 	params.confirmDelete = cmd.StringOpt("confirm-delete", "", "reason for deleting certificate")
@@ -189,7 +190,7 @@ func certDeleteCmd(cmd *cli.Cmd) {
 		app := NewAdminApp()
 		logger.Info("deleting certificate")
 
-		cont, err := NewCertController(app.env)
+		cont, err := certificate.New(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}

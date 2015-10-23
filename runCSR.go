@@ -4,6 +4,7 @@ package main
 import (
 	"fmt"
 	"github.com/jawher/mow.cli"
+	"github.com/pki-io/controllers/csr"
 )
 
 func csrCmd(cmd *cli.Cmd) {
@@ -18,7 +19,7 @@ func csrCmd(cmd *cli.Cmd) {
 func csrNewCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
 
-	params := NewCSRParams()
+	params := csr.NewParams()
 	params.name = cmd.StringArg("NAME", "", "name of CSR")
 
 	params.tags = cmd.StringOpt("tags", "NAME", "comma separated list of tags")
@@ -41,7 +42,7 @@ func csrNewCmd(cmd *cli.Cmd) {
 		app := NewAdminApp()
 		logger.Info("creating new CSR")
 
-		cont, err := NewCSRController(app.env)
+		cont, err := csr.New(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -68,7 +69,7 @@ func csrNewCmd(cmd *cli.Cmd) {
 }
 
 func csrListCmd(cmd *cli.Cmd) {
-	params := NewCSRParams()
+	params := csr.NewParams()
 
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
@@ -77,7 +78,7 @@ func csrListCmd(cmd *cli.Cmd) {
 		app := NewAdminApp()
 		logger.Info("listing CSRs")
 
-		cont, err := NewCSRController(app.env)
+		cont, err := csr.New(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -101,7 +102,7 @@ func csrListCmd(cmd *cli.Cmd) {
 func csrShowCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
 
-	params := NewCSRParams()
+	params := csr.NewParams()
 	params.name = cmd.StringArg("NAME", "", "name of CSR")
 
 	params.export = cmd.StringOpt("export", "", "tar.gz export to file")
@@ -114,7 +115,7 @@ func csrShowCmd(cmd *cli.Cmd) {
 		app := NewAdminApp()
 		logger.Info("showing CSR")
 
-		cont, err := NewCSRController(app.env)
+		cont, err := csr.New(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -148,7 +149,7 @@ func csrShowCmd(cmd *cli.Cmd) {
 func csrSignCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
 
-	params := NewCSRParams()
+	params := csr.NewParams()
 	params.name = cmd.StringArg("NAME", "", "name of CSR")
 
 	params.ca = cmd.StringOpt("ca", "", "name of signing CA")
@@ -161,7 +162,7 @@ func csrSignCmd(cmd *cli.Cmd) {
 		app := NewAdminApp()
 		logger.Info("signing CSR")
 
-		cont, err := NewCSRController(app.env)
+		cont, err := csr.New(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -191,7 +192,7 @@ func csrSignCmd(cmd *cli.Cmd) {
 func csrUpdateCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
 
-	params := NewCSRParams()
+	params := csr.NewParams()
 	params.name = cmd.StringArg("NAME", "", "name of CSR")
 
 	params.csrFile = cmd.StringOpt("csr", "", "CSR PEM file")
@@ -205,7 +206,7 @@ func csrUpdateCmd(cmd *cli.Cmd) {
 		app := NewAdminApp()
 		logger.Info("updating CSR")
 
-		cont, err := NewCSRController(app.env)
+		cont, err := csr.New(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -219,7 +220,7 @@ func csrUpdateCmd(cmd *cli.Cmd) {
 func csrDeleteCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
 
-	params := NewCSRParams()
+	params := csr.NewParams()
 	params.name = cmd.StringArg("NAME", "", "name of CSR")
 
 	params.confirmDelete = cmd.StringOpt("confirm-delete", "", "reason for deleting CSR")
@@ -231,7 +232,7 @@ func csrDeleteCmd(cmd *cli.Cmd) {
 		app := NewAdminApp()
 		logger.Info("deleting CSR")
 
-		cont, err := NewCSRController(app.env)
+		cont, err := csr.New(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}

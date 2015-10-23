@@ -4,6 +4,7 @@ package main
 import (
 	"fmt"
 	"github.com/jawher/mow.cli"
+	"github.com/pki-io/controllers/node"
 )
 
 func nodeCmd(cmd *cli.Cmd) {
@@ -18,7 +19,7 @@ func nodeCmd(cmd *cli.Cmd) {
 func nodeNewCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
 
-	params := NewNodeParams()
+	params := node.NewParams()
 	params.name = cmd.StringArg("NAME", "", "name of node")
 
 	params.pairingId = cmd.StringOpt("pairing-id", "", "pairing id")
@@ -31,7 +32,7 @@ func nodeNewCmd(cmd *cli.Cmd) {
 		app := NewAdminApp()
 		logger.Info("creating new node")
 
-		cont, err := NewNodeController(app.env)
+		cont, err := node.New(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -55,7 +56,7 @@ func nodeNewCmd(cmd *cli.Cmd) {
 func nodeRunCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
 
-	params := NewNodeParams()
+	params := node.NewParams()
 	params.name = cmd.StringArg("NAME", "", "name of node")
 
 	cmd.Action = func() {
@@ -65,7 +66,7 @@ func nodeRunCmd(cmd *cli.Cmd) {
 		app := NewAdminApp()
 		logger.Info("running node tasks")
 
-		cont, err := NewNodeController(app.env)
+		cont, err := node.New(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -79,7 +80,7 @@ func nodeRunCmd(cmd *cli.Cmd) {
 func nodeCertCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
 
-	params := NewNodeParams()
+	params := node.NewParams()
 	params.name = cmd.StringArg("NAME", "", "name of node")
 	params.tags = cmd.StringOpt("tags", "NAME", "comma separated list of tags")
 	params.export = cmd.StringOpt("export", "", "tar.gz export to file")
@@ -92,7 +93,7 @@ func nodeCertCmd(cmd *cli.Cmd) {
 		app := NewAdminApp()
 		logger.Info("creating node certificate")
 
-		cont, err := NewNodeController(app.env)
+		cont, err := node.New(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -106,7 +107,7 @@ func nodeCertCmd(cmd *cli.Cmd) {
 func nodeListCmd(cmd *cli.Cmd) {
 	cmd.Spec = "[OPTIONS]"
 
-	params := NewNodeParams()
+	params := node.NewParams()
 
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
@@ -116,7 +117,7 @@ func nodeListCmd(cmd *cli.Cmd) {
 
 		logger.Info("listing nodes")
 
-		cont, err := NewNodeController(app.env)
+		cont, err := node.New(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -141,7 +142,7 @@ func nodeListCmd(cmd *cli.Cmd) {
 func nodeShowCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
 
-	params := NewNodeParams()
+	params := node.NewParams()
 	params.name = cmd.StringArg("NAME", "", "name of node")
 
 	cmd.Action = func() {
@@ -151,7 +152,7 @@ func nodeShowCmd(cmd *cli.Cmd) {
 		app := NewAdminApp()
 		logger.Info("showing node")
 
-		cont, err := NewNodeController(app.env)
+		cont, err := node.New(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -182,7 +183,7 @@ func nodeShowCmd(cmd *cli.Cmd) {
 func nodeDeleteCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
 
-	params := NewNodeParams()
+	params := node.NewParams()
 	params.name = cmd.StringArg("NAME", "", "name of node")
 
 	params.confirmDelete = cmd.StringOpt("confirm-delete", "", "reason for deleting node")
@@ -193,7 +194,7 @@ func nodeDeleteCmd(cmd *cli.Cmd) {
 
 		app := NewAdminApp()
 		logger.Info("deleting node")
-		cont, err := NewNodeController(app.env)
+		cont, err := node.New(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}

@@ -4,6 +4,7 @@ package main
 import (
 	"fmt"
 	"github.com/jawher/mow.cli"
+	"github.com/pki-io/controllers/ca"
 	"strconv"
 )
 
@@ -21,12 +22,12 @@ func caCmd(cmd *cli.Cmd) {
 
 // ThreatSpec TMv0.1 for caNewCmd
 // Does new CA CLI handling for App:CLI
-// Calls main.NewCAController main.CAController.New
+// Calls main.ca.New main.CAController.New
 
 func caNewCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
 
-	params := NewCAParams()
+	params := ca.NewParams()
 	params.name = cmd.StringArg("NAME", "", "name of CA")
 
 	params.certFile = cmd.StringOpt("cert", "", "certificate PEM file")
@@ -50,7 +51,7 @@ func caNewCmd(cmd *cli.Cmd) {
 		app := NewAdminApp()
 		logger.Info("creating new CA")
 
-		cont, err := NewCAController(app.env)
+		cont, err := ca.New(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -79,7 +80,7 @@ func caNewCmd(cmd *cli.Cmd) {
 // ThreatSpec TMv0.1 for caListCmd
 
 func caListCmd(cmd *cli.Cmd) {
-	params := NewCAParams()
+	params := ca.NewParams()
 
 	cmd.Action = func() {
 		initLogging(*logLevel, *logging)
@@ -88,7 +89,7 @@ func caListCmd(cmd *cli.Cmd) {
 		app := NewAdminApp()
 		logger.Info("listing CAs")
 
-		cont, err := NewCAController(app.env)
+		cont, err := ca.New(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -114,7 +115,7 @@ func caListCmd(cmd *cli.Cmd) {
 func caShowCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
 
-	params := NewCAParams()
+	params := ca.NewParams()
 	params.name = cmd.StringArg("NAME", "", "name of CA")
 
 	params.export = cmd.StringOpt("export", "", "tar.gz export to file")
@@ -127,7 +128,7 @@ func caShowCmd(cmd *cli.Cmd) {
 		app := NewAdminApp()
 		logger.Info("showing CA")
 
-		cont, err := NewCAController(app.env)
+		cont, err := ca.New(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -173,7 +174,7 @@ func caShowCmd(cmd *cli.Cmd) {
 func caUpdateCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
 
-	params := NewCAParams()
+	params := ca.NewParams()
 	params.name = cmd.StringArg("NAME", "", "name of CA")
 
 	params.certFile = cmd.StringOpt("cert", "", "certificate PEM file")
@@ -196,7 +197,7 @@ func caUpdateCmd(cmd *cli.Cmd) {
 		app := NewAdminApp()
 		logger.Info("updating CA")
 
-		cont, err := NewCAController(app.env)
+		cont, err := ca.New(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -212,7 +213,7 @@ func caUpdateCmd(cmd *cli.Cmd) {
 func caDeleteCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
 
-	params := NewCAParams()
+	params := ca.NewParams()
 	params.name = cmd.StringArg("NAME", "", "name of CA")
 
 	params.confirmDelete = cmd.StringOpt("confirm-delete", "", "reason for deleting CA")
@@ -224,7 +225,7 @@ func caDeleteCmd(cmd *cli.Cmd) {
 		app := NewAdminApp()
 		logger.Info("deleting CA")
 
-		cont, err := NewCAController(app.env)
+		cont, err := ca.New(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
