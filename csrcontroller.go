@@ -27,6 +27,7 @@ type CSRParams struct {
 	confirmDelete  *string
 	export         *string
 	private        *bool
+	keepSubject    *bool
 	csrFile        *string
 	keyFile        *string
 }
@@ -55,6 +56,7 @@ func (params *CSRParams) ValidateDnStreet(required bool) error      { return nil
 func (params *CSRParams) ValidateDnPostal(required bool) error      { return nil }
 func (params *CSRParams) ValidateConfirmDelete(required bool) error { return nil }
 func (params *CSRParams) ValidateExport(required bool) error        { return nil }
+func (params *CSRParams) ValidateKeepSubject(required bool) error   { return nil }
 func (params *CSRParams) ValidatePrivate(required bool) error       { return nil }
 func (params *CSRParams) ValidateCSRFile(required bool) error       { return nil }
 func (params *CSRParams) ValidateKeyFile(required bool) error       { return nil }
@@ -197,31 +199,6 @@ func (cont *CSRController) New(params *CSRParams) (*x509.CSR, error) {
 		return nil, err
 	}
 
-	// TODO - This should really be in a CSR function
-	subject := pkix.Name{CommonName: *params.name}
-
-	if *params.dnLocality != "" {
-		subject.Locality = []string{*params.dnLocality}
-	}
-	if *params.dnState != "" {
-		subject.Province = []string{*params.dnState}
-	}
-	if *params.dnOrg != "" {
-		subject.Organization = []string{*params.dnOrg}
-	}
-	if *params.dnOrgUnit != "" {
-		subject.OrganizationalUnit = []string{*params.dnOrgUnit}
-	}
-	if *params.dnCountry != "" {
-		subject.Country = []string{*params.dnCountry}
-	}
-	if *params.dnStreet != "" {
-		subject.StreetAddress = []string{*params.dnStreet}
-	}
-	if *params.dnPostal != "" {
-		subject.PostalCode = []string{*params.dnPostal}
-	}
-
 	logger.Debug("creating CSR struct")
 	csr, err := x509.NewCSR(nil)
 	if err != nil {
@@ -236,6 +213,30 @@ func (cont *CSRController) New(params *CSRParams) (*x509.CSR, error) {
 	keyFile := fmt.Sprintf("%s-key.pem", csr.Data.Body.Name)
 
 	if *params.csrFile == "" && *params.keyFile == "" {
+		// TODO - This should really be in a CSR function
+		subject := pkix.Name{CommonName: *params.name}
+
+		if *params.dnLocality != "" {
+			subject.Locality = []string{*params.dnLocality}
+		}
+		if *params.dnState != "" {
+			subject.Province = []string{*params.dnState}
+		}
+		if *params.dnOrg != "" {
+			subject.Organization = []string{*params.dnOrg}
+		}
+		if *params.dnOrgUnit != "" {
+			subject.OrganizationalUnit = []string{*params.dnOrgUnit}
+		}
+		if *params.dnCountry != "" {
+			subject.Country = []string{*params.dnCountry}
+		}
+		if *params.dnStreet != "" {
+			subject.StreetAddress = []string{*params.dnStreet}
+		}
+		if *params.dnPostal != "" {
+			subject.PostalCode = []string{*params.dnPostal}
+		}
 		logger.Debug("generating CSR and key")
 		csr.Generate(&subject)
 	} else {
@@ -462,7 +463,7 @@ func (cont *CSRController) Sign(params *CSRParams) (*x509.Certificate, error) {
 	}
 
 	logger.Debug("signing CSR")
-	cert, err := ca.Sign(csr)
+	cert, err := ca.Sign(csr, *params.keepSubject)
 
 	org := cont.env.controllers.org.org
 	logger.Debug("encrypting certificate container for org")
