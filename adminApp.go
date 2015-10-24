@@ -45,10 +45,10 @@ If possible, please include this full log output, including the error
 and anything else relevant like what command you ran.
 
 Many thanks,
-The pki.io team
+The pki.io team`
 
-Your error was: %s`
-	logger.Critical(fmt.Sprintf(congrats, err))
+	logger.Critical(err)
+	fmt.Println(congrats)
 	os.Exit(1)
 }
 

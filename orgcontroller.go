@@ -390,7 +390,7 @@ func (cont *OrgController) SignCSR(node *node.Node, caId, tag string) error {
 	}
 
 	logger.Debugf("Signing CSR with ca '%s'", caId)
-	cert, err := ca.Sign(csr)
+	cert, err := ca.Sign(csr, false)
 	if err != nil {
 		return err
 	}
