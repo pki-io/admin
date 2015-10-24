@@ -152,6 +152,7 @@ func csrSignCmd(cmd *cli.Cmd) {
 	params := csr.NewParams()
 	params.name = cmd.StringArg("NAME", "", "name of CSR")
 
+	params.keepSubject = cmd.BoolOpt("keep-subject", false, "keep subject from CSR")
 	params.ca = cmd.StringOpt("ca", "", "name of signing CA")
 	params.tags = cmd.StringOpt("tags", "", "comma separated list of tags")
 
