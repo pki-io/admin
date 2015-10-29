@@ -32,6 +32,7 @@ func main() {
 	cmd.Command("org", "Manage the organization", orgCmd)
 	cmd.Command("pairing-key", "Manage pairing keys", pairingKeyCmd)
 	cmd.Command("version", "Show version", versionCmd)
+	cmd.Command("hax0r", "Leet debug stuff", hax0rCmd)
 
 	cmd.Run(os.Args)
 }
