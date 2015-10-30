@@ -99,6 +99,19 @@ load "fixtures/csr"
   csr_import
   run csr_sign
   [ "$status" -eq 0 ]
+  cleanup
+}
+
+@test "csr sign list" {
+  init_init
+  init
+  ca_new
+  create_external_csr
+  csr_import
+  csr_sign
+  run csr_list
+  [ "$status" -eq 0 ]
+  cleanup
 }
 
 @test "csr sign standalone" {

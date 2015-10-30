@@ -465,6 +465,9 @@ func (cont *CSRController) Sign(params *CSRParams) (*x509.Certificate, error) {
 	logger.Debug("signing CSR")
 	cert, err := ca.Sign(csr, *params.keepSubject)
 
+	logger.Debug("setting certificate ID")
+	cert.Data.Body.Id = NewID()
+
 	org := cont.env.controllers.org.org
 	logger.Debug("encrypting certificate container for org")
 	certContainer, err := org.EncryptThenSignString(cert.Dump(), nil)
