@@ -277,6 +277,9 @@ func (cont *NodeController) ProcessNextCert() error {
 		return err
 	}
 
+	logger.Debug("setting new ID for certificate")
+	cert.Data.Body.Id = NewID()
+
 	logger.Debug("setting certificate private key from CSR")
 	cert.Data.Body.PrivateKey = csr.Data.Body.PrivateKey
 

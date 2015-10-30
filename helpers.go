@@ -16,8 +16,7 @@ import (
 )
 
 func NewID() string {
-	idBytes, err := crypto.RandomBytes(16)
-	fmt.Println(err)
+	idBytes, _ := crypto.RandomBytes(16)
 	return hex.EncodeToString(idBytes)
 }
 

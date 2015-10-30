@@ -3,5 +3,5 @@ org_show() {
 }
 
 org_run() {
-  $CMD org run
+  $CMD org run 
 }
