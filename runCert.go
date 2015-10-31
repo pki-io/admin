@@ -36,9 +36,6 @@ func certNewCmd(cmd *cli.Cmd) {
 	params.dnPostal = cmd.StringOpt("dn-postal", "", "PostalCode for DN")
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("creating new certificate")
 
@@ -70,9 +67,6 @@ func certListCmd(cmd *cli.Cmd) {
 	params := NewCertParams()
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("listing certificates")
 
@@ -107,9 +101,6 @@ func certShowCmd(cmd *cli.Cmd) {
 	params.private = cmd.BoolOpt("private", false, "show/export private data")
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("showing certificate")
 
@@ -157,9 +148,6 @@ func certUpdateCmd(cmd *cli.Cmd) {
 	params.tags = cmd.StringOpt("tags", "", "comma separated list of tags")
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("updating certificate")
 
@@ -183,9 +171,6 @@ func certDeleteCmd(cmd *cli.Cmd) {
 	params.confirmDelete = cmd.StringOpt("confirm-delete", "", "reason for deleting certificate")
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("deleting certificate")
 

@@ -26,9 +26,6 @@ func orgEncryptCmd(cmd *cli.Cmd) {
 	params.containerFile = cmd.StringArg("CONTAINER", "", "container output file")
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 
 		if err := app.env.LoadAdminEnv(); err != nil {
@@ -65,9 +62,6 @@ func orgDecryptCmd(cmd *cli.Cmd) {
 	params.jsonFile = cmd.StringArg("JSON", "", "json output file")
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 
 		if err := app.env.LoadAdminEnv(); err != nil {

@@ -44,9 +44,6 @@ func caNewCmd(cmd *cli.Cmd) {
 	params.dnPostal = cmd.StringOpt("dn-postal", "", "PostalCode for DN scope")
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("creating new CA")
 
@@ -82,9 +79,6 @@ func caListCmd(cmd *cli.Cmd) {
 	params := NewCAParams()
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("listing CAs")
 
@@ -121,9 +115,6 @@ func caShowCmd(cmd *cli.Cmd) {
 	params.private = cmd.BoolOpt("private", false, "show/export private data")
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("showing CA")
 
@@ -190,9 +181,6 @@ func caUpdateCmd(cmd *cli.Cmd) {
 	params.dnPostal = cmd.StringOpt("dn-postal", "", "PostalCode for DN scope")
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("updating CA")
 
@@ -218,9 +206,6 @@ func caDeleteCmd(cmd *cli.Cmd) {
 	params.confirmDelete = cmd.StringOpt("confirm-delete", "", "reason for deleting CA")
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("deleting CA")
 

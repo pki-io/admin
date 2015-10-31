@@ -19,9 +19,6 @@ func orgListCmd(cmd *cli.Cmd) {
 	params := NewOrgParams()
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("listing organisations")
 
@@ -53,9 +50,6 @@ func orgShowCmd(cmd *cli.Cmd) {
 	params.private = cmd.BoolOpt("private", false, "show/export private data")
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("showing organisation")
 
@@ -93,9 +87,6 @@ func orgRunCmd(cmd *cli.Cmd) {
 	params := NewOrgParams()
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("running organisation tasks")
 
@@ -118,9 +109,6 @@ func orgDeleteCmd(cmd *cli.Cmd) {
 	params.confirmDelete = cmd.StringOpt("confirm-delete", "", "reason for deleting organisation")
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("deleting organisation")
 
