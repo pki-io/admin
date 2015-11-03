@@ -14,9 +14,6 @@ func initCmd(cmd *cli.Cmd) {
 	params.admin = cmd.StringOpt("admin", "admin", "name of admin")
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("initialising new org")
 

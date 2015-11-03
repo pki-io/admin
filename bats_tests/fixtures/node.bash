@@ -1,4 +1,5 @@
 export NODENAME="testnode"
+
 node_new() {
   $CMD node new "$NODENAME" --pairing-id "$PAIRING_ID" --pairing-key "$PAIRING_KEY"
 }

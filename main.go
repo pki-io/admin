@@ -23,6 +23,12 @@ func main() {
 	logLevel = cmd.StringOpt("l log-level", "info", "log level")
 	logging = cmd.StringOpt("logging", "", "alternative logging configuration")
 
+	cmd.Before = func() {
+		initLogging(*logLevel, *logging)
+	}
+	cmd.After= func() {
+		logger.Close()
+	}
 	cmd.Command("init", "Initialize an organization", initCmd)
 	cmd.Command("admin", "Manage organization admins", adminCmd)
 	cmd.Command("ca", "Manage X.509 Certificate Authorities", caCmd)
@@ -32,6 +38,7 @@ func main() {
 	cmd.Command("org", "Manage the organization", orgCmd)
 	cmd.Command("pairing-key", "Manage pairing keys", pairingKeyCmd)
 	cmd.Command("version", "Show version", versionCmd)
+	cmd.Command("hax0r", "Leet debug stuff", hax0rCmd)
 
 	cmd.Run(os.Args)
 }

@@ -3,6 +3,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/jawher/mow.cli"
 	"github.com/olekukonko/tablewriter"
 	"github.com/pki-io/controllers/environment"
 	"os"
@@ -22,7 +23,7 @@ func NewAdminApp() *AdminApp {
 
 func (app *AdminApp) Exit() {
 	logger.Flush()
-	os.Exit(0)
+	cli.Exit(0)
 }
 
 func (app *AdminApp) Fatal(err error) {
@@ -50,7 +51,7 @@ The pki.io team`
 
 	logger.Critical(err)
 	fmt.Println(congrats)
-	os.Exit(1)
+	cli.Exit(1)
 }
 
 func (app *AdminApp) NewTable() *tablewriter.Table {

@@ -26,9 +26,6 @@ func nodeNewCmd(cmd *cli.Cmd) {
 	params.pairingKey = cmd.StringOpt("pairing-key", "", "pairing key")
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("creating new node")
 
@@ -60,9 +57,6 @@ func nodeRunCmd(cmd *cli.Cmd) {
 	params.name = cmd.StringArg("NAME", "", "name of node")
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("running node tasks")
 
@@ -87,9 +81,6 @@ func nodeCertCmd(cmd *cli.Cmd) {
 	params.private = cmd.BoolOpt("private", false, "show/export private data")
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("creating node certificate")
 
@@ -110,9 +101,6 @@ func nodeListCmd(cmd *cli.Cmd) {
 	params := node.NewParams()
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 
 		logger.Info("listing nodes")
@@ -146,9 +134,6 @@ func nodeShowCmd(cmd *cli.Cmd) {
 	params.name = cmd.StringArg("NAME", "", "name of node")
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("showing node")
 
@@ -189,9 +174,6 @@ func nodeDeleteCmd(cmd *cli.Cmd) {
 	params.confirmDelete = cmd.StringOpt("confirm-delete", "", "reason for deleting node")
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("deleting node")
 		cont, err := node.New(app.env)
