@@ -19,9 +19,6 @@ func pairingKeyNewCmd(cmd *cli.Cmd) {
 	params.tags = cmd.StringOpt("tags", "", "comma separated list of tags")
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("creating new pairing key")
 
@@ -54,9 +51,6 @@ func pairingKeyListCmd(cmd *cli.Cmd) {
 	params := NewPairingKeyParams()
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("listing pairing keys")
 
@@ -90,9 +84,6 @@ func pairingKeyShowCmd(cmd *cli.Cmd) {
 	params.private = cmd.BoolOpt("private", false, "show/export private data")
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("showing pairing key")
 
@@ -129,9 +120,6 @@ func pairingKeyDeleteCmd(cmd *cli.Cmd) {
 	params.confirmDelete = cmd.StringOpt("confirm-delete", "", "reason for deleting pairing key")
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("deleting pairing key")
 

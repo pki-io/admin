@@ -35,9 +35,6 @@ func csrNewCmd(cmd *cli.Cmd) {
 	params.dnPostal = cmd.StringOpt("dn-postal", "", "PostalCode for DN")
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("creating new CSR")
 
@@ -71,9 +68,6 @@ func csrListCmd(cmd *cli.Cmd) {
 	params := NewCSRParams()
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("listing CSRs")
 
@@ -108,9 +102,6 @@ func csrShowCmd(cmd *cli.Cmd) {
 	params.private = cmd.BoolOpt("private", false, "show/export private data")
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("showing CSR")
 
@@ -156,9 +147,6 @@ func csrSignCmd(cmd *cli.Cmd) {
 	params.tags = cmd.StringOpt("tags", "", "comma separated list of tags")
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("signing CSR")
 
@@ -200,9 +188,6 @@ func csrUpdateCmd(cmd *cli.Cmd) {
 	params.tags = cmd.StringOpt("tags", "", "comma separated list of tags")
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("updating CSR")
 
@@ -226,9 +211,6 @@ func csrDeleteCmd(cmd *cli.Cmd) {
 	params.confirmDelete = cmd.StringOpt("confirm-delete", "", "reason for deleting CSR")
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("deleting CSR")
 

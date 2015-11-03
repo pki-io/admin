@@ -20,9 +20,6 @@ func adminListCmd(cmd *cli.Cmd) {
 	params := NewAdminParams()
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("listing admins")
 
@@ -54,9 +51,6 @@ func adminShowCmd(cmd *cli.Cmd) {
 	params.name = cmd.StringArg("NAME", "", "name of admin")
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("showing admin")
 
@@ -98,9 +92,6 @@ func adminInviteCmd(cmd *cli.Cmd) {
 	params.name = cmd.StringArg("NAME", "", "name of admin")
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("creating admin invite")
 
@@ -140,9 +131,6 @@ func adminNewCmd(cmd *cli.Cmd) {
 	params.inviteKey = cmd.StringOpt("invite-key", "", "invite key")
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("creating new admin")
 
@@ -162,9 +150,6 @@ func adminRunCmd(cmd *cli.Cmd) {
 	params := NewAdminParams()
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("running admin tasks")
 
@@ -190,9 +175,6 @@ func adminCompleteCmd(cmd *cli.Cmd) {
 	params.inviteKey = cmd.StringOpt("invite-key", "", "invite key")
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("completing new admin")
 
@@ -217,9 +199,6 @@ func adminDeleteCmd(cmd *cli.Cmd) {
 	params.confirmDelete = cmd.StringOpt("confirm-delete", "", "reason for deleting admin")
 
 	cmd.Action = func() {
-		initLogging(*logLevel, *logging)
-		defer logger.Close()
-
 		app := NewAdminApp()
 		logger.Info("deleting admin")
 
