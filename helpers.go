@@ -10,66 +10,12 @@ import (
 	"github.com/pki-io/core/crypto"
 	"io/ioutil"
 	"os"
-	"strconv"
-	"strings"
 	"time"
 )
 
 func NewID() string {
 	idBytes, _ := crypto.RandomBytes(16)
 	return hex.EncodeToString(idBytes)
-}
-
-func ParseTags(tagString string) []string {
-	tags := strings.Split(tagString, ",")
-	for i, e := range tags {
-		tags[i] = strings.TrimSpace(strings.ToLower(e))
-	}
-	return tags
-}
-
-func ArgInt(arg interface{}, def interface{}) int {
-	switch t := arg.(type) {
-	case string:
-		argInt, err := strconv.ParseInt(arg.(string), 10, 64)
-		fmt.Println(err)
-		return int(argInt)
-	case nil:
-		return def.(int)
-	case bool:
-		return def.(int)
-	default:
-		// Never gets to the next line
-		fmt.Println(t)
-		return 0
-	}
-}
-
-func ArgString(arg interface{}, def interface{}) string {
-	switch t := arg.(type) {
-	case string:
-		return arg.(string)
-	case nil:
-		return def.(string)
-	case bool:
-		return def.(string)
-	default:
-		// Never gets to the next line
-		fmt.Println(t)
-		return ""
-	}
-}
-
-func ArgBool(arg interface{}, def interface{}) bool {
-	switch t := arg.(type) {
-	case string:
-		return arg.(string) == "true"
-	case bool:
-		return arg.(bool)
-	default:
-		fmt.Println(t)
-		return false
-	}
 }
 
 type ExportFile struct {

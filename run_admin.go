@@ -4,7 +4,7 @@ package main
 import (
 	"fmt"
 	"github.com/jawher/mow.cli"
-	"github.com/pki-io/controllers/admin"
+	"github.com/pki-io/controller"
 )
 
 func adminCmd(cmd *cli.Cmd) {
@@ -18,13 +18,13 @@ func adminCmd(cmd *cli.Cmd) {
 }
 
 func adminListCmd(cmd *cli.Cmd) {
-	params := admin.NewParams()
+	params := controller.NewAdminParams()
 
 	cmd.Action = func() {
 		app := NewAdminApp()
 		logger.Info("listing admins")
 
-		cont, err := admin.New(app.env)
+		cont, err := controller.NewAdmin(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -48,14 +48,14 @@ func adminListCmd(cmd *cli.Cmd) {
 func adminShowCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
 
-	params := admin.NewParams()
-	params.name = cmd.StringArg("NAME", "", "name of admin")
+	params := controller.NewAdminParams()
+	params.Name = cmd.StringArg("NAME", "", "name of admin")
 
 	cmd.Action = func() {
 		app := NewAdminApp()
 		logger.Info("showing admin")
 
-		cont, err := admin.New(app.env)
+		cont, err := controller.NewAdmin(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -89,14 +89,14 @@ func adminShowCmd(cmd *cli.Cmd) {
 func adminInviteCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
 
-	params := admin.NewParams()
-	params.name = cmd.StringArg("NAME", "", "name of admin")
+	params := controller.NewAdminParams()
+	params.Name = cmd.StringArg("NAME", "", "name of admin")
 
 	cmd.Action = func() {
 		app := NewAdminApp()
 		logger.Info("creating admin invite")
 
-		cont, err := admin.New(app.env)
+		cont, err := controller.NewAdmin(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -125,17 +125,17 @@ func adminInviteCmd(cmd *cli.Cmd) {
 func adminNewCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
 
-	params := admin.NewParams()
-	params.name = cmd.StringArg("NAME", "", "name of admin")
+	params := controller.NewAdminParams()
+	params.Name = cmd.StringArg("NAME", "", "name of admin")
 
-	params.inviteId = cmd.StringOpt("invite-id", "", "invite id")
-	params.inviteKey = cmd.StringOpt("invite-key", "", "invite key")
+	params.InviteId = cmd.StringOpt("invite-id", "", "invite id")
+	params.InviteKey = cmd.StringOpt("invite-key", "", "invite key")
 
 	cmd.Action = func() {
 		app := NewAdminApp()
 		logger.Info("creating new admin")
 
-		cont, err := admin.New(app.env)
+		cont, err := controller.NewAdmin(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -148,13 +148,13 @@ func adminNewCmd(cmd *cli.Cmd) {
 }
 
 func adminRunCmd(cmd *cli.Cmd) {
-	params := admin.NewParams()
+	params := controller.NewAdminParams()
 
 	cmd.Action = func() {
 		app := NewAdminApp()
 		logger.Info("running admin tasks")
 
-		cont, err := admin.New(app.env)
+		cont, err := controller.NewAdmin(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -169,17 +169,17 @@ func adminRunCmd(cmd *cli.Cmd) {
 func adminCompleteCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
 
-	params := admin.NewParams()
-	params.name = cmd.StringArg("NAME", "", "name of admin")
+	params := controller.NewAdminParams()
+	params.Name = cmd.StringArg("NAME", "", "name of admin")
 
-	params.inviteId = cmd.StringOpt("invite-id", "", "invite id")
-	params.inviteKey = cmd.StringOpt("invite-key", "", "invite key")
+	params.InviteId = cmd.StringOpt("invite-id", "", "invite id")
+	params.InviteKey = cmd.StringOpt("invite-key", "", "invite key")
 
 	cmd.Action = func() {
 		app := NewAdminApp()
 		logger.Info("completing new admin")
 
-		cont, err := admin.New(app.env)
+		cont, err := controller.NewAdmin(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -194,16 +194,16 @@ func adminCompleteCmd(cmd *cli.Cmd) {
 func adminDeleteCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
 
-	params := admin.NewParams()
-	params.name = cmd.StringArg("NAME", "", "name of admin")
+	params := controller.NewAdminParams()
+	params.Name = cmd.StringArg("NAME", "", "name of admin")
 
-	params.confirmDelete = cmd.StringOpt("confirm-delete", "", "reason for deleting admin")
+	params.ConfirmDelete = cmd.StringOpt("confirm-delete", "", "reason for deleting admin")
 
 	cmd.Action = func() {
 		app := NewAdminApp()
 		logger.Info("deleting admin")
 
-		cont, err := admin.New(app.env)
+		cont, err := controller.NewAdmin(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}

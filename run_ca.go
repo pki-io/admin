@@ -4,7 +4,7 @@ package main
 import (
 	"fmt"
 	"github.com/jawher/mow.cli"
-	"github.com/pki-io/controllers/ca"
+	"github.com/pki-io/controller"
 	"strconv"
 )
 
@@ -22,33 +22,33 @@ func caCmd(cmd *cli.Cmd) {
 
 // ThreatSpec TMv0.1 for caNewCmd
 // Does new CA CLI handling for App:CLI
-// Calls main.ca.New main.CAController.New
+// Calls main.controller.NewCA main.CAController.New
 
 func caNewCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
 
-	params := ca.NewParams()
-	params.name = cmd.StringArg("NAME", "", "name of CA")
+	params := controller.NewCAParams()
+	params.Name = cmd.StringArg("NAME", "", "name of CA")
 
-	params.certFile = cmd.StringOpt("cert", "", "certificate PEM file")
-	params.keyFile = cmd.StringOpt("key", "", "key PEM file")
-	params.tags = cmd.StringOpt("tags", "NAME", "comma separated list of tags")
-	params.caExpiry = cmd.IntOpt("ca-expiry", 365, "CA expiry period in days")
-	params.certExpiry = cmd.IntOpt("cert-expiry", 90, "Certificate expiry period in days")
-	params.keyType = cmd.StringOpt("key-type", "ec", "Key type (ec or rsa)")
-	params.dnLocality = cmd.StringOpt("dn-l", "", "Locality for DN scope")
-	params.dnState = cmd.StringOpt("dn-st", "", "State/province for DN scope")
-	params.dnOrg = cmd.StringOpt("dn-o", "", "Organization for DN scope")
-	params.dnOrgUnit = cmd.StringOpt("dn-ou", "", "Organizational unit for DN scope")
-	params.dnCountry = cmd.StringOpt("dn-c", "", "Country for DN scope")
-	params.dnStreet = cmd.StringOpt("dn-street", "", "Street for DN scope")
-	params.dnPostal = cmd.StringOpt("dn-postal", "", "PostalCode for DN scope")
+	params.CertFile = cmd.StringOpt("cert", "", "certificate PEM file")
+	params.KeyFile = cmd.StringOpt("key", "", "key PEM file")
+	params.Tags = cmd.StringOpt("tags", "NAME", "comma separated list of tags")
+	params.CaExpiry = cmd.IntOpt("ca-expiry", 365, "CA expiry period in days")
+	params.CertExpiry = cmd.IntOpt("cert-expiry", 90, "Certificate expiry period in days")
+	params.KeyType = cmd.StringOpt("key-type", "ec", "Key type (ec or rsa)")
+	params.DnLocality = cmd.StringOpt("dn-l", "", "Locality for DN scope")
+	params.DnState = cmd.StringOpt("dn-st", "", "State/province for DN scope")
+	params.DnOrg = cmd.StringOpt("dn-o", "", "Organization for DN scope")
+	params.DnOrgUnit = cmd.StringOpt("dn-ou", "", "Organizational unit for DN scope")
+	params.DnCountry = cmd.StringOpt("dn-c", "", "Country for DN scope")
+	params.DnStreet = cmd.StringOpt("dn-street", "", "Street for DN scope")
+	params.DnPostal = cmd.StringOpt("dn-postal", "", "PostalCode for DN scope")
 
 	cmd.Action = func() {
 		app := NewAdminApp()
 		logger.Info("creating new CA")
 
-		cont, err := ca.New(app.env)
+		cont, err := controller.NewCA(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -77,13 +77,13 @@ func caNewCmd(cmd *cli.Cmd) {
 // ThreatSpec TMv0.1 for caListCmd
 
 func caListCmd(cmd *cli.Cmd) {
-	params := ca.NewParams()
+	params := controller.NewCAParams()
 
 	cmd.Action = func() {
 		app := NewAdminApp()
 		logger.Info("listing CAs")
 
-		cont, err := ca.New(app.env)
+		cont, err := controller.NewCA(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -109,17 +109,17 @@ func caListCmd(cmd *cli.Cmd) {
 func caShowCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
 
-	params := ca.NewParams()
-	params.name = cmd.StringArg("NAME", "", "name of CA")
+	params := controller.NewCAParams()
+	params.Name = cmd.StringArg("NAME", "", "name of CA")
 
-	params.export = cmd.StringOpt("export", "", "tar.gz export to file")
-	params.private = cmd.BoolOpt("private", false, "show/export private data")
+	params.Export = cmd.StringOpt("export", "", "tar.gz export to file")
+	params.Private = cmd.BoolOpt("private", false, "show/export private data")
 
 	cmd.Action = func() {
 		app := NewAdminApp()
 		logger.Info("showing CA")
 
-		cont, err := ca.New(app.env)
+		cont, err := controller.NewCA(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -129,7 +129,7 @@ func caShowCmd(cmd *cli.Cmd) {
 			app.Fatal(err)
 		}
 
-		if ca != nil {
+		if *params.Export == "" {
 			table := app.NewTable()
 
 			caData := [][]string{
@@ -153,9 +153,21 @@ func caShowCmd(cmd *cli.Cmd) {
 			fmt.Println("")
 			fmt.Printf("Certificate:\n%s\n", ca.Data.Body.Certificate)
 
-			if *params.private {
+			if *params.Private {
 				fmt.Printf("Private key:\n%s\n", ca.Data.Body.PrivateKey)
 			}
+		} else {
+			var files []ExportFile
+			certFile := fmt.Sprintf("%s-cert.pem", ca.Data.Body.Name)
+			keyFile := fmt.Sprintf("%s-key.pem", ca.Data.Body.Name)
+
+			files = append(files, ExportFile{Name: certFile, Mode: 0644, Content: []byte(ca.Data.Body.Certificate)})
+
+			if *params.Private {
+				files = append(files, ExportFile{Name: keyFile, Mode: 0600, Content: []byte(ca.Data.Body.PrivateKey)})
+			}
+
+			Export(files, *params.Export)
 		}
 	}
 }
@@ -165,27 +177,27 @@ func caShowCmd(cmd *cli.Cmd) {
 func caUpdateCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
 
-	params := ca.NewParams()
-	params.name = cmd.StringArg("NAME", "", "name of CA")
+	params := controller.NewCAParams()
+	params.Name = cmd.StringArg("NAME", "", "name of CA")
 
-	params.certFile = cmd.StringOpt("cert", "", "certificate PEM file")
-	params.keyFile = cmd.StringOpt("key", "", "key PEM file")
-	params.tags = cmd.StringOpt("tags", "", "comma separated list of tags")
-	params.caExpiry = cmd.IntOpt("ca-expiry", 0, "CA expiry period in days")
-	params.certExpiry = cmd.IntOpt("cert-expiry", 0, "Certificate expiry period in days")
-	params.dnLocality = cmd.StringOpt("dn-l", "", "Locality for DN scope")
-	params.dnState = cmd.StringOpt("dn-st", "", "State/province for DN scope")
-	params.dnOrg = cmd.StringOpt("dn-o", "", "Organization for DN scope")
-	params.dnOrgUnit = cmd.StringOpt("dn-ou", "", "Organizational unit for DN scope")
-	params.dnCountry = cmd.StringOpt("dn-c", "", "Country for DN scope")
-	params.dnStreet = cmd.StringOpt("dn-street", "", "Street for DN scope")
-	params.dnPostal = cmd.StringOpt("dn-postal", "", "PostalCode for DN scope")
+	params.CertFile = cmd.StringOpt("cert", "", "certificate PEM file")
+	params.KeyFile = cmd.StringOpt("key", "", "key PEM file")
+	params.Tags = cmd.StringOpt("tags", "", "comma separated list of tags")
+	params.CaExpiry = cmd.IntOpt("ca-expiry", 0, "CA expiry period in days")
+	params.CertExpiry = cmd.IntOpt("cert-expiry", 0, "Certificate expiry period in days")
+	params.DnLocality = cmd.StringOpt("dn-l", "", "Locality for DN scope")
+	params.DnState = cmd.StringOpt("dn-st", "", "State/province for DN scope")
+	params.DnOrg = cmd.StringOpt("dn-o", "", "Organization for DN scope")
+	params.DnOrgUnit = cmd.StringOpt("dn-ou", "", "Organizational unit for DN scope")
+	params.DnCountry = cmd.StringOpt("dn-c", "", "Country for DN scope")
+	params.DnStreet = cmd.StringOpt("dn-street", "", "Street for DN scope")
+	params.DnPostal = cmd.StringOpt("dn-postal", "", "PostalCode for DN scope")
 
 	cmd.Action = func() {
 		app := NewAdminApp()
 		logger.Info("updating CA")
 
-		cont, err := ca.New(app.env)
+		cont, err := controller.NewCA(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -201,16 +213,16 @@ func caUpdateCmd(cmd *cli.Cmd) {
 func caDeleteCmd(cmd *cli.Cmd) {
 	cmd.Spec = "NAME [OPTIONS]"
 
-	params := ca.NewParams()
-	params.name = cmd.StringArg("NAME", "", "name of CA")
+	params := controller.NewCAParams()
+	params.Name = cmd.StringArg("NAME", "", "name of CA")
 
-	params.confirmDelete = cmd.StringOpt("confirm-delete", "", "reason for deleting CA")
+	params.ConfirmDelete = cmd.StringOpt("confirm-delete", "", "reason for deleting CA")
 
 	cmd.Action = func() {
 		app := NewAdminApp()
 		logger.Info("deleting CA")
 
-		cont, err := ca.New(app.env)
+		cont, err := controller.NewCA(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}

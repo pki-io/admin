@@ -4,7 +4,7 @@ package main
 import (
 	"fmt"
 	"github.com/jawher/mow.cli"
-	"github.com/pki-io/controllers/org"
+	"github.com/pki-io/controller"
 )
 
 func orgCmd(cmd *cli.Cmd) {
@@ -17,13 +17,13 @@ func orgCmd(cmd *cli.Cmd) {
 func orgListCmd(cmd *cli.Cmd) {
 	cmd.Spec = "[OPTIONS]"
 
-	params := org.NewParams()
+	params := controller.NewOrgParams()
 
 	cmd.Action = func() {
 		app := NewAdminApp()
 		logger.Info("listing organisations")
 
-		cont, err := org.New(app.env)
+		cont, err := controller.NewOrg(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -47,14 +47,14 @@ func orgListCmd(cmd *cli.Cmd) {
 func orgShowCmd(cmd *cli.Cmd) {
 	cmd.Spec = "[OPTIONS]"
 
-	params := org.NewParams()
-	params.private = cmd.BoolOpt("private", false, "show/export private data")
+	params := controller.NewOrgParams()
+	params.Private = cmd.BoolOpt("private", false, "show/export private data")
 
 	cmd.Action = func() {
 		app := NewAdminApp()
 		logger.Info("showing organisation")
 
-		cont, err := org.New(app.env)
+		cont, err := controller.NewOrg(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -85,13 +85,13 @@ func orgShowCmd(cmd *cli.Cmd) {
 func orgRunCmd(cmd *cli.Cmd) {
 	cmd.Spec = "[OPTIONS]"
 
-	params := org.NewParams()
+	params := controller.NewOrgParams()
 
 	cmd.Action = func() {
 		app := NewAdminApp()
 		logger.Info("running organisation tasks")
 
-		cont, err := org.New(app.env)
+		cont, err := controller.NewOrg(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -105,15 +105,15 @@ func orgRunCmd(cmd *cli.Cmd) {
 func orgDeleteCmd(cmd *cli.Cmd) {
 	cmd.Spec = "ORG [OPTIONS]"
 
-	params := org.NewParams()
-	params.org = cmd.StringArg("ORG", "", "name of organisation")
-	params.confirmDelete = cmd.StringOpt("confirm-delete", "", "reason for deleting organisation")
+	params := controller.NewOrgParams()
+	params.Org = cmd.StringArg("ORG", "", "name of organisation")
+	params.ConfirmDelete = cmd.StringOpt("confirm-delete", "", "reason for deleting organisation")
 
 	cmd.Action = func() {
 		app := NewAdminApp()
 		logger.Info("deleting organisation")
 
-		cont, err := org.New(app.env)
+		cont, err := controller.NewOrg(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}

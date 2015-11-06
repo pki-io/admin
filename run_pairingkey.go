@@ -3,7 +3,7 @@ package main
 
 import (
 	"github.com/jawher/mow.cli"
-	"github.com/pki-io/controllers/pairingkey"
+	"github.com/pki-io/controller"
 )
 
 func pairingKeyCmd(cmd *cli.Cmd) {
@@ -16,14 +16,14 @@ func pairingKeyCmd(cmd *cli.Cmd) {
 func pairingKeyNewCmd(cmd *cli.Cmd) {
 	cmd.Spec = "[OPTIONS]"
 
-	params := pairingkey.NewParams()
-	params.tags = cmd.StringOpt("tags", "", "comma separated list of tags")
+	params := controller.NewPairingKeyParams()
+	params.Tags = cmd.StringOpt("tags", "", "comma separated list of tags")
 
 	cmd.Action = func() {
 		app := NewAdminApp()
 		logger.Info("creating new pairing key")
 
-		cont, err := pairingkey.New(app.env)
+		cont, err := controller.NewPairingKey(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -49,13 +49,13 @@ func pairingKeyNewCmd(cmd *cli.Cmd) {
 }
 
 func pairingKeyListCmd(cmd *cli.Cmd) {
-	params := pairingkey.NewParams()
+	params := controller.NewPairingKeyParams()
 
 	cmd.Action = func() {
 		app := NewAdminApp()
 		logger.Info("listing pairing keys")
 
-		cont, err := pairingkey.New(app.env)
+		cont, err := controller.NewPairingKey(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -79,16 +79,16 @@ func pairingKeyListCmd(cmd *cli.Cmd) {
 func pairingKeyShowCmd(cmd *cli.Cmd) {
 	cmd.Spec = "ID [OPTIONS]"
 
-	params := pairingkey.NewParams()
-	params.id = cmd.StringArg("ID", "", "Public ID of pairing key")
+	params := controller.NewPairingKeyParams()
+	params.Id = cmd.StringArg("ID", "", "Public ID of pairing key")
 
-	params.private = cmd.BoolOpt("private", false, "show/export private data")
+	params.Private = cmd.BoolOpt("private", false, "show/export private data")
 
 	cmd.Action = func() {
 		app := NewAdminApp()
 		logger.Info("showing pairing key")
 
-		cont, err := pairingkey.New(app.env)
+		cont, err := controller.NewPairingKey(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
@@ -102,7 +102,7 @@ func pairingKeyShowCmd(cmd *cli.Cmd) {
 			table := app.NewTable()
 
 			table.Append([]string{"Id", id})
-			if *params.private {
+			if *params.Private {
 				table.Append([]string{"Key", key})
 			}
 			table.Append([]string{"Tags", tags})
@@ -115,16 +115,16 @@ func pairingKeyShowCmd(cmd *cli.Cmd) {
 func pairingKeyDeleteCmd(cmd *cli.Cmd) {
 	cmd.Spec = "ID [OPTIONS]"
 
-	params := pairingkey.NewParams()
-	params.id = cmd.StringArg("ID", "", "Public ID of pairing key")
+	params := controller.NewPairingKeyParams()
+	params.Id = cmd.StringArg("ID", "", "Public ID of pairing key")
 
-	params.confirmDelete = cmd.StringOpt("confirm-delete", "", "reason for deleting pairing key")
+	params.ConfirmDelete = cmd.StringOpt("confirm-delete", "", "reason for deleting pairing key")
 
 	cmd.Action = func() {
 		app := NewAdminApp()
 		logger.Info("deleting pairing key")
 
-		cont, err := pairingkey.New(app.env)
+		cont, err := controller.NewPairingKey(app.env)
 		if err != nil {
 			app.Fatal(err)
 		}
