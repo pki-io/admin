@@ -1,11 +1,11 @@
 package main
 
 import (
-	"fmt"
+	//"fmt"
 	"github.com/jawher/mow.cli"
-	"github.com/pki-io/core/document"
-	"github.com/pki-io/core/fs"
-	"io/ioutil"
+	//"github.com/pki-io/core/document"
+	//"github.com/pki-io/core/fs"
+	//"io/ioutil"
 )
 
 type Hax0rParams struct {
@@ -32,7 +32,7 @@ func orgEncryptCmd(cmd *cli.Cmd) {
 			app.Fatal(err)
 		}
 
-		org := app.env.controllers.org.org
+		/*org := app.env.controllers.org.org
 
 		content, err := fs.ReadFile(*params.jsonFile)
 		if err != nil {
@@ -49,7 +49,7 @@ func orgEncryptCmd(cmd *cli.Cmd) {
 		} else {
 			fmt.Printf("encrypted container written to %s\n", *params.containerFile)
 			fmt.Println("permissions set to 0600. Please fix if requird")
-		}
+		}*/
 
 	}
 }
@@ -68,7 +68,7 @@ func orgDecryptCmd(cmd *cli.Cmd) {
 			app.Fatal(err)
 		}
 
-		org := app.env.controllers.org.org
+		/*org := app.env.controllers.org.org
 
 		containerJson, err := fs.ReadFile(*params.containerFile)
 		if err != nil {
@@ -89,6 +89,6 @@ func orgDecryptCmd(cmd *cli.Cmd) {
 			app.Fatal(err)
 		} else {
 			fmt.Printf("decrypted json written to %s\n", *params.jsonFile)
-		}
+		}*/
 	}
 }

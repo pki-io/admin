@@ -28,9 +28,13 @@ vendor -f "github.com/pki-io/gojsonschema" -r "github.com/xeipuuv/gojsonschema" 
 vendor --clone -f "github.com/pki-io/crypto" -r "golang.org/x/crypto" -g "checkout 7d5b0be716b9d6d4269afdaae10032bb296d3cdf"
 vendor --build -f "github.com/pki-io/crypto" -r "golang.org/x/crypto" -p "pbkdf2"
 
+##### Core #####
 vendor --clone -r "github.com/pki-io/core" -g "checkout development"
 if [[ "${FDM_ENV:-}" != "DEV" ]]; then
   for d in config crypto document entity fs index node x509; do
     vendor --build -r "github.com/pki-io/core" -p "$d"
   done
 fi
+
+##### Controllers #####
+vendor -r "github.com/pki-io/controller" -g "checkout master"

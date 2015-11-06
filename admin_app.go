@@ -5,18 +5,17 @@ import (
 	"fmt"
 	"github.com/jawher/mow.cli"
 	"github.com/olekukonko/tablewriter"
+	"github.com/pki-io/controller"
 	"os"
 )
 
 type AdminApp struct {
-	env *Environment
+	env *controller.Environment
 }
 
 func NewAdminApp() *AdminApp {
 	app := new(AdminApp)
-
-	app.env = new(Environment)
-
+	app.env = controller.NewEnvironment(logger)
 	return app
 }
 
