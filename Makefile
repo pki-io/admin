@@ -20,8 +20,9 @@ clean:
 
 dev: clean
 	FDM_ENV=DEV fdm --dev
-	mkdir -p _vendor/src/github.com/pki-io/core && \
+	rm -rf _vendor/src/github.com/pki-io/core/* && \
 	for d in $(CORE_DIRS); do (cd _vendor/src/github.com/pki-io/core && ln -s ../../../../../../core/$$d .); done && \
+	rm -rf _vendor/src/github.com/pki-io/controller && \
 	(cd _vendor/src/github.com/pki-io && ln -s ../../../../../controller .) && \
 	rm -rf _vendor/pkg
 	fdm --dev
