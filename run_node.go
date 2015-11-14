@@ -5,15 +5,58 @@ import (
 	"fmt"
 	"github.com/jawher/mow.cli"
 	"github.com/pki-io/controller"
+	"github.com/pki-io/core/ssh"
+	"os"
+	"strings"
 )
 
 func nodeCmd(cmd *cli.Cmd) {
+	cmd.Command("init", "Initialise agent on remote node", nodeInitCmd)
 	cmd.Command("new", "Create a new node", nodeNewCmd)
 	cmd.Command("run", "Run tasks for node", nodeRunCmd)
 	cmd.Command("cert", "Get certificates for node", nodeCertCmd)
 	cmd.Command("list", "List nodes", nodeListCmd)
 	cmd.Command("show", "Show a node", nodeShowCmd)
 	cmd.Command("delete", "Delete a node", nodeDeleteCmd)
+}
+
+func nodeInitCmd(cmd *cli.Cmd) {
+	cmd.Spec = "NAME HOST [OPTIONS] [-- SSH_ARGS]"
+
+	name := cmd.StringArg("NAME", "", "name of node")
+	host := cmd.StringArg("HOST", "", "node hostname or ip address")
+
+	agentFile := cmd.StringOpt("agent-file", "", "path to agent package")
+	installFile := cmd.StringOpt("install-file", "./agent-installer.sh", "path to agent installer script")
+
+	sshArgs := cmd.StringArg("SSH_ARGS", "", "arguments to pass to ssh NOT WORKING YET")
+
+	cmd.Action = func() {
+		app := NewAdminApp()
+		logger.Infof("initialising node %s", *name)
+
+		s, err := ssh.Connect(*host, strings.Split(*sshArgs, " "))
+		if err != nil {
+			app.Fatal(err)
+		}
+
+		if err := s.PutFiles("", *agentFile); err != nil {
+			app.Fatal(err)
+		}
+
+		if err := s.PutFiles("", *installFile); err != nil {
+			app.Fatal(err)
+		}
+
+		// stream output in real time
+		if err := s.Execute("sh agent-installer.sh", nil, os.Stdout, os.Stderr); err != nil {
+			app.Fatal(err)
+		}
+
+		if err := s.Close(); err != nil {
+			app.Fatal(err)
+		}
+	}
 }
 
 func nodeNewCmd(cmd *cli.Cmd) {

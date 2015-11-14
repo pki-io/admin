@@ -26,7 +26,7 @@ func main() {
 	cmd.Before = func() {
 		initLogging(*logLevel, *logging)
 	}
-	cmd.After= func() {
+	cmd.After = func() {
 		logger.Close()
 	}
 	cmd.Command("init", "Initialize an organization", initCmd)

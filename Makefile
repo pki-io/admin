@@ -1,4 +1,4 @@
-CORE_DIRS = api config crypto document entity fs index node x509
+CORE_DIRS=api config crypto document entity fs index node ssh x509
 
 default: get-deps build test
 
@@ -18,7 +18,7 @@ clean:
 	test ! -d _vendor || rm -rf _vendor/*
 	test ! -e pki.io || rm pki.io
 
-dev: clean
+dev:
 	FDM_ENV=DEV fdm --dev
 	rm -rf _vendor/src/github.com/pki-io/core/* && \
 	for d in $(CORE_DIRS); do (cd _vendor/src/github.com/pki-io/core && ln -s ../../../../../../core/$$d .); done && \

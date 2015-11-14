@@ -31,7 +31,7 @@ vendor --build -f "github.com/pki-io/crypto" -r "golang.org/x/crypto" -p "pbkdf2
 ##### Core #####
 vendor --clone -r "github.com/pki-io/core" -g "checkout development"
 if [[ "${FDM_ENV:-}" != "DEV" ]]; then
-  for d in config crypto document entity fs index node x509; do
+  for d in config crypto document entity fs index node ssh x509; do
     vendor --build -r "github.com/pki-io/core" -p "$d"
   done
 fi
