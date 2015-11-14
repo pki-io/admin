@@ -17,7 +17,7 @@ vendor -f "github.com/pki-io/go-homedir" -r "github.com/mitchellh/go-homedir" -g
 
 
 ##### Elliptic curve crypto #####
-vendor -f "github.com/pki-io/ecies" -r "github.com/obscuren/ecies" -g "checkout 582e689ca8661237e08b02068435199ea8a55318"
+vendor -f "github.com/pki-io/ecies" -r "github.com/obscuren/ecies" -g "checkout 7c0f4a9b18d992166452d8cd32caaefd92b26386"
 
 ##### JSON #####
 vendor -f "github.com/pki-io/gojsonpointer" -r "github.com/xeipuuv/gojsonpointer" -g "checkout 636edb2500d21f2ed09ea96a00deb36bbd07cf70"
