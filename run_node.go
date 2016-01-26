@@ -1,17 +1,12 @@
-// ThreatSpec package main
 package main
 
 import (
 	"fmt"
 	"github.com/jawher/mow.cli"
 	"github.com/pki-io/controller"
-	"github.com/pki-io/core/ssh"
-	"os"
-	"strings"
 )
 
 func nodeCmd(cmd *cli.Cmd) {
-	cmd.Command("init", "Initialise agent on remote node", nodeInitCmd)
 	cmd.Command("new", "Create a new node", nodeNewCmd)
 	cmd.Command("run", "Run tasks for node", nodeRunCmd)
 	cmd.Command("cert", "Get certificates for node", nodeCertCmd)
@@ -20,53 +15,19 @@ func nodeCmd(cmd *cli.Cmd) {
 	cmd.Command("delete", "Delete a node", nodeDeleteCmd)
 }
 
-func nodeInitCmd(cmd *cli.Cmd) {
-	cmd.Spec = "NAME HOST [OPTIONS] [-- SSH_ARGS]"
-
-	name := cmd.StringArg("NAME", "", "name of node")
-	host := cmd.StringArg("HOST", "", "node hostname or ip address")
-
-	agentFile := cmd.StringOpt("agent-file", "", "path to agent package")
-	installFile := cmd.StringOpt("install-file", "./agent-installer.sh", "path to agent installer script")
-
-	sshArgs := cmd.StringArg("SSH_ARGS", "", "arguments to pass to ssh NOT WORKING YET")
-
-	cmd.Action = func() {
-		app := NewAdminApp()
-		logger.Infof("initialising node %s", *name)
-
-		s, err := ssh.Connect(*host, strings.Split(*sshArgs, " "))
-		if err != nil {
-			app.Fatal(err)
-		}
-
-		if err := s.PutFiles("", *agentFile); err != nil {
-			app.Fatal(err)
-		}
-
-		if err := s.PutFiles("", *installFile); err != nil {
-			app.Fatal(err)
-		}
-
-		// stream output in real time
-		if err := s.Execute("sh agent-installer.sh", nil, os.Stdout, os.Stderr); err != nil {
-			app.Fatal(err)
-		}
-
-		if err := s.Close(); err != nil {
-			app.Fatal(err)
-		}
-	}
-}
-
 func nodeNewCmd(cmd *cli.Cmd) {
-	cmd.Spec = "NAME [OPTIONS]"
+	cmd.Spec = "NAME [OPTIONS] [--host --agent-file -- [SSH_OPTIONS]]"
 
 	params := controller.NewNodeParams()
 	params.Name = cmd.StringArg("NAME", "", "name of node")
 
 	params.PairingId = cmd.StringOpt("pairing-id", "", "pairing id")
 	params.PairingKey = cmd.StringOpt("pairing-key", "", "pairing key")
+
+	params.Host = cmd.StringOpt("host", "", "node hostname or ip address")
+	params.AgentFile = cmd.StringOpt("agent-file", "", "path to agent package")
+	params.InstallFile = cmd.StringOpt("install-file", "./agent-installer.sh", "path to agent installer script")
+	params.SSHOptions = cmd.StringArg("SSH_OPTIONS", "", "arguments to pass to ssh NOT WORKING YET")
 
 	cmd.Action = func() {
 		app := NewAdminApp()
