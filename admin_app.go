@@ -15,7 +15,8 @@ type AdminApp struct {
 
 func NewAdminApp() *AdminApp {
 	app := new(AdminApp)
-	app.env = controller.NewEnvironment(logger)
+	app.env = controller.NewEnvironment()
+	controller.UseLogger(logger)
 	return app
 }
 
